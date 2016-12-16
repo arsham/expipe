@@ -1,0 +1,26 @@
+hash: 7c65877efa86123c4d429b5670509bc480c932fbd71d383cf6ac92c86366fd45
+updated: 2016-12-15T16:08:15.282932208Z
+imports:
+- name: github.com/asaskevich/govalidator
+  version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
+- name: github.com/namsral/flag
+  version: 71ceffbeb0ba60fccc853971bb3ed4d7d90bfd04
+- name: github.com/olivere/elastic
+  version: b272fab42387a42585235d56f8c6b53b13ddfb7d
+- name: github.com/Sirupsen/logrus
+  version: d26492970760ca5d33129d2d799e34be5c4782eb
+- name: golang.org/x/net
+  version: 4971afdc2f162e82d185353533d3cf16188a9f4e
+  subpackages:
+  - context
+  - context/ctxhttp
+- name: golang.org/x/sys
+  version: 30237cf4eefd639b184d1f2cb77a581ea0be8947
+  subpackages:
+  - unix
+- name: gopkg.in/olivere/elastic.v5
+  version: b272fab42387a42585235d56f8c6b53b13ddfb7d
+  subpackages:
+  - backoff
+  - uritemplates
+testImports: []

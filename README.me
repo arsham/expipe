@@ -1,0 +1,3 @@
+docker run -it --rm --name expvastic --ulimit nofile=98304:98304 -p 9200:9200 -v "/home/data/expvastic":/usr/share/elasticsearch/data elasticsearch
+docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
+go test -coverprofile cover.out && go tool cover -html=cover.out

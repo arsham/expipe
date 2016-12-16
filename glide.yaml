@@ -1,0 +1,7 @@
+package: github.com/arsham/expvastic
+import:
+- package: github.com/olivere/elastic
+  version: ^5.0.13
+- package: golang.org/x/net
+  subpackages:
+  - context
