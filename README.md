@@ -35,3 +35,9 @@ docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5
 - [ ] Share kibana setups
 - [ ] Read from yaml/toml/json configuration files
 - [ ] Read from etcd/consul for configurations
+
+## LICENSE
+
+Use of this source code is governed by the Apache 2.0 license. License that can be found in the LICENSE file.
+
+Thanks!
