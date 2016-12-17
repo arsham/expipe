@@ -9,6 +9,7 @@ import "github.com/arsham/expvastic"
 type mockRecorder struct {
     PayloadChanFunc func() chan *expvastic.RecordJob
     ErrorFunc       func() error
+    StartFunc       func() chan struct{}
 }
 
 func (m *mockRecorder) PayloadChan() chan *expvastic.RecordJob {
@@ -21,6 +22,13 @@ func (m *mockRecorder) PayloadChan() chan *expvastic.RecordJob {
 func (m *mockRecorder) Error() error {
     if m.ErrorFunc != nil {
         return m.ErrorFunc()
+    }
+    return nil
+}
+
+func (m *mockRecorder) Start() chan struct{} {
+    if m.StartFunc != nil {
+        return m.StartFunc()
     }
     return nil
 }

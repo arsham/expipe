@@ -80,10 +80,6 @@ func (e *ElasticSearch) PayloadChan() chan *RecordJob {
 // record ships the kv data to elasticsearch
 // Although this doesn't change the state of the Client, it is a part of its behaviour
 func (e *ElasticSearch) record(ctx context.Context, typeName string, timestamp time.Time, list DataContainer) (err error) {
-    if err = list.Error(); err != nil {
-        // Bouncing back? not cool!
-        return err
-    }
     l := list.List()
     payload := getQueryString(timestamp, l)
     _, err = e.client.Index().

@@ -16,14 +16,14 @@ import (
 type DataRecorder interface {
     // Record(ctx context.Context, typeName string, timestamp time.Time, list DataContainer) error
     PayloadChan() chan *RecordJob
-    // Error() error
+    Start() chan struct{}
 }
 
 // TargetReader recieves job requests to read from the target, and returns its success results with in a JobResult channel
 type TargetReader interface {
     JobChan() chan context.Context
     ResultChan() chan ReadJobResult
-    // Error() error
+    Start() chan struct{}
 }
 
 // RecordJob is sent with a context and a payload to be recorded
