@@ -114,10 +114,15 @@ func TestClientRecorderReturnsCorrectResult(t *testing.T) {
     ftypeStr := fmt.Sprintf("{%s}", ftype)
     result := new(expvastic.DataType)
     rec := &mockRecorder{
-        RecordFunc: func(ctx context.Context, typeName string, t time.Time, kv []expvastic.DataType) error {
+        RecordFunc: func(ctx context.Context, typeName string, t time.Time, kv []expvastic.DataType) (err error) {
+            defer func() {
+                if r := recover(); r != nil {
+                    err = r.(error)
+                }
+            }()
             *result = kv[0]
             wg.Done()
-            return nil
+            return
         },
     }
     resCh := make(chan expvastic.JobResult)

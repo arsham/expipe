@@ -40,8 +40,8 @@ type JobResult struct {
 func NewExpvarReader(log logrus.FieldLogger, ctxReader ContextReader) (*ExpvarReader, error) {
     // TODO: ping the reader
     w := &ExpvarReader{
-        jobCh:     make(chan context.Context),
-        resultCh:  make(chan JobResult),
+        jobCh:     make(chan context.Context, 1000),
+        resultCh:  make(chan JobResult, 1000),
         ctxReader: ctxReader,
     }
     return w, nil

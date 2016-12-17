@@ -5,10 +5,9 @@
 package expvastic
 
 import (
+    "errors"
     "fmt"
     "strings"
-
-    "github.com/arsham/expvastic/lib"
 )
 
 const (
@@ -19,6 +18,9 @@ const (
     // MEGABYTE ..
     MEGABYTE = 1024 * KILOBYTE
 )
+
+// ErrUnidentifiedJason .
+var ErrUnidentifiedJason = errors.New("unidentified jason value")
 
 // DataType implements Stringer and Marshal/Unmarshal
 type DataType interface {
@@ -90,63 +92,4 @@ type ByteType struct {
 // String satisfies the Stringer interface
 func (b ByteType) String() string {
     return fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE)
-}
-
-// getDataType constructs a list of DataType values
-// First it looks at the key for guessing, then uses the value
-// It removes zeros on GC types
-func getDataType(key string, value interface{}) (result []DataType) {
-    if lib.IsGCType(key) {
-        result = unmarshalGCListType(key, value.([]interface{}))
-        return
-    }
-    if lib.IsMBType(key) {
-        result = []DataType{&ByteType{key, value.(float64)}}
-        return
-    }
-
-    switch v := value.(type) {
-    case string:
-        result = []DataType{&StringType{key, v}}
-    case float32, float64:
-        result = []DataType{&FloatType{key, v.(float64)}}
-    case []interface{}:
-        // we have list values
-        result = unmarshalFloatListType(key, value.([]interface{}))
-    }
-    return
-}
-
-func unmarshalGCListType(key string, value []interface{}) (result []DataType) {
-    if len(value) == 0 {
-        // empty list
-        result = []DataType{&GCListType{key, []uint64{}}}
-        return
-    }
-
-    if _, ok := value[0].(float64); ok {
-        res := make([]uint64, len(value))
-        for i, val := range value {
-            res[i] = uint64(val.(float64))
-        }
-        result = []DataType{&GCListType{key, res}}
-    }
-    return
-}
-
-func unmarshalFloatListType(key string, value []interface{}) (result []DataType) {
-    if len(value) == 0 {
-        // empty list
-        result = []DataType{&FloatListType{key, []float64{}}}
-        return
-    }
-
-    if _, ok := value[0].(float64); ok {
-        res := make([]float64, len(value))
-        for i, val := range value {
-            res[i] = val.(float64)
-        }
-        result = []DataType{&FloatListType{key, res}}
-    }
-    return
 }

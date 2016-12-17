@@ -1,6 +1,8 @@
-hash: 7c65877efa86123c4d429b5670509bc480c932fbd71d383cf6ac92c86366fd45
-updated: 2016-12-15T16:08:15.282932208Z
+hash: 2518c6092e56e242db7c07b0efe2c6e974b84920ee0483d710c07999c3adfa7f
+updated: 2016-12-17T12:35:37.851394255Z
 imports:
+- name: github.com/antonholmquist/jason
+  version: c23cef7eaa75a6a5b8810120e167bd590d8fd2ab
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
 - name: github.com/namsral/flag
@@ -8,14 +10,14 @@ imports:
 - name: github.com/olivere/elastic
   version: b272fab42387a42585235d56f8c6b53b13ddfb7d
 - name: github.com/Sirupsen/logrus
-  version: d26492970760ca5d33129d2d799e34be5c4782eb
+  version: 881bee4e20a5d11a6a88a5667c6f292072ac1963
 - name: golang.org/x/net
-  version: 4971afdc2f162e82d185353533d3cf16188a9f4e
+  version: 45e771701b814666a7eb299e6c7a57d0b1799e91
   subpackages:
   - context
   - context/ctxhttp
 - name: golang.org/x/sys
-  version: 30237cf4eefd639b184d1f2cb77a581ea0be8947
+  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
   subpackages:
   - unix
 - name: gopkg.in/olivere/elastic.v5

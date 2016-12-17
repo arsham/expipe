@@ -6,9 +6,7 @@ package expvastic
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -47,8 +45,8 @@ func NewClient(ctx context.Context, c Conf) *Client {
 // Start begins pulling the data and record them.
 // when ctx is canceled, all goroutines will stop what they do.
 func (c *Client) Start() {
-	jobCh := c.targetReader.JobChan()
-	resultCh := c.targetReader.ResultChan()
+	jobChan := c.targetReader.JobChan()
+	resultChan := c.targetReader.ResultChan()
 	ticker := time.NewTicker(c.interval)
 	for {
 		select {
@@ -56,17 +54,20 @@ func (c *Client) Start() {
 			ctx, cancel := context.WithTimeout(c.ctx, c.timeout)
 			time.AfterFunc(c.timeout, cancel)
 			// Issuing the next job
-			jobCh <- ctx
-		case r := <-resultCh:
+			jobChan <- ctx
+		case r := <-resultChan:
 			defer r.Res.Close()
-			values, err := inspectResult(r)
+			values, err := jobResultDataTypes(r)
 			if err != nil {
 				c.logger.Errorf("%s", err)
 				continue
 			}
-			c.recorder.Record(c.ctx, c.typeName, r.Time, values)
+			err = c.recorder.Record(c.ctx, c.typeName, r.Time, values)
+			if err != nil {
+				c.logger.Errorf("%s", err)
+			}
 		case <-c.ctx.Done():
-			close(jobCh)
+			close(jobChan)
 			return
 		}
 	}
@@ -89,31 +90,9 @@ func getQueryString(timestamp time.Time, kv []DataType) string {
 	return fmt.Sprintf("{%s}", strings.Join(l, ","))
 }
 
-func inspectResult(r JobResult) ([]DataType, error) {
+func jobResultDataTypes(r JobResult) ([]DataType, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
-	return getValues(r.Res)
-}
-
-func getValues(r io.Reader) ([]DataType, error) {
-	var target map[string]interface{}
-	err := json.NewDecoder(r).Decode(&target)
-	if err != nil {
-		return nil, err
-	}
-	return convertToActual("", target), nil
-}
-
-func convertToActual(prefix string, target map[string]interface{}) (result []DataType) {
-	for key, value := range target {
-		switch v := value.(type) {
-		case map[string]interface{}:
-			// we have nested values
-			result = append(result, convertToActual(prefix+key+".", v)...)
-		default:
-			result = append(result, getDataType(prefix+key, v)...)
-		}
-	}
-	return
+	return fromReader(r.Res)
 }
