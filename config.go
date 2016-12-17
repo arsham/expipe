@@ -15,7 +15,7 @@ import (
 // The repository should have the concept of type/table. Which is inside index/database abstraction. See ElasticSearch for more information.
 type Recorder interface {
     // timestamp is used for timeseries data
-    Record(ctx context.Context, typeName string, timestamp time.Time, kv []DataType) error
+    Record(ctx context.Context, typeName string, timestamp time.Time, list DataContainer) error
 }
 
 type targetReader interface {

@@ -56,9 +56,14 @@ func NewElasticSearch(bgCtx context.Context, log logrus.FieldLogger, esURL, inde
 
 // Record ships the kv data to elasticsearch
 // Although this doesn't change the state of the Client, it is a part of its behaviour
-func (e *ElasticSearch) Record(ctx context.Context, typeName string, timestamp time.Time, kv []DataType) error {
-    payload := getQueryString(timestamp, kv)
-    _, err := e.client.Index().
+func (e *ElasticSearch) Record(ctx context.Context, typeName string, timestamp time.Time, list DataContainer) (err error) {
+    if err = list.Error(); err != nil {
+        // Bouncing back? not cool!
+        return err
+    }
+    l := list.List()
+    payload := getQueryString(timestamp, l)
+    _, err = e.client.Index().
         Index(e.indexName).
         Type(typeName).
         BodyString(payload).

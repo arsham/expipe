@@ -46,28 +46,17 @@ func TestGetQueryString(t *testing.T) {
 }
 
 func TestInspectResult(t *testing.T) {
-	r := JobResult{
-		Err: fmt.Errorf("Error message"),
-	}
-	res, err := jobResultDataTypes(r)
-	if err == nil {
-		t.Error("expected error, got nothing")
-	}
-	if res != nil {
-		t.Errorf("expected no values, got: %v", res)
-	}
-
 	buf := ioutil.NopCloser(strings.NewReader(`{"key": 6.6}`))
-	r = JobResult{
+	r := JobResult{
 		Res:  buf,
 		Time: time.Now(),
 	}
 
-	res, err = jobResultDataTypes(r)
-	if err != nil {
-		t.Errorf("expected no errors, got: %s", err)
+	res := jobResultDataTypes(r.Res)
+	if res.Error() != nil {
+		t.Errorf("expected no errors, got: %s", res.Error())
 	}
-	if res == nil {
+	if res.Len() == 0 {
 		t.Error("expected results, got nothing")
 	}
 
@@ -77,11 +66,12 @@ func TestInspectResult(t *testing.T) {
 		Time: time.Now(),
 	}
 
-	res, err = jobResultDataTypes(r)
-	if err == nil {
+	res = jobResultDataTypes(r.Res)
+	if res.Error() == nil {
 		t.Error("expected an error, got nothing")
 	}
-	if res != nil {
+
+	if res.Len() != 0 {
 		t.Errorf("expected no results, got %s", res)
 	}
 

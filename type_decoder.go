@@ -11,46 +11,43 @@ import (
     "github.com/arsham/expvastic/lib"
 )
 
-func fromReader(r io.Reader) ([]DataType, error) {
+func jobResultDataTypes(r io.Reader) DataContainer {
     obj, err := jason.NewObjectFromReader(r)
     if err != nil {
-        return nil, err
+        return &Container{Err: err}
     }
-    values, err := getJasonValues("", obj.Map())
-    if err != nil {
-        return nil, err
-    }
-    return values, nil
+    return getJasonValues("", obj.Map())
 }
 
 // getJasonValues flattens the map
-func getJasonValues(prefix string, values map[string]*jason.Value) (result []DataType, err error) {
+func getJasonValues(prefix string, values map[string]*jason.Value) *Container {
+    result := new(Container)
     for key, value := range values {
         if lib.IsMBType(key) {
             v, err := value.Float64()
             if err != nil {
                 continue
             }
-            result = append(result, ByteType{prefix + key, v})
+            result.Add(ByteType{prefix + key, v})
         } else if obj, err := value.Object(); err == nil {
             // we are dealing with nested objects
-            v, _ := getJasonValues(prefix+key+".", obj.Map())
-            result = append(result, v...)
+            v := getJasonValues(prefix+key+".", obj.Map())
+            // TODO: merge them instead
+            result.Add(v.List()...)
         } else if arr, err := value.Array(); err == nil {
             // we are dealing with an array object
-            result = append(result, getFloatListValues(prefix+key, arr)...)
+            result.Add(getFloatListValues(prefix+key, arr)...)
         } else {
-
             v, err := getJasonValue(prefix+key, *value)
             if err == nil {
-                result = append(result, v)
+                result.Add(v)
             }
         }
     }
-    if len(result) == 0 {
-        return nil, ErrUnidentifiedJason
+    if result.Len() == 0 {
+        return &Container{Err: ErrUnidentifiedJason}
     }
-    return
+    return result
 }
 
 func getJasonValue(key string, value jason.Value) (DataType, error) {

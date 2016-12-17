@@ -43,7 +43,9 @@ func TestClientSendsTheJob(t *testing.T) {
     defer ts.Close()
 
     rec := &mockRecorder{
-        RecordFunc: func(ctx context.Context, typeName string, t time.Time, kv []expvastic.DataType) error { return nil },
+        RecordFunc: func(ctx context.Context, typeName string, t time.Time, list expvastic.DataContainer) error {
+            return nil
+        },
     }
     jobSent := make(chan struct{})
     read := &MockCtxReader{
@@ -73,38 +75,6 @@ func TestClientSendsTheJob(t *testing.T) {
     <-ctx.Done()
 }
 
-func TestClientInspectResultsErrors(t *testing.T) {
-    log := lib.DiscardLogger()
-    bg := context.Background()
-    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-    called := new(bool)
-    *called = false
-    defer ts.Close()
-    rec := &mockRecorder{
-        RecordFunc: func(ctx context.Context, typeName string, t time.Time, kv []expvastic.DataType) error {
-            *called = true
-            return nil
-        },
-    }
-    resCh := make(chan expvastic.JobResult)
-    jobs := make(chan context.Context)
-    reader := NewMockExpvarReader(jobs, resCh, func(c context.Context) {
-    })
-    conf := sampleSetup(log, ts.URL, reader, rec)
-    ctx, _ := context.WithTimeout(bg, 5*time.Millisecond)
-    cl := expvastic.NewClient(ctx, *conf)
-    defer cl.Stop()
-    go cl.Start()
-    res := resCh
-    msg := ioutil.NopCloser(strings.NewReader("bad json"))
-    res <- expvastic.JobResult{Res: msg}
-    <-ctx.Done()
-
-    if *called {
-        t.Error("Shouldn't have called the recorder")
-    }
-}
-
 func TestClientRecorderReturnsCorrectResult(t *testing.T) {
     var wg sync.WaitGroup
     bg := context.Background()
@@ -114,13 +84,13 @@ func TestClientRecorderReturnsCorrectResult(t *testing.T) {
     ftypeStr := fmt.Sprintf("{%s}", ftype)
     result := new(expvastic.DataType)
     rec := &mockRecorder{
-        RecordFunc: func(ctx context.Context, typeName string, t time.Time, kv []expvastic.DataType) (err error) {
+        RecordFunc: func(ctx context.Context, typeName string, t time.Time, list expvastic.DataContainer) (err error) {
             defer func() {
                 if r := recover(); r != nil {
                     err = r.(error)
                 }
             }()
-            *result = kv[0]
+            *result = list.List()[0]
             wg.Done()
             return
         },

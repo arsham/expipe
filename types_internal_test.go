@@ -154,14 +154,14 @@ func TestGetJasonValues(t *testing.T) {
         t.Run(name, func(t *testing.T) {
             j, _ := jason.NewValueFromReader(tc.value)
             m, _ := j.Object()
-            result, err := getJasonValues(tc.prefix, m.Map())
-            if err != nil {
-                t.Errorf("expected no errors, got (%s)", err)
+            results := getJasonValues(tc.prefix, m.Map())
+            if results.Err != nil {
+                t.Errorf("expected no errors, got (%s)", results.Err)
                 return
             }
 
-            if !isIn(result, tc.expected) {
-                t.Errorf("expected (%v), got (%v)", tc.expected, result)
+            if !isIn(results.List(), tc.expected) {
+                t.Errorf("expected (%v), got (%v)", tc.expected, results.List())
             }
         })
     }
@@ -175,23 +175,23 @@ func TestFromReader(t *testing.T) {
         name := fmt.Sprintf("case %d", i)
         t.Run(name, func(t *testing.T) {
 
-            result, err := fromReader(tc.value)
-            if err != nil {
-                t.Errorf("expected no errors, got (%s)", err)
+            results := jobResultDataTypes(tc.value)
+            if results.Error() != nil {
+                t.Errorf("expected no errors, got (%s)", results.Error())
             }
 
-            if !isIn(result, tc.expected) {
-                t.Errorf("want (%s) got (%s)", tc.expected, result)
+            if !isIn(results.List(), tc.expected) {
+                t.Errorf("want (%s) got (%s)", tc.expected, results.List())
             }
         })
     }
 
     value := strings.NewReader(`{"Alloc": "sdsds"}`)
-    result, err := fromReader(value)
-    if err == nil {
+    results := jobResultDataTypes(value)
+    if results.Error() == nil {
         t.Error("expected error, got nothing")
     }
-    if result != nil {
-        t.Errorf("expected empty results, got (%s)", result)
+    if results.Len() != 0 {
+        t.Errorf("expected empty results, got (%s)", results.List())
     }
 }

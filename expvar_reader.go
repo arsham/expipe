@@ -6,12 +6,10 @@ package expvastic
 
 import (
     "context"
-    "fmt"
     "io"
     "time"
 
     "github.com/Sirupsen/logrus"
-    "github.com/arsham/expvastic/lib"
 )
 
 // ExpvarReader contains communication channels with the worker
@@ -19,6 +17,7 @@ type ExpvarReader struct {
     jobCh     chan context.Context
     resultCh  chan JobResult
     ctxReader ContextReader
+    log       logrus.FieldLogger
 }
 
 // Job is sent with a context and a channel to read the errors
@@ -43,6 +42,7 @@ func NewExpvarReader(log logrus.FieldLogger, ctxReader ContextReader) (*ExpvarRe
         jobCh:     make(chan context.Context, 1000),
         resultCh:  make(chan JobResult, 1000),
         ctxReader: ctxReader,
+        log:       log,
     }
     return w, nil
 }
@@ -56,9 +56,7 @@ func (e *ExpvarReader) Start() chan struct{} {
             r := JobResult{}
             resp, err := e.ctxReader.ContextRead(job)
             if err != nil {
-                r.Err = fmt.Errorf("making request: %s", err)
-                r.Res = new(lib.DummyReadCloser)
-                e.resultCh <- r
+                e.log.Errorf("making request: %s", err)
                 continue
             }
             r.Time = time.Now() // It is sensible to record the time now

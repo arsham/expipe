@@ -58,12 +58,7 @@ func (c *Client) Start() {
 		case r := <-resultChan:
 			go func() {
 				defer r.Res.Close()
-				values, err := jobResultDataTypes(r)
-				if err != nil {
-					c.logger.Errorf("%s", err)
-					return
-				}
-				err = c.recorder.Record(c.ctx, c.typeName, r.Time, values)
+				err := c.recorder.Record(c.ctx, c.typeName, r.Time, jobResultDataTypes(r.Res))
 				if err != nil {
 					c.logger.Errorf("%s", err)
 				}
@@ -90,11 +85,4 @@ func getQueryString(timestamp time.Time, kv []DataType) string {
 		l[i+1] = v.String()
 	}
 	return fmt.Sprintf("{%s}", strings.Join(l, ","))
-}
-
-func jobResultDataTypes(r JobResult) ([]DataType, error) {
-	if r.Err != nil {
-		return nil, r.Err
-	}
-	return fromReader(r.Res)
 }

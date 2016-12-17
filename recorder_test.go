@@ -12,12 +12,12 @@ import (
 )
 
 type mockRecorder struct {
-    RecordFunc func(ctx context.Context, typeName string, t time.Time, kv []expvastic.DataType) error
+    RecordFunc func(ctx context.Context, typeName string, t time.Time, list expvastic.DataContainer) error
 }
 
-func (m *mockRecorder) Record(ctx context.Context, typeName string, t time.Time, kv []expvastic.DataType) error {
+func (m *mockRecorder) Record(ctx context.Context, typeName string, t time.Time, list expvastic.DataContainer) error {
     if m.RecordFunc != nil {
-        return m.RecordFunc(ctx, typeName, t, kv)
+        return m.RecordFunc(ctx, typeName, t, list)
     }
     return nil
 }

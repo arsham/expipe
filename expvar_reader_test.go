@@ -11,7 +11,6 @@ import (
     "io"
     "net/http"
     "net/http/httptest"
-    "reflect"
     "testing"
     "time"
 
@@ -53,9 +52,10 @@ func TestExpvarReaderErrors(t *testing.T) {
     reader.Start()
     ctx, cancel := context.WithCancel(context.Background())
     reader.JobChan() <- ctx
-    res := <-reader.ResultChan()
-    if res.Err == nil || reflect.TypeOf(res.Res) != reflect.TypeOf(new(lib.DummyReadCloser)) {
-        t.Errorf("Expecting error and empty results: err (%s), res (%v)", res.Err, res.Res)
+    select {
+    case res := <-reader.ResultChan():
+        t.Errorf("expecting no results, got(%v)", res)
+    case <-time.After(10 * time.Millisecond):
     }
     cancel()
 }
@@ -91,8 +91,12 @@ func TestExpvarReaderClosesStream(t *testing.T) {
     done := reader.Start()
     ctx, cancel := context.WithCancel(context.Background())
     reader.JobChan() <- ctx
-    <-reader.ResultChan()
-    close(reader.JobChan())
+
+    select {
+    case <-reader.ResultChan():
+    default:
+        close(reader.JobChan())
+    }
     select {
     case <-done:
     case <-time.After(1 * time.Second):
