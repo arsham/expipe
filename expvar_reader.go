@@ -5,75 +5,62 @@
 package expvastic
 
 import (
-    "context"
-    "io"
-    "time"
+	"context"
+	"time"
 
-    "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 )
 
-// ExpvarReader contains communication channels with the worker
+// ExpvarReader contains communication channels with a worker that exposes expvar information.
+// It implements TargetReader interface
 type ExpvarReader struct {
-    jobCh     chan context.Context
-    resultCh  chan JobResult
-    ctxReader ContextReader
-    log       logrus.FieldLogger
-}
-
-// Job is sent with a context and a channel to read the errors
-type Job struct {
-    Payload context.Context
-    Err     chan error
-}
-
-// JobResult is constructed everytime a new record is fetched.
-// The time is set after the request was successfully read
-type JobResult struct {
-    Time time.Time
-    Res  io.ReadCloser
-    Err  error
+	jobChan    chan context.Context
+	resultChan chan ReadJobResult
+	ctxReader  ContextReader
+	log        logrus.FieldLogger
 }
 
 // NewExpvarReader creates the worker and sets up its channels
 // Because the caller is reading the resp.Body, it is its job to close it
 func NewExpvarReader(log logrus.FieldLogger, ctxReader ContextReader) (*ExpvarReader, error) {
-    // TODO: ping the reader
-    w := &ExpvarReader{
-        jobCh:     make(chan context.Context, 1000),
-        resultCh:  make(chan JobResult, 1000),
-        ctxReader: ctxReader,
-        log:       log,
-    }
-    return w, nil
+	// TODO: ping the reader
+	w := &ExpvarReader{
+		jobChan:    make(chan context.Context, 1000),
+		resultChan: make(chan ReadJobResult, 1000),
+		ctxReader:  ctxReader,
+		log:        log,
+	}
+	return w, nil
 }
 
 // Start begins reading from the target in its own goroutine
 // It will close the done channel when the job channel is closed
 func (e *ExpvarReader) Start() chan struct{} {
-    done := make(chan struct{})
-    go func() {
-        for job := range e.jobCh {
-            r := JobResult{}
-            resp, err := e.ctxReader.ContextRead(job)
-            if err != nil {
-                e.log.Errorf("making request: %s", err)
-                continue
-            }
-            r.Time = time.Now() // It is sensible to record the time now
-            r.Res = resp.Body
-            e.resultCh <- r
-        }
-        close(done)
-    }()
-    return done
+	done := make(chan struct{})
+	go func() {
+		for job := range e.jobChan {
+			// go goroutine
+			r := ReadJobResult{}
+			resp, err := e.ctxReader.ContextRead(job)
+			if err != nil {
+				e.log.Errorf("making request: %s", err)
+				continue
+			}
+			r.Time = time.Now() // It is sensible to record the time now
+			r.Res = resp.Body
+			e.resultChan <- r
+		}
+		close(done)
+	}()
+	return done
 }
 
 // JobChan returns the job channel
 func (e *ExpvarReader) JobChan() chan context.Context {
-    return e.jobCh
+	return e.jobChan
 }
 
 // ResultChan returns the result channel
-func (e *ExpvarReader) ResultChan() chan JobResult {
-    return e.resultCh
+func (e *ExpvarReader) ResultChan() chan ReadJobResult {
+	return e.resultChan
 }

@@ -4,20 +4,23 @@
 
 package expvastic_test
 
-import (
-    "context"
-    "time"
-
-    "github.com/arsham/expvastic"
-)
+import "github.com/arsham/expvastic"
 
 type mockRecorder struct {
-    RecordFunc func(ctx context.Context, typeName string, t time.Time, list expvastic.DataContainer) error
+    PayloadChanFunc func() chan *expvastic.RecordJob
+    ErrorFunc       func() error
 }
 
-func (m *mockRecorder) Record(ctx context.Context, typeName string, t time.Time, list expvastic.DataContainer) error {
-    if m.RecordFunc != nil {
-        return m.RecordFunc(ctx, typeName, t, list)
+func (m *mockRecorder) PayloadChan() chan *expvastic.RecordJob {
+    if m.PayloadChanFunc != nil {
+        return m.PayloadChanFunc()
+    }
+    return nil
+}
+
+func (m *mockRecorder) Error() error {
+    if m.ErrorFunc != nil {
+        return m.ErrorFunc()
     }
     return nil
 }

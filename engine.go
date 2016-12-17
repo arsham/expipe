@@ -13,23 +13,23 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-// Client represents a client that can put information into an ES index
-// The Client is allowed to change the index and type names at will
-type Client struct {
+// Engine represents an engine that receives information from readers and ships them to recorders
+// The Engine is allowed to change the index and type names at will
+type Engine struct {
 	ctx          context.Context // When this context is canceled, it client tries to finalize its work
-	recorder     Recorder        // ElasticSearch client
-	indexName    string          // ElasticSearch index name
-	typeName     string          // ElasticSearch type name
-	targetReader targetReader    // The worker that reads from an expvar provider
+	targetReader TargetReader    // The worker that reads from an expvar provider
+	recorder     DataRecorder    // Recorder (e.g. ElasticSearch) client
+	indexName    string          // Recorder (e.g. ElasticSearch) index name
+	typeName     string          // Recorder (e.g. ElasticSearch) type name
 	interval     time.Duration
 	timeout      time.Duration
 	logger       logrus.FieldLogger
 }
 
-// NewClient creates an index if not exists
+// NewEngine creates an index if not exists
 // It returns an error if index creation is unsuccessful
-func NewClient(ctx context.Context, c Conf) *Client {
-	cl := &Client{
+func NewEngine(ctx context.Context, c Conf) *Engine {
+	cl := &Engine{
 		ctx:          ctx,
 		recorder:     c.Recorder,
 		targetReader: c.TargetReader,
@@ -44,7 +44,7 @@ func NewClient(ctx context.Context, c Conf) *Client {
 
 // Start begins pulling the data and record them.
 // when ctx is canceled, all goroutines will stop what they do.
-func (c *Client) Start() {
+func (c *Engine) Start() {
 	jobChan := c.targetReader.JobChan()
 	resultChan := c.targetReader.ResultChan()
 	ticker := time.NewTicker(c.interval)
@@ -58,8 +58,18 @@ func (c *Client) Start() {
 		case r := <-resultChan:
 			go func() {
 				defer r.Res.Close()
-				err := c.recorder.Record(c.ctx, c.typeName, r.Time, jobResultDataTypes(r.Res))
-				if err != nil {
+				errCh := make(chan error)
+				p := c.recorder.PayloadChan()
+				payload := &RecordJob{
+					Ctx:       c.ctx,
+					Payload:   jobResultDataTypes(r.Res),
+					IndexName: c.indexName,
+					TypeName:  c.typeName,
+					Time:      r.Time,
+					Err:       errCh,
+				}
+				p <- payload
+				if err := <-errCh; err != nil {
 					c.logger.Errorf("%s", err)
 				}
 			}()
@@ -71,7 +81,7 @@ func (c *Client) Start() {
 }
 
 // Stop begins pulling the data and record them
-func (c *Client) Stop() error {
+func (c *Engine) Stop() error {
 	return nil
 }
 

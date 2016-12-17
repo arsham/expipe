@@ -47,7 +47,7 @@ func TestGetQueryString(t *testing.T) {
 
 func TestInspectResult(t *testing.T) {
 	buf := ioutil.NopCloser(strings.NewReader(`{"key": 6.6}`))
-	r := JobResult{
+	r := ReadJobResult{
 		Res:  buf,
 		Time: time.Now(),
 	}
@@ -61,7 +61,7 @@ func TestInspectResult(t *testing.T) {
 	}
 
 	buf = ioutil.NopCloser(strings.NewReader(`{"key: 6.6}`))
-	r = JobResult{
+	r = ReadJobResult{
 		Res:  buf,
 		Time: time.Now(),
 	}

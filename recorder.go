@@ -13,10 +13,12 @@ import (
     "github.com/olivere/elastic"
 )
 
-// ElasticSearch ...
+// ElasticSearch contains an elasticsearch client and an indexname for recording data
+// It implements DataRecorder interface
 type ElasticSearch struct {
     client    *elastic.Client // ElasticSearch client
     indexName string
+    jobChan   chan *RecordJob
 }
 
 // NewElasticSearch returns an error if it can't create the index
@@ -51,12 +53,33 @@ func NewElasticSearch(bgCtx context.Context, log logrus.FieldLogger, esURL, inde
     return &ElasticSearch{
         client:    client,
         indexName: indexName,
+        jobChan:   make(chan *RecordJob),
     }, nil
 }
 
-// Record ships the kv data to elasticsearch
+// Start begins reading from the target in its own goroutine
+// It will close the done channel when the job channel is closed
+func (e *ElasticSearch) Start() chan struct{} {
+    done := make(chan struct{})
+    go func() {
+        for job := range e.jobChan {
+            go func(job *RecordJob) {
+                job.Err <- e.record(job.Ctx, job.TypeName, job.Time, job.Payload)
+            }(job)
+        }
+        close(done)
+    }()
+    return done
+}
+
+// PayloadChan returns the channel it receives the information from
+func (e *ElasticSearch) PayloadChan() chan *RecordJob {
+    return e.jobChan
+}
+
+// record ships the kv data to elasticsearch
 // Although this doesn't change the state of the Client, it is a part of its behaviour
-func (e *ElasticSearch) Record(ctx context.Context, typeName string, timestamp time.Time, list DataContainer) (err error) {
+func (e *ElasticSearch) record(ctx context.Context, typeName string, timestamp time.Time, list DataContainer) (err error) {
     if err = list.Error(); err != nil {
         // Bouncing back? not cool!
         return err
