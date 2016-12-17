@@ -1,4 +1,6 @@
-This is an early release. There will be a lot of changes soon but I'm planning to finalise it as soon as I can. I hope you enjoy it!
+# About
+
+This is an early release and it is private. There will be a lot of changes soon but I'm planning to finalise and make it public  as soon as I can. I hope you enjoy it!
 
 Expvastic can read from an endpoint which provides expvar data and ship them to elasticsearch. Please refer to golang's [expvar documentation](https://golang.org/pkg/expvar/) for more information.
 
