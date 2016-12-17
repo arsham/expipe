@@ -1,6 +1,10 @@
 package lib
 
-import "github.com/Sirupsen/logrus"
+import (
+    "io/ioutil"
+
+    "github.com/Sirupsen/logrus"
+)
 
 // GetLogger returns the default logger with the given log level
 func GetLogger(level string) *logrus.Logger {
@@ -23,4 +27,11 @@ func GetLogger(level string) *logrus.Logger {
     }
 
     return logrus.StandardLogger()
+}
+
+// DiscardLogger returns a dummy logger
+func DiscardLogger() *logrus.Logger {
+    log := logrus.New()
+    log.Out = ioutil.Discard
+    return log
 }

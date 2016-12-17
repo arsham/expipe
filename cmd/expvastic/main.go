@@ -17,26 +17,16 @@ import (
     "github.com/arsham/expvastic/lib"
     "github.com/asaskevich/govalidator"
     "github.com/namsral/flag"
-    "github.com/olivere/elastic"
 )
 
 func main() {
     target, esURL, debugLevel, indexName, typeName, interval, timeout := parseFlags()
     log := lib.GetLogger(*debugLevel)
     bgCtx, cancel := context.WithCancel(context.Background())
-
     captureSignals(cancel)
 
-    logger := elastic.SetErrorLog(log)
-    addr := elastic.SetURL(*esURL)
-
-    client, err := elastic.NewClient(addr, logger)
-    if err != nil {
-        log.Fatal(err)
-    }
-
     ctx, _ := context.WithTimeout(bgCtx, *timeout)
-    _, _, err = client.Ping(*esURL).Do(ctx)
+    esClient, err := expvastic.NewElasticSearch(ctx, log, *esURL, *indexName)
     if err != nil {
         if ctx.Err() != nil {
             log.Fatalf("Timeout: %s - %s", ctx.Err(), err)
@@ -44,25 +34,23 @@ func main() {
         log.Fatalf("Ping failed: %s", err)
     }
 
-    ctx, _ = context.WithTimeout(bgCtx, *timeout)
+    w, err := expvastic.NewExpvarReader(log, expvastic.NewCtxReader(*target))
+    if err != nil {
+        log.Fatalf("Error creating the reader: %s", err)
+    }
+    go w.Start()
     conf := expvastic.Conf{
-        IndexName:     *indexName,
-        TypeName:      *typeName,
-        Target:        *target,
-        ElasticSearch: *esURL,
-        Interval:      *interval,
-        Timeout:       *timeout,
-        Logger:        log,
+        TargetReader: w,
+        Recorder:     esClient,
+        IndexName:    *indexName,
+        TypeName:     *typeName,
+        Interval:     *interval,
+        Timeout:      *timeout,
+        Logger:       log,
     }
-    cl, err := expvastic.NewClient(ctx, client, conf)
-    if err != nil {
-        if ctx.Err() != nil {
-            log.Fatalf("Timeout: %s - %s", ctx.Err(), err)
-        }
-        log.Fatalf("Ping failed: %s", err)
-    }
+    cl := expvastic.NewClient(bgCtx, conf)
 
-    cl.Start(bgCtx)
+    cl.Start()
 }
 
 func parseFlags() (target, esURL, debugLevel, indexName, typeName *string, interval, timeout *time.Duration) {
@@ -86,7 +74,6 @@ func parseFlags() (target, esURL, debugLevel, indexName, typeName *string, inter
         flag.Usage()
         os.Exit(1)
     }
-    fmt.Println(*esURL)
     return
 }
 

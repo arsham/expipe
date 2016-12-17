@@ -65,7 +65,7 @@ func (fl FloatListType) String() string {
 // GCListType represents a pair of key values of GC list info
 type GCListType struct {
     Key   string
-    Value []int
+    Value []uint64
 }
 
 // String satisfies the Stringer interface
@@ -110,39 +110,43 @@ func getDataType(key string, value interface{}) (result []DataType) {
         result = []DataType{&StringType{key, v}}
     case float32, float64:
         result = []DataType{&FloatType{key, v.(float64)}}
-
     case []interface{}:
         // we have list values
-        actual := value.([]interface{})
-        if len(actual) == 0 {
-            // empty list
-            result = []DataType{&FloatListType{key, []float64{}}}
-            return
-        }
-
-        if _, ok := actual[0].(float64); ok {
-            res := make([]float64, len(actual))
-            for i, val := range actual {
-                res[i] = val.(float64)
-            }
-            result = []DataType{&FloatListType{key, res}}
-        }
+        result = unmarshalFloatListType(key, value.([]interface{}))
     }
     return
 }
 
 func unmarshalGCListType(key string, value []interface{}) (result []DataType) {
     if len(value) == 0 {
-        result = []DataType{&GCListType{key, []int{}}}
+        // empty list
+        result = []DataType{&GCListType{key, []uint64{}}}
         return
     }
 
     if _, ok := value[0].(float64); ok {
-        res := make([]int, len(value))
+        res := make([]uint64, len(value))
         for i, val := range value {
-            res[i] = int(val.(float64))
+            res[i] = uint64(val.(float64))
         }
-        result = append(result, &GCListType{key, res})
+        result = []DataType{&GCListType{key, res}}
+    }
+    return
+}
+
+func unmarshalFloatListType(key string, value []interface{}) (result []DataType) {
+    if len(value) == 0 {
+        // empty list
+        result = []DataType{&FloatListType{key, []float64{}}}
+        return
+    }
+
+    if _, ok := value[0].(float64); ok {
+        res := make([]float64, len(value))
+        for i, val := range value {
+            res[i] = val.(float64)
+        }
+        result = []DataType{&FloatListType{key, res}}
     }
     return
 }
