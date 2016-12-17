@@ -27,6 +27,7 @@ docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5
 ```
 
 ## TODO
+- [ ] Decide how to show GC information correctly
 - [ ] Read from multiple sources
 - [ ] Use dates on index names
 - [ ] Read from other providers; python etc.
