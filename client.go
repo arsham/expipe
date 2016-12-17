@@ -56,16 +56,18 @@ func (c *Client) Start() {
 			// Issuing the next job
 			jobChan <- ctx
 		case r := <-resultChan:
-			defer r.Res.Close()
-			values, err := jobResultDataTypes(r)
-			if err != nil {
-				c.logger.Errorf("%s", err)
-				continue
-			}
-			err = c.recorder.Record(c.ctx, c.typeName, r.Time, values)
-			if err != nil {
-				c.logger.Errorf("%s", err)
-			}
+			go func() {
+				defer r.Res.Close()
+				values, err := jobResultDataTypes(r)
+				if err != nil {
+					c.logger.Errorf("%s", err)
+					return
+				}
+				err = c.recorder.Record(c.ctx, c.typeName, r.Time, values)
+				if err != nil {
+					c.logger.Errorf("%s", err)
+				}
+			}()
 		case <-c.ctx.Done():
 			close(jobChan)
 			return

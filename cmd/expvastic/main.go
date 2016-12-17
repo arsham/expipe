@@ -57,7 +57,7 @@ func parseFlags() (target, esURL, debugLevel, indexName, typeName *string, inter
     var err error
     target = flag.String("target", "localhost:1234/debug/vars", "Target address and port")
     esURL = flag.String("es", "localhost:9200", "Elasticsearch URL and port")
-    debugLevel = flag.String("debug", "info", "Debug level")
+    debugLevel = flag.String("loglevel", "info", "Debug level")
     indexName = flag.String("index", "expvastic", "Elasticsearch index name")
     typeName = flag.String("type", "expvastic", "Elasticsearch type name")
     interval = flag.Duration("int", time.Second, "Interval between pulls")
