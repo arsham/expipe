@@ -115,38 +115,6 @@ func testCase() []caseType {
     }
 }
 
-func TestGetJasonValue(t *testing.T) {
-    tcs := []struct {
-        key      string
-        input    []byte
-        expected DataType
-        err      error
-    }{
-        {"one", []byte("6.6"), FloatType{"one", 6.6}, nil},
-        {"two", []byte(`"two"`), StringType{"two", "two"}, nil},
-        {"three", []byte(`{two}`), nil, ErrUnidentifiedJason},
-    }
-
-    for i, tc := range tcs {
-        if i != 13 {
-            continue
-        }
-        name := fmt.Sprintf("case %d", i)
-        t.Run(name, func(t *testing.T) {
-            j, _ := jason.NewValueFromBytes(tc.input)
-            result, err := getJasonValue(tc.key, *j)
-            if err != tc.err {
-                t.Errorf("expected (%v) errors, got (%s)", tc.err, err)
-                return
-            }
-            if tc.err == nil && result.String() != tc.expected.String() {
-                t.Errorf("expected (%#v), got (%#v)", tc.expected, result)
-            }
-        })
-    }
-
-}
-
 func TestGetJasonValues(t *testing.T) {
 
     for i, tc := range testCase() {

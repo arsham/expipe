@@ -16,7 +16,7 @@ func (m *mockRecorder) PayloadChan() chan *expvastic.RecordJob {
     if m.PayloadChanFunc != nil {
         return m.PayloadChanFunc()
     }
-    return nil
+    return make(chan *expvastic.RecordJob)
 }
 
 func (m *mockRecorder) Error() error {

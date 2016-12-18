@@ -10,9 +10,11 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/lib"
 	"github.com/asaskevich/govalidator"
@@ -20,40 +22,26 @@ import (
 )
 
 func main() {
+	var wg sync.WaitGroup
+	wg.Add(3)
 	target, esURL, debugLevel, indexName, typeName, interval, timeout := parseFlags()
 	log := lib.GetLogger(*debugLevel)
 	bgCtx, cancel := context.WithCancel(context.Background())
-	captureSignals(cancel)
+	captureSignals(&wg, cancel)
 
 	ctx, _ := context.WithTimeout(bgCtx, *timeout)
-	esClient, err := expvastic.NewElasticSearch(ctx, log, *esURL, *indexName)
-	if err != nil {
-		if ctx.Err() != nil {
-			log.Fatalf("Timeout: %s - %s", ctx.Err(), err)
-		}
-		log.Fatalf("Ping failed: %s", err)
-	}
+	esClient := getES(ctx, log, *esURL, *indexName)
+	reader := getExpvar(log, *target)
 
-	r, err := expvastic.NewExpvarReader(log, expvastic.NewCtxReader(*target))
-	if err != nil {
-		log.Fatalf("Error creating the reader: %s", err)
-	}
-	rDone := r.Start()
+	rDone := reader.Start()
 	wDone := esClient.Start()
-	conf := expvastic.Conf{
-		TargetReader: r,
-		Recorder:     esClient,
-		IndexName:    *indexName,
-		TypeName:     *typeName,
-		Interval:     *interval,
-		Timeout:      *timeout,
-		Logger:       log,
-	}
-	cl := expvastic.NewEngine(bgCtx, conf)
-
+	cl := getEngine(bgCtx, log, reader, esClient, *indexName, *typeName, *interval, *timeout)
 	cl.Start()
 	<-wDone
+	wg.Done()
 	<-rDone
+	wg.Done()
+	wg.Wait()
 }
 
 func parseFlags() (target, esURL, debugLevel, indexName, typeName *string, interval, timeout *time.Duration) {
@@ -80,13 +68,13 @@ func parseFlags() (target, esURL, debugLevel, indexName, typeName *string, inter
 	return
 }
 
-func captureSignals(cancel context.CancelFunc) {
+func captureSignals(wg *sync.WaitGroup, cancel context.CancelFunc) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
 		cancel()
-		os.Exit(1)
+		wg.Done()
 	}()
 
 }
@@ -100,4 +88,45 @@ func validateURL(url string) (string, error) {
 	}
 	return "", fmt.Errorf("Invalid url: %s", url)
 
+}
+
+func getES(ctx context.Context, log logrus.FieldLogger, esURL, indexName string) *expvastic.ElasticSearch {
+	esClient, err := expvastic.NewElasticSearch(ctx, log, esURL, indexName)
+	if err != nil {
+		if ctx.Err() != nil {
+			log.Fatalf("Timeout: %s - %s", ctx.Err(), err)
+		}
+		log.Fatalf("Ping failed: %s", err)
+	}
+	return esClient
+}
+
+func getExpvar(log logrus.FieldLogger, target string) *expvastic.ExpvarReader {
+	r, err := expvastic.NewExpvarReader(log, expvastic.NewCtxReader(target))
+	if err != nil {
+		log.Fatalf("Error creating the reader: %s", err)
+	}
+	return r
+}
+
+func getEngine(
+	bgCtx context.Context,
+	log logrus.FieldLogger,
+	reader *expvastic.ExpvarReader,
+	esClient *expvastic.ElasticSearch,
+	indexName,
+	typeName string,
+	interval,
+	timeout time.Duration,
+) *expvastic.Engine {
+	conf := expvastic.Conf{
+		TargetReader: reader,
+		Recorder:     esClient,
+		IndexName:    indexName,
+		TypeName:     typeName,
+		Interval:     interval,
+		Timeout:      timeout,
+		Logger:       log,
+	}
+	return expvastic.NewEngine(bgCtx, conf)
 }

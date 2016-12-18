@@ -38,7 +38,7 @@ func getJasonValues(prefix string, values map[string]*jason.Value) *Container {
             // we are dealing with an array object
             result.Add(getFloatListValues(prefix+key, arr)...)
         } else {
-            v, err := getJasonValue(prefix+key, *value)
+            v, err := DataTypeFromJason(prefix+key, *value)
             if err == nil {
                 result.Add(v)
             }
@@ -50,7 +50,8 @@ func getJasonValues(prefix string, values map[string]*jason.Value) *Container {
     return result
 }
 
-func getJasonValue(key string, value jason.Value) (DataType, error) {
+// DataTypeFromJason returns an instance of DataType from jason value
+func DataTypeFromJason(key string, value jason.Value) (DataType, error) {
     var (
         err error
         s   string

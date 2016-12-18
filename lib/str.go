@@ -4,10 +4,10 @@
 
 package lib
 
-// StringInSlice returns true if a is in list
-func StringInSlice(a string, list []string) bool {
-    for _, b := range list {
-        if b == a {
+// StringInSlice returns true if niddle is in the haystack
+func StringInSlice(niddle string, haystack []string) bool {
+    for _, b := range haystack {
+        if b == niddle {
             return true
         }
     }

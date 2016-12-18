@@ -15,7 +15,7 @@ import (
 // It implements TargetReader interface
 type ExpvarReader struct {
 	jobChan    chan context.Context
-	resultChan chan ReadJobResult
+	resultChan chan *ReadJobResult
 	ctxReader  ContextReader
 	log        logrus.FieldLogger
 }
@@ -26,7 +26,7 @@ func NewExpvarReader(log logrus.FieldLogger, ctxReader ContextReader) (*ExpvarRe
 	// TODO: ping the reader
 	w := &ExpvarReader{
 		jobChan:    make(chan context.Context, 1000),
-		resultChan: make(chan ReadJobResult, 1000),
+		resultChan: make(chan *ReadJobResult, 1000),
 		ctxReader:  ctxReader,
 		log:        log,
 	}
@@ -40,14 +40,15 @@ func (e *ExpvarReader) Start() chan struct{} {
 	go func() {
 		for job := range e.jobChan {
 			// go goroutine
-			r := ReadJobResult{}
-			resp, err := e.ctxReader.ContextRead(job)
+			resp, err := e.ctxReader.Get(job)
 			if err != nil {
 				e.log.Errorf("making request: %s", err)
 				continue
 			}
-			r.Time = time.Now() // It is sensible to record the time now
-			r.Res = resp.Body
+			r := &ReadJobResult{
+				Time: time.Now(), // It is sensible to record the time now
+				Res:  resp.Body,
+			}
 			e.resultChan <- r
 		}
 		close(done)
@@ -61,6 +62,6 @@ func (e *ExpvarReader) JobChan() chan context.Context {
 }
 
 // ResultChan returns the result channel
-func (e *ExpvarReader) ResultChan() chan ReadJobResult {
+func (e *ExpvarReader) ResultChan() chan *ReadJobResult {
 	return e.resultChan
 }

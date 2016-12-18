@@ -4,7 +4,7 @@
 
 package lib
 
-//DummyReadCloser implements io.ReadCloser and does nothing
+// DummyReadCloser implements io.ReadCloser that does nothing
 type DummyReadCloser struct{}
 
 func (DummyReadCloser) Close() error                     { return nil }

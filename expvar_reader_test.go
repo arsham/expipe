@@ -20,12 +20,12 @@ import (
 
 type MockExpvarReader struct {
 	jobCh     chan context.Context
-	resultCh  chan expvastic.ReadJobResult
+	resultCh  chan *expvastic.ReadJobResult
 	done      chan struct{}
 	StartFunc func() chan struct{}
 }
 
-func NewMockExpvarReader(jobs chan context.Context, resCh chan expvastic.ReadJobResult, f func(context.Context)) *MockExpvarReader {
+func NewMockExpvarReader(jobs chan context.Context, resCh chan *expvastic.ReadJobResult, f func(context.Context)) *MockExpvarReader {
 	w := &MockExpvarReader{
 		jobCh:    jobs,
 		resultCh: resCh,
@@ -40,8 +40,8 @@ func NewMockExpvarReader(jobs chan context.Context, resCh chan expvastic.ReadJob
 	return w
 }
 
-func (m *MockExpvarReader) JobChan() chan context.Context            { return m.jobCh }
-func (m *MockExpvarReader) ResultChan() chan expvastic.ReadJobResult { return m.resultCh }
+func (m *MockExpvarReader) JobChan() chan context.Context             { return m.jobCh }
+func (m *MockExpvarReader) ResultChan() chan *expvastic.ReadJobResult { return m.resultCh }
 
 func (m *MockExpvarReader) Start() chan struct{} {
 	if m.StartFunc != nil {

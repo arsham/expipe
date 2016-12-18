@@ -9,10 +9,12 @@ import (
     "net/http"
 )
 
-// ContextReader reads from the url with the context
-// Don't confuse it with the targetReader, that is for reading metrics!
+// ContextReader reads from the url with the specified context
 type ContextReader interface {
-    ContextRead(ctx context.Context) (*http.Response, error)
+    // Get reads from the url and returns DefaultClient errors
+    // This operation's deadline and cancellation depends on ctx
+    // You should close the Body when you finished reading from it
+    Get(ctx context.Context) (*http.Response, error)
 }
 
 // CtxReader implements ContextReader interface
@@ -20,16 +22,17 @@ type CtxReader struct {
     url string
 }
 
-// NewCtxReader ..
+// NewCtxReader requires a sanitised url
 func NewCtxReader(url string) *CtxReader {
     return &CtxReader{url}
 }
 
-// ContextRead returns DefaultClient errors
-func (c *CtxReader) ContextRead(ctx context.Context) (*http.Response, error) {
+// Get uses GET verb for retreiving the data
+// TODO: implement other verbs
+func (c *CtxReader) Get(ctx context.Context) (*http.Response, error) {
     req, err := http.NewRequest("GET", c.url, nil)
     if err != nil {
-        // Although it seems allright, but just in case
+        // Although it should be allright, but just in case
         return nil, err
     }
     req = req.WithContext(ctx)

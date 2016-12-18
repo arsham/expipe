@@ -6,7 +6,7 @@ import (
     "github.com/Sirupsen/logrus"
 )
 
-// GetLogger returns the default logger with the given log level
+// GetLogger returns the default logger with the given log level.
 func GetLogger(level string) *logrus.Logger {
     logrus.SetLevel(logrus.ErrorLevel)
     customFormatter := new(logrus.TextFormatter)
@@ -29,7 +29,8 @@ func GetLogger(level string) *logrus.Logger {
     return logrus.StandardLogger()
 }
 
-// DiscardLogger returns a dummy logger
+// DiscardLogger returns a dummy logger.
+// This is useful for tests when you don't want to actually write to the Stdout.
 func DiscardLogger() *logrus.Logger {
     log := logrus.New()
     log.Out = ioutil.Discard

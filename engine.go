@@ -6,28 +6,26 @@ package expvastic
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 )
 
-// Engine represents an engine that receives information from readers and ships them to recorders
-// The Engine is allowed to change the index and type names at will
+// Engine represents an engine that receives information from readers and ships them to recorders.
+// The Engine is allowed to change the index and type names at will.
+// When the context times out or canceled, the engine will close the the job channels by calling the Stop method.
 type Engine struct {
-	ctx          context.Context // When this context is canceled, it client tries to finalize its work
-	targetReader TargetReader    // The worker that reads from an expvar provider
-	recorder     DataRecorder    // Recorder (e.g. ElasticSearch) client
-	indexName    string          // Recorder (e.g. ElasticSearch) index name
-	typeName     string          // Recorder (e.g. ElasticSearch) type name
+	ctx          context.Context // Will call Stop() when this context is canceled/timedout.
+	targetReader TargetReader    // The worker that reads from an expvar provider.
+	recorder     DataRecorder    // Recorder (e.g. ElasticSearch) client.
+	indexName    string          // Recorder (e.g. ElasticSearch) index name.
+	typeName     string          // Recorder (e.g. ElasticSearch) type name.
 	interval     time.Duration
 	timeout      time.Duration
 	logger       logrus.FieldLogger
 }
 
-// NewEngine creates an index if not exists
-// It returns an error if index creation is unsuccessful
+// NewEngine copies its configurations from c.
 func NewEngine(ctx context.Context, c Conf) *Engine {
 	cl := &Engine{
 		ctx:          ctx,
@@ -42,57 +40,65 @@ func NewEngine(ctx context.Context, c Conf) *Engine {
 	return cl
 }
 
-// Start begins pulling the data and record them.
-// when ctx is canceled, all goroutines will stop what they do.
+// Start begins pulling the data from TargetReader and chips them to DataRecorder.
+// When the context cancels or timesout, the engine closes all job channels, causing the readers and recorders to stop.
 func (c *Engine) Start() {
-	jobChan := c.targetReader.JobChan()
 	resultChan := c.targetReader.ResultChan()
 	ticker := time.NewTicker(c.interval)
 	for {
 		select {
 		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(c.ctx, c.timeout)
-			time.AfterFunc(c.timeout, cancel)
-			// Issuing the next job
-			jobChan <- ctx
+			go issueReaderJob(c.ctx, c.logger, c.targetReader, c.timeout)
 		case r := <-resultChan:
-			go func() {
-				defer r.Res.Close()
-				errCh := make(chan error)
-				p := c.recorder.PayloadChan()
-				payload := &RecordJob{
-					Ctx:       c.ctx,
-					Payload:   jobResultDataTypes(r.Res),
-					IndexName: c.indexName,
-					TypeName:  c.typeName,
-					Time:      r.Time,
-					Err:       errCh,
-				}
-				p <- payload
-				if err := <-errCh; err != nil {
-					c.logger.Errorf("%s", err)
-				}
-			}()
+			go redirectToRecorder(c.ctx, c.logger, r, c.recorder, c.timeout, c.indexName, c.typeName)
 		case <-c.ctx.Done():
-			close(jobChan)
+			c.Stop()
 			return
 		}
 	}
 }
 
-// Stop begins pulling the data and record them
-func (c *Engine) Stop() error {
-	return nil
+// Stop closes the job channels
+func (c *Engine) Stop() {
+	close(c.targetReader.JobChan())
+	close(c.recorder.PayloadChan())
+	// TODO: ask the readers/recorders for their done channels and wait until they are closed.
 }
 
-// TODO: Use JSON encoder instead
-func getQueryString(timestamp time.Time, kv []DataType) string {
-	ts := fmt.Sprintf(`"@timestamp":"%s"`, timestamp.Format("2006-01-02T15:04:05.999999-07:00"))
-	l := make([]string, len(kv)+1)
-	l[0] = ts
-
-	for i, v := range kv {
-		l[i+1] = v.String()
+func issueReaderJob(ctx context.Context, logger logrus.FieldLogger, reader TargetReader, timeout time.Duration) {
+	ctx, _ = context.WithTimeout(ctx, timeout)
+	timer := time.NewTimer(timeout)
+	select {
+	case reader.JobChan() <- ctx:
+		timer.Stop()
+		return
+	case <-timer.C: // QUESTION: Do I need this? Or should I apply the same for recorder?
+		logger.Warn("timedout before receiving the error")
+	case <-ctx.Done():
+		logger.Warnf("timedout before receiving the error response: %s", ctx.Err())
 	}
-	return fmt.Sprintf("{%s}", strings.Join(l, ","))
+
+}
+
+func redirectToRecorder(ctx context.Context, logger logrus.FieldLogger, r *ReadJobResult, p DataRecorder, timeout time.Duration, indexName, typeName string) {
+	defer r.Res.Close()
+	ctx, _ = context.WithTimeout(ctx, timeout)
+	errChan := make(chan error)
+	payload := &RecordJob{
+		Ctx:       ctx,
+		Payload:   jobResultDataTypes(r.Res),
+		IndexName: indexName,
+		TypeName:  typeName,
+		Time:      r.Time,
+		Err:       errChan,
+	}
+	p.PayloadChan() <- payload
+	select {
+	case err := <-errChan:
+		if err != nil {
+			logger.Errorf("%s", err)
+		}
+	case <-ctx.Done():
+		logger.Warnf("timedout before receiving the error%s", ctx.Err())
+	}
 }

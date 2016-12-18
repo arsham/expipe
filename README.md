@@ -28,15 +28,20 @@ docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5
 
 ## TODO
 - [ ] Decide how to show GC information correctly
+- [ ] When reader/recorder are not available, don't check right away
+- [ ] Create UUID for messages in order to log them
 - [ ] Read from multiple sources
+- [ ] Record expvastic's own metrics
 - [ ] Use dates on index names
-- [ ] Read from other providers; python etc.
+- [ ] Read from other providers; python, JMX etc.
+- [ ] Read from log files
 - [ ] Benchmarks
 - [ ] Create a docker image
 - [ ] Make a compose file
 - [ ] Gracefully shutdown
 - [ ] Share kibana setups
 - [ ] Read from yaml/toml/json configuration files
+- [ ] Create different timeouts for each reader/recorder
 - [ ] Read from etcd/consul for configurations
 
 ## LICENSE
