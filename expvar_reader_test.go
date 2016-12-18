@@ -59,13 +59,20 @@ func TestExpvarReaderErrors(t *testing.T) {
 	reader, _ := expvastic.NewExpvarReader(log, ctxReader)
 	reader.Start()
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	reader.JobChan() <- ctx
 	select {
 	case res := <-reader.ResultChan():
-		t.Errorf("expecting no results, got(%v)", res)
-	case <-time.After(10 * time.Millisecond):
+		if res.Res != nil {
+			t.Errorf("expecting no results, got(%v)", res.Res)
+		}
+		if res.Err == nil {
+			t.Error("expecting error, got nothing")
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Error("expecting an error result back, got nothing")
 	}
-	cancel()
 }
 
 func TestExpvarReaderReads(t *testing.T) {

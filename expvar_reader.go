@@ -6,6 +6,7 @@ package expvastic
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -17,18 +18,18 @@ type ExpvarReader struct {
 	jobChan    chan context.Context
 	resultChan chan *ReadJobResult
 	ctxReader  ContextReader
-	log        logrus.FieldLogger
+	logger     logrus.FieldLogger
 }
 
 // NewExpvarReader creates the worker and sets up its channels
 // Because the caller is reading the resp.Body, it is its job to close it
-func NewExpvarReader(log logrus.FieldLogger, ctxReader ContextReader) (*ExpvarReader, error) {
+func NewExpvarReader(logger logrus.FieldLogger, ctxReader ContextReader) (*ExpvarReader, error) {
 	// TODO: ping the reader
 	w := &ExpvarReader{
 		jobChan:    make(chan context.Context, 1000),
 		resultChan: make(chan *ReadJobResult, 1000),
 		ctxReader:  ctxReader,
-		log:        log,
+		logger:     logger,
 	}
 	return w, nil
 }
@@ -39,17 +40,7 @@ func (e *ExpvarReader) Start() chan struct{} {
 	done := make(chan struct{})
 	go func() {
 		for job := range e.jobChan {
-			// go goroutine
-			resp, err := e.ctxReader.Get(job)
-			if err != nil {
-				e.log.Errorf("making request: %s", err)
-				continue
-			}
-			r := &ReadJobResult{
-				Time: time.Now(), // It is sensible to record the time now
-				Res:  resp.Body,
-			}
-			e.resultChan <- r
+			go readMetrics(job, e.logger, e.ctxReader, e.resultChan)
 		}
 		close(done)
 	}()
@@ -64,4 +55,23 @@ func (e *ExpvarReader) JobChan() chan context.Context {
 // ResultChan returns the result channel
 func (e *ExpvarReader) ResultChan() chan *ReadJobResult {
 	return e.resultChan
+}
+
+func readMetrics(job context.Context, logger logrus.FieldLogger, ctxReader ContextReader, resultChan chan *ReadJobResult) {
+	resp, err := ctxReader.Get(job)
+	if err != nil {
+		logger.Errorf("making request: %s", err)
+		r := &ReadJobResult{
+			Time: time.Now(),
+			Res:  nil,
+			Err:  fmt.Errorf("error making request to metrics provider: %s", err),
+		}
+		resultChan <- r
+		return
+	}
+	r := &ReadJobResult{
+		Time: time.Now(), // It is sensible to record the time now
+		Res:  resp.Body,
+	}
+	resultChan <- r
 }
