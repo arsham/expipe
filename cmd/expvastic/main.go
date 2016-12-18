@@ -17,55 +17,58 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expvastic/recorder/elasticsearch"
 	"github.com/asaskevich/govalidator"
 	"github.com/namsral/flag"
+)
+
+var (
+	target     = flag.String("target", "localhost:1234/debug/vars", "Target address and port")
+	esURL      = flag.String("es", "localhost:9200", "Elasticsearch URL and port")
+	debugLevel = flag.String("loglevel", "info", "Debug level")
+	indexName  = flag.String("index", "expvastic", "Elasticsearch index name")
+	typeName   = flag.String("type", "expvastic", "Elasticsearch type name")
+	interval   = flag.Duration("int", time.Second, "Interval between pulls")
+	timeout    = flag.Duration("timeout", 30*time.Second, "Elasticsearch communication timeout")
 )
 
 func main() {
 	var wg sync.WaitGroup
 	wg.Add(3)
-	target, esURL, debugLevel, indexName, typeName, interval, timeout := parseFlags()
 	log := lib.GetLogger(*debugLevel)
+	flag.Parse()
+	if err := checkFlags(); err != nil {
+		flag.Usage()
+		logrus.Fatalf("Error starting the application: %s", err)
+	}
 	bgCtx, cancel := context.WithCancel(context.Background())
 	captureSignals(&wg, cancel)
 
 	ctx, _ := context.WithTimeout(bgCtx, *timeout)
 	esClient := getES(ctx, log, *esURL, *indexName)
-	reader := getExpvar(log, *target)
+	rdr := getExpvar(log, *target)
 
-	rDone := reader.Start()
+	rDone := rdr.Start()
 	wDone := esClient.Start()
-	cl := getEngine(bgCtx, log, reader, esClient, *indexName, *typeName, *interval, *timeout)
+	cl := getEngine(bgCtx, log, rdr, esClient, *indexName, *typeName, *interval, *timeout)
 	cl.Start()
 	<-wDone
-	wg.Done()
 	<-rDone
-	wg.Done()
+	wg.Add(-2)
 	wg.Wait()
 }
 
-func parseFlags() (target, esURL, debugLevel, indexName, typeName *string, interval, timeout *time.Duration) {
+func checkFlags() error {
 	var err error
-	target = flag.String("target", "localhost:1234/debug/vars", "Target address and port")
-	esURL = flag.String("es", "localhost:9200", "Elasticsearch URL and port")
-	debugLevel = flag.String("loglevel", "info", "Debug level")
-	indexName = flag.String("index", "expvastic", "Elasticsearch index name")
-	typeName = flag.String("type", "expvastic", "Elasticsearch type name")
-	interval = flag.Duration("int", time.Second, "Interval between pulls")
-	timeout = flag.Duration("timeout", 30*time.Second, "Elasticsearch communication timeout")
-	flag.Parse()
 	if *esURL, err = validateURL(*esURL); err != nil {
-		fmt.Println("Invalid ElasticSearch URL")
-		flag.Usage()
-		os.Exit(1)
+		return fmt.Errorf("Invalid ElasticSearch URL")
 	}
 
 	if *target, err = validateURL(*target); err != nil {
-		fmt.Println("Invalid target URL")
-		flag.Usage()
-		os.Exit(1)
+		return fmt.Errorf("Invalid target URL")
 	}
-	return
+	return nil
 }
 
 func captureSignals(wg *sync.WaitGroup, cancel context.CancelFunc) {
@@ -90,8 +93,8 @@ func validateURL(url string) (string, error) {
 
 }
 
-func getES(ctx context.Context, log logrus.FieldLogger, esURL, indexName string) *expvastic.ElasticSearch {
-	esClient, err := expvastic.NewElasticSearch(ctx, log, esURL, indexName)
+func getES(ctx context.Context, log logrus.FieldLogger, esURL, indexName string) *elasticsearch.ElasticSearch {
+	esClient, err := elasticsearch.NewElasticSearch(ctx, log, esURL, indexName)
 	if err != nil {
 		if ctx.Err() != nil {
 			log.Fatalf("Timeout: %s - %s", ctx.Err(), err)
@@ -101,8 +104,8 @@ func getES(ctx context.Context, log logrus.FieldLogger, esURL, indexName string)
 	return esClient
 }
 
-func getExpvar(log logrus.FieldLogger, target string) *expvastic.ExpvarReader {
-	r, err := expvastic.NewExpvarReader(log, expvastic.NewCtxReader(target))
+func getExpvar(log logrus.FieldLogger, target string) *reader.ExpvarReader {
+	r, err := reader.NewExpvarReader(log, reader.NewCtxReader(target))
 	if err != nil {
 		log.Fatalf("Error creating the reader: %s", err)
 	}
@@ -112,8 +115,8 @@ func getExpvar(log logrus.FieldLogger, target string) *expvastic.ExpvarReader {
 func getEngine(
 	bgCtx context.Context,
 	log logrus.FieldLogger,
-	reader *expvastic.ExpvarReader,
-	esClient *expvastic.ElasticSearch,
+	reader *reader.ExpvarReader,
+	esClient *elasticsearch.ElasticSearch,
 	indexName,
 	typeName string,
 	interval,

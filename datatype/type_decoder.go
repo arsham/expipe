@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic
+package datatype
 
 import (
     "io"
@@ -11,7 +11,8 @@ import (
     "github.com/arsham/expvastic/lib"
 )
 
-func jobResultDataTypes(r io.Reader) DataContainer {
+// JobResultDataTypes generates a list of DataType and puts them inside the DataContainer
+func JobResultDataTypes(r io.Reader) DataContainer {
     obj, err := jason.NewObjectFromReader(r)
     if err != nil {
         return &Container{Err: err}
@@ -36,9 +37,9 @@ func getJasonValues(prefix string, values map[string]*jason.Value) *Container {
             result.Add(v.List()...)
         } else if arr, err := value.Array(); err == nil {
             // we are dealing with an array object
-            result.Add(getFloatListValues(prefix+key, arr)...)
+            result.Add(floatListValues(prefix+key, arr)...)
         } else {
-            v, err := DataTypeFromJason(prefix+key, *value)
+            v, err := FromJason(prefix+key, *value)
             if err == nil {
                 result.Add(v)
             }
@@ -50,8 +51,8 @@ func getJasonValues(prefix string, values map[string]*jason.Value) *Container {
     return result
 }
 
-// DataTypeFromJason returns an instance of DataType from jason value
-func DataTypeFromJason(key string, value jason.Value) (DataType, error) {
+// FromJason returns an instance of DataType from jason value
+func FromJason(key string, value jason.Value) (DataType, error) {
     var (
         err error
         s   string
@@ -65,14 +66,14 @@ func DataTypeFromJason(key string, value jason.Value) (DataType, error) {
     return nil, ErrUnidentifiedJason
 }
 
-func getFloatListValues(key string, values []*jason.Value) []DataType {
+func floatListValues(key string, values []*jason.Value) []DataType {
     if len(values) == 0 {
         // empty list
         return []DataType{&FloatListType{key, []float64{}}}
     }
 
     if lib.IsGCType(key) {
-        return getGCListValues(key, values)
+        return gcListValues(key, values)
     }
 
     if _, err := values[0].Float64(); err == nil {
@@ -87,7 +88,7 @@ func getFloatListValues(key string, values []*jason.Value) []DataType {
     return nil
 }
 
-func getGCListValues(key string, values []*jason.Value) (result []DataType) {
+func gcListValues(key string, values []*jason.Value) (result []DataType) {
     if _, err := values[0].Float64(); err == nil {
         res := make([]uint64, len(values))
         for i, val := range values {

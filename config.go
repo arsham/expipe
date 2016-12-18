@@ -8,16 +8,18 @@ import (
     "time"
 
     "github.com/Sirupsen/logrus"
+    "github.com/arsham/expvastic/reader"
+    "github.com/arsham/expvastic/recorder"
 )
 
 // Conf holds the necessary configuration for the Engine
 type Conf struct {
-    Recorder     DataRecorder // The target repository
+    Recorder     recorder.DataRecorder // The target repository
     IndexName    string
     TypeName     string
     Target       string
     Interval     time.Duration
     Timeout      time.Duration
     Logger       logrus.FieldLogger
-    TargetReader TargetReader
+    TargetReader reader.TargetReader
 }

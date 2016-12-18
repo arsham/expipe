@@ -2,23 +2,26 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic
+package expvastic_test
 
 import (
 	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/reader"
 )
 
 func TestInspectResult(t *testing.T) {
 	buf := ioutil.NopCloser(strings.NewReader(`{"key": 6.6}`))
-	r := ReadJobResult{
+	r := reader.ReadJobResult{
 		Res:  buf,
 		Time: time.Now(),
 	}
 
-	res := jobResultDataTypes(r.Res)
+	res := datatype.JobResultDataTypes(r.Res)
 	if res.Error() != nil {
 		t.Errorf("expected no errors, got: %s", res.Error())
 	}
@@ -27,12 +30,12 @@ func TestInspectResult(t *testing.T) {
 	}
 
 	buf = ioutil.NopCloser(strings.NewReader(`{"key: 6.6}`))
-	r = ReadJobResult{
+	r = reader.ReadJobResult{
 		Res:  buf,
 		Time: time.Now(),
 	}
 
-	res = jobResultDataTypes(r.Res)
+	res = datatype.JobResultDataTypes(r.Res)
 	if res.Error() == nil {
 		t.Error("expected an error, got nothing")
 	}

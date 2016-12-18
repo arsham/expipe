@@ -11,24 +11,26 @@ import (
 
 	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expvastic/recorder"
 )
 
 // Use this setup to test a recorder's behaviour
-func simpleRecorderSetup(url string, readerChan chan struct{}, recJobChan chan *expvastic.RecordJob) *expvastic.Conf {
+func simpleRecorderSetup(url string, readerChan chan struct{}, recJobChan chan *recorder.RecordJob) *expvastic.Conf {
 	log := lib.DiscardLogger()
-	read := &MockCtxReader{
+	read := &reader.MockCtxReader{
 		ContextReadFunc: func(ctx context.Context) (*http.Response, error) {
 			readerChan <- struct{}{}
 			return http.Get(url)
 		},
 	}
-	reader, _ := expvastic.NewExpvarReader(log, read)
-	reader.Start()
+	rdr, _ := reader.NewExpvarReader(log, read)
+	rdr.Start()
 
-	rec := &mockRecorder{
-		PayloadChanFunc: func() chan *expvastic.RecordJob {
+	rec := &recorder.MockRecorder{
+		PayloadChanFunc: func() chan *recorder.RecordJob {
 			if recJobChan == nil {
-				recJobChan = make(chan *expvastic.RecordJob)
+				recJobChan = make(chan *recorder.RecordJob)
 			}
 			return recJobChan
 		},
@@ -36,29 +38,29 @@ func simpleRecorderSetup(url string, readerChan chan struct{}, recJobChan chan *
 
 	return &expvastic.Conf{
 		Logger:       log,
-		TargetReader: reader,
+		TargetReader: rdr,
 		Recorder:     rec,
 		Target:       url,
 		Interval:     1 * time.Millisecond, Timeout: 3 * time.Millisecond,
 	}
 }
 
-// Use this setup to test a recorder's behaviour and mock the reader
-func simpleRecReaderSetup(url string, readerChan chan struct{}, recJobChan chan *expvastic.RecordJob, resultChan chan *expvastic.ReadJobResult) *expvastic.Conf {
+// // Use this setup to test a recorder's behaviour and mock the reader
+func simpleRecReaderSetup(url string, readerChan chan struct{}, recJobChan chan *recorder.RecordJob, resultChan chan *reader.ReadJobResult) *expvastic.Conf {
 	log := lib.DiscardLogger()
 	jobs := make(chan context.Context)
 
-	reader := NewMockExpvarReader(jobs, resultChan, func(c context.Context) {})
+	rdr := reader.NewMockExpvarReader(jobs, resultChan, func(c context.Context) {})
 
-	rec := &mockRecorder{
-		PayloadChanFunc: func() chan *expvastic.RecordJob {
+	rec := &recorder.MockRecorder{
+		PayloadChanFunc: func() chan *recorder.RecordJob {
 			return recJobChan
 		},
 	}
 
 	return &expvastic.Conf{
 		Logger:       log,
-		TargetReader: reader,
+		TargetReader: rdr,
 		Recorder:     rec,
 		Target:       url,
 		Interval:     1 * time.Millisecond, Timeout: 3 * time.Millisecond,

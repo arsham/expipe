@@ -18,5 +18,8 @@
 //
 //    docker run -it --rm --name expvastic --ulimit nofile=98304:98304 -v "/path/to/somewhere/expvastic":/usr/share/elasticsearch/data elasticsearch
 //    docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
+//
+// At the heart of this package, there is Engine. It acts like a glue between a Reader and a Recorder. Messages are transfered in a package called DataContainer, which is a list of DataType objects.
+//
 // Use of this source code is governed by the Apache 2.0 license. License that can be found in the LICENSE file.
 package expvastic

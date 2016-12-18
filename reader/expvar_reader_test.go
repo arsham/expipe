@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic_test
+package reader
 
 import (
 	"bytes"
@@ -14,41 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/lib"
 )
-
-type MockExpvarReader struct {
-	jobCh     chan context.Context
-	resultCh  chan *expvastic.ReadJobResult
-	done      chan struct{}
-	StartFunc func() chan struct{}
-}
-
-func NewMockExpvarReader(jobs chan context.Context, resCh chan *expvastic.ReadJobResult, f func(context.Context)) *MockExpvarReader {
-	w := &MockExpvarReader{
-		jobCh:    jobs,
-		resultCh: resCh,
-		done:     make(chan struct{}),
-	}
-	go func() {
-		for job := range w.jobCh {
-			f(job)
-		}
-		close(w.done)
-	}()
-	return w
-}
-
-func (m *MockExpvarReader) JobChan() chan context.Context             { return m.jobCh }
-func (m *MockExpvarReader) ResultChan() chan *expvastic.ReadJobResult { return m.resultCh }
-
-func (m *MockExpvarReader) Start() chan struct{} {
-	if m.StartFunc != nil {
-		return m.StartFunc()
-	}
-	return nil
-}
 
 func TestExpvarReaderErrors(t *testing.T) {
 	log := lib.DiscardLogger()
@@ -56,14 +23,14 @@ func TestExpvarReaderErrors(t *testing.T) {
 	ctxReader.ContextReadFunc = func(ctx context.Context) (*http.Response, error) {
 		return nil, fmt.Errorf("Error")
 	}
-	reader, _ := expvastic.NewExpvarReader(log, ctxReader)
-	reader.Start()
+	rdr, _ := NewExpvarReader(log, ctxReader)
+	rdr.Start()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	reader.JobChan() <- ctx
+	rdr.JobChan() <- ctx
 	select {
-	case res := <-reader.ResultChan():
+	case res := <-rdr.ResultChan():
 		if res.Res != nil {
 			t.Errorf("expecting no results, got(%v)", res.Res)
 		}
@@ -82,11 +49,11 @@ func TestExpvarReaderReads(t *testing.T) {
 		io.WriteString(w, testCase)
 	}))
 	ctxReader := NewMockCtxReader(ts.URL)
-	reader, _ := expvastic.NewExpvarReader(log, ctxReader)
-	reader.Start()
+	rdr, _ := NewExpvarReader(log, ctxReader)
+	rdr.Start()
 	ctx, cancel := context.WithCancel(context.Background())
-	reader.JobChan() <- ctx
-	res := <-reader.ResultChan()
+	rdr.JobChan() <- ctx
+	res := <-rdr.ResultChan()
 	if res.Err != nil {
 		t.Errorf("Expecting no errors, got (%s)", res.Err)
 	}
@@ -102,15 +69,15 @@ func TestExpvarReaderReads(t *testing.T) {
 func TestExpvarReaderClosesStream(t *testing.T) {
 	log := lib.DiscardLogger()
 	ctxReader := NewMockCtxReader("nowhere")
-	reader, _ := expvastic.NewExpvarReader(log, ctxReader)
-	done := reader.Start()
+	rdr, _ := NewExpvarReader(log, ctxReader)
+	done := rdr.Start()
 	ctx, cancel := context.WithCancel(context.Background())
-	reader.JobChan() <- ctx
+	rdr.JobChan() <- ctx
 
 	select {
-	case <-reader.ResultChan():
+	case <-rdr.ResultChan():
 	default:
-		close(reader.JobChan())
+		close(rdr.JobChan())
 	}
 	select {
 	case <-done:

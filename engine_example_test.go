@@ -13,6 +13,9 @@ import (
 	"strings"
 
 	"github.com/arsham/expvastic"
+	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expvastic/recorder"
 )
 
 func ExampleEngine_sendJob() {
@@ -49,19 +52,19 @@ func ExampleEngine_RecorderReturnsResult() {
 	defer ts.Close()
 
 	readerChan := make(chan struct{})
-	recJobChan := make(chan *expvastic.RecordJob)
-	resultChan := make(chan *expvastic.ReadJobResult)
+	recJobChan := make(chan *recorder.RecordJob)
+	resultChan := make(chan *reader.ReadJobResult)
 
 	conf := simpleRecReaderSetup(ts.URL, readerChan, recJobChan, resultChan) // url, reader channel, job recorder channel, result channel
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cl := expvastic.NewEngine(ctx, *conf)
 	go cl.Start()
-	ftype := expvastic.FloatType{"test", 666.66}
+	ftype := datatype.FloatType{"test", 666.66}
 	ftypeStr := fmt.Sprintf("{%s}", ftype)
 
 	msg := ioutil.NopCloser(strings.NewReader(ftypeStr))
-	resultChan <- &expvastic.ReadJobResult{Res: msg}
+	resultChan <- &reader.ReadJobResult{Res: msg}
 	r := <-recJobChan
 	result := r.Payload.List()[0]
 	fmt.Println(result.String())

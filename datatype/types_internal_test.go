@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic
+package datatype
 
 import (
     "fmt"
@@ -143,7 +143,7 @@ func TestFromReader(t *testing.T) {
         name := fmt.Sprintf("case %d", i)
         t.Run(name, func(t *testing.T) {
 
-            results := jobResultDataTypes(tc.value)
+            results := JobResultDataTypes(tc.value)
             if results.Error() != nil {
                 t.Errorf("expected no errors, got (%s)", results.Error())
             }
@@ -155,7 +155,7 @@ func TestFromReader(t *testing.T) {
     }
 
     value := strings.NewReader(`{"Alloc": "sdsds"}`)
-    results := jobResultDataTypes(value)
+    results := JobResultDataTypes(value)
     if results.Error() == nil {
         t.Error("expected error, got nothing")
     }

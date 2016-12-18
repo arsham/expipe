@@ -9,17 +9,20 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expvastic/recorder"
 )
 
 // Engine represents an engine that receives information from readers and ships them to recorders.
 // The Engine is allowed to change the index and type names at will.
 // When the context times out or canceled, the engine will close the the job channels by calling the Stop method.
 type Engine struct {
-	ctx          context.Context // Will call Stop() when this context is canceled/timedout.
-	targetReader TargetReader    // The worker that reads from an expvar provider.
-	recorder     DataRecorder    // Recorder (e.g. ElasticSearch) client.
-	indexName    string          // Recorder (e.g. ElasticSearch) index name.
-	typeName     string          // Recorder (e.g. ElasticSearch) type name.
+	ctx          context.Context       // Will call Stop() when this context is canceled/timedout.
+	targetReader reader.TargetReader   // The worker that reads from an expvar provider.
+	recorder     recorder.DataRecorder // Recorder (e.g. ElasticSearch) client.
+	indexName    string                // Recorder (e.g. ElasticSearch) index name.
+	typeName     string                // Recorder (e.g. ElasticSearch) type name.
 	interval     time.Duration
 	timeout      time.Duration
 	logger       logrus.FieldLogger
@@ -50,6 +53,10 @@ func (c *Engine) Start() {
 		case <-ticker.C:
 			go issueReaderJob(c.ctx, c.logger, c.targetReader, c.timeout)
 		case r := <-resultChan:
+			if r.Err != nil {
+				c.logger.Error(r.Err)
+				continue
+			}
 			go redirectToRecorder(c.ctx, c.logger, r, c.recorder, c.timeout, c.indexName, c.typeName)
 		case <-c.ctx.Done():
 			c.Stop()
@@ -65,7 +72,7 @@ func (c *Engine) Stop() {
 	// TODO: ask the readers/recorders for their done channels and wait until they are closed.
 }
 
-func issueReaderJob(ctx context.Context, logger logrus.FieldLogger, reader TargetReader, timeout time.Duration) {
+func issueReaderJob(ctx context.Context, logger logrus.FieldLogger, reader reader.TargetReader, timeout time.Duration) {
 	ctx, _ = context.WithTimeout(ctx, timeout)
 	timer := time.NewTimer(timeout)
 	select {
@@ -80,13 +87,13 @@ func issueReaderJob(ctx context.Context, logger logrus.FieldLogger, reader Targe
 
 }
 
-func redirectToRecorder(ctx context.Context, logger logrus.FieldLogger, r *ReadJobResult, p DataRecorder, timeout time.Duration, indexName, typeName string) {
+func redirectToRecorder(ctx context.Context, logger logrus.FieldLogger, r *reader.ReadJobResult, p recorder.DataRecorder, timeout time.Duration, indexName, typeName string) {
 	defer r.Res.Close()
 	ctx, _ = context.WithTimeout(ctx, timeout)
 	errChan := make(chan error)
-	payload := &RecordJob{
+	payload := &recorder.RecordJob{
 		Ctx:       ctx,
-		Payload:   jobResultDataTypes(r.Res),
+		Payload:   datatype.JobResultDataTypes(r.Res),
 		IndexName: indexName,
 		TypeName:  typeName,
 		Time:      r.Time,

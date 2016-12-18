@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic_test
+package reader
 
 import (
     "bytes"
@@ -10,12 +10,10 @@ import (
     "fmt"
     "net/http"
     "net/http/httptest"
-
-    "github.com/arsham/expvastic"
 )
 
 func ExampleCtxReader_Get_1() {
-    ctxReader := expvastic.NewCtxReader("bad url")
+    ctxReader := NewCtxReader("bad url")
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()
 
@@ -35,7 +33,7 @@ func ExampleCtxReader_Get_2() {
     }))
     defer ts.Close()
 
-    ctxReader := expvastic.NewCtxReader(ts.URL)
+    ctxReader := NewCtxReader(ts.URL)
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()
     res, err := ctxReader.Get(ctx)
