@@ -12,6 +12,7 @@ import (
 	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expvastic/reader/expvar"
 	"github.com/arsham/expvastic/recorder"
 )
 
@@ -24,7 +25,7 @@ func simpleRecorderSetup(url string, readerChan chan struct{}, recJobChan chan *
 			return http.Get(url)
 		},
 	}
-	rdr, _ := reader.NewExpvarReader(log, read)
+	rdr, _ := expvar.NewExpvarReader(log, read)
 	rdr.Start()
 
 	rec := &recorder.MockRecorder{

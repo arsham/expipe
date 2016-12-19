@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package reader
+package expvar
 
 import (
 	"context"
@@ -10,25 +10,26 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/reader"
 )
 
 // ExpvarReader contains communication channels with a worker that exposes expvar information.
 // It implements TargetReader interface.
 type ExpvarReader struct {
 	jobChan    chan context.Context
-	resultChan chan *ReadJobResult
-	ctxReader  ContextReader
+	resultChan chan *reader.ReadJobResult
+	ctxReader  reader.ContextReader
 	logger     logrus.FieldLogger
 }
 
 // NewExpvarReader creates the worker and sets up its channels.
 // Because the caller is reading the resp.Body, it is its job to close it.
-func NewExpvarReader(logger logrus.FieldLogger, ctxReader ContextReader) (*ExpvarReader, error) {
+func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader) (*ExpvarReader, error) {
 	// TODO: ping the reader.
 	// TODO: have the user decide how large the channels can be.
 	w := &ExpvarReader{
 		jobChan:    make(chan context.Context, 1000),
-		resultChan: make(chan *ReadJobResult, 1000),
+		resultChan: make(chan *reader.ReadJobResult, 1000),
 		ctxReader:  ctxReader,
 		logger:     logger,
 	}
@@ -55,16 +56,16 @@ func (e *ExpvarReader) JobChan() chan context.Context {
 }
 
 // ResultChan returns the result channel.
-func (e *ExpvarReader) ResultChan() chan *ReadJobResult {
+func (e *ExpvarReader) ResultChan() chan *reader.ReadJobResult {
 	return e.resultChan
 }
 
 // will send an error back to the engine if it can't read from metrics provider
-func readMetrics(job context.Context, logger logrus.FieldLogger, ctxReader ContextReader, resultChan chan *ReadJobResult) {
+func readMetrics(job context.Context, logger logrus.FieldLogger, ctxReader reader.ContextReader, resultChan chan *reader.ReadJobResult) {
 	resp, err := ctxReader.Get(job)
 	if err != nil {
 		logger.WithField("reader", "expvar_reader").Debugf("making request: %s", err)
-		r := &ReadJobResult{
+		r := &reader.ReadJobResult{
 			Time: time.Now(),
 			Res:  nil,
 			Err:  fmt.Errorf("making request to metrics provider: %s", err),
@@ -72,7 +73,7 @@ func readMetrics(job context.Context, logger logrus.FieldLogger, ctxReader Conte
 		resultChan <- r
 		return
 	}
-	r := &ReadJobResult{
+	r := &reader.ReadJobResult{
 		Time: time.Now(), // It is sensible to record the time now
 		Res:  resp.Body,
 	}

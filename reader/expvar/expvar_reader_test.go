@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package reader
+package expvar
 
 import (
 	"bytes"
@@ -15,11 +15,12 @@ import (
 	"time"
 
 	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/reader"
 )
 
 func TestExpvarReaderErrors(t *testing.T) {
 	log := lib.DiscardLogger()
-	ctxReader := NewMockCtxReader("nowhere")
+	ctxReader := reader.NewMockCtxReader("nowhere")
 	ctxReader.ContextReadFunc = func(ctx context.Context) (*http.Response, error) {
 		return nil, fmt.Errorf("Error")
 	}
@@ -48,7 +49,7 @@ func TestExpvarReaderReads(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, testCase)
 	}))
-	ctxReader := NewMockCtxReader(ts.URL)
+	ctxReader := reader.NewMockCtxReader(ts.URL)
 	rdr, _ := NewExpvarReader(log, ctxReader)
 	rdr.Start()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -68,7 +69,7 @@ func TestExpvarReaderReads(t *testing.T) {
 
 func TestExpvarReaderClosesStream(t *testing.T) {
 	log := lib.DiscardLogger()
-	ctxReader := NewMockCtxReader("nowhere")
+	ctxReader := reader.NewMockCtxReader("nowhere")
 	rdr, _ := NewExpvarReader(log, ctxReader)
 	done := rdr.Start()
 	ctx, cancel := context.WithCancel(context.Background())

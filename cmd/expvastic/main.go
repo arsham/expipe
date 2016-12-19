@@ -18,6 +18,7 @@ import (
 	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expvastic/reader/expvar"
 	"github.com/arsham/expvastic/recorder/elasticsearch"
 	"github.com/asaskevich/govalidator"
 	"github.com/namsral/flag"
@@ -104,8 +105,8 @@ func getES(ctx context.Context, log logrus.FieldLogger, esURL, indexName string)
 	return esClient
 }
 
-func getExpvar(log logrus.FieldLogger, target string) *reader.ExpvarReader {
-	r, err := reader.NewExpvarReader(log, reader.NewCtxReader(target))
+func getExpvar(log logrus.FieldLogger, target string) *expvar.ExpvarReader {
+	r, err := expvar.NewExpvarReader(log, reader.NewCtxReader(target))
 	if err != nil {
 		log.Fatalf("Error creating the reader: %s", err)
 	}
@@ -115,7 +116,7 @@ func getExpvar(log logrus.FieldLogger, target string) *reader.ExpvarReader {
 func getEngine(
 	bgCtx context.Context,
 	log logrus.FieldLogger,
-	reader *reader.ExpvarReader,
+	reader *expvar.ExpvarReader,
 	esClient *elasticsearch.ElasticSearch,
 	indexName,
 	typeName string,
