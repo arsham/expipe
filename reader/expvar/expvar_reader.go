@@ -41,6 +41,7 @@ func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader) 
 // It will close the done channel when the job channel is closed.
 func (e *ExpvarReader) Start() chan struct{} {
 	done := make(chan struct{})
+	e.logger.Debug("Starting reader")
 	go func() {
 		for job := range e.jobChan {
 			go readMetrics(job, e.logger, e.ctxReader, e.resultChan)
@@ -64,7 +65,7 @@ func (e *ExpvarReader) ResultChan() chan *reader.ReadJobResult {
 func readMetrics(job context.Context, logger logrus.FieldLogger, ctxReader reader.ContextReader, resultChan chan *reader.ReadJobResult) {
 	resp, err := ctxReader.Get(job)
 	if err != nil {
-		logger.WithField("reader", "expvar_reader").Debugf("making request: %s", err)
+		logger.WithField("reader", "expvar_reader").Debugf("error making request: %v", err)
 		r := &reader.ReadJobResult{
 			Time: time.Now(),
 			Res:  nil,
@@ -73,6 +74,7 @@ func readMetrics(job context.Context, logger logrus.FieldLogger, ctxReader reade
 		resultChan <- r
 		return
 	}
+
 	r := &reader.ReadJobResult{
 		Time: time.Now(), // It is sensible to record the time now
 		Res:  resp.Body,

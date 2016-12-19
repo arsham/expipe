@@ -21,10 +21,12 @@ type ElasticSearch struct {
     client    *elastic.Client // ElasticSearch client
     indexName string
     jobChan   chan *recorder.RecordJob
+    logger    logrus.FieldLogger
 }
 
 // NewElasticSearch returns an error if it can't create the index
 func NewElasticSearch(bgCtx context.Context, log logrus.FieldLogger, esURL, indexName string) (*ElasticSearch, error) {
+    log.Debug("connecting to", esURL)
     addr := elastic.SetURL(esURL)
     logger := elastic.SetErrorLog(log)
     client, err := elastic.NewClient(addr, logger)
@@ -57,6 +59,7 @@ func NewElasticSearch(bgCtx context.Context, log logrus.FieldLogger, esURL, inde
         client:    client,
         indexName: indexName,
         jobChan:   make(chan *recorder.RecordJob),
+        logger:    log,
     }, nil
 }
 

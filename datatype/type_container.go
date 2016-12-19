@@ -72,7 +72,6 @@ func (c *Container) String(timestamp time.Time) string {
     ts := fmt.Sprintf(`"@timestamp":"%s"`, timestamp.Format("2006-01-02T15:04:05.999999-07:00"))
     l := make([]string, c.Len()+1)
     l[0] = ts
-
     for i, v := range c.List() {
         l[i+1] = v.String()
     }

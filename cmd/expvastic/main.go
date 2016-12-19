@@ -123,14 +123,15 @@ func getEngine(
 	interval,
 	timeout time.Duration,
 ) *expvastic.Engine {
-	conf := expvastic.Conf{
-		TargetReader: reader,
-		Recorder:     esClient,
-		IndexName:    indexName,
-		TypeName:     typeName,
-		Interval:     interval,
-		Timeout:      timeout,
-		Logger:       log,
-	}
-	return expvastic.NewEngine(bgCtx, conf)
+	// conf := expvastic.Conf{
+	// 	TargetReader: reader,
+	// 	Recorder:     esClient,
+	// 	IndexName:    indexName,
+	// 	TypeName:     typeName,
+	// 	Interval:     interval,
+	// 	Timeout:      timeout,
+	// 	Logger:       log,
+	// }
+	// return expvastic.NewEngine(bgCtx, conf)
+	return nil
 }

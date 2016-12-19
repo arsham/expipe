@@ -1,0 +1,55 @@
+settings:
+    debug_evel: debug
+
+readers:
+    my_app: # service name
+        type: expvar
+        endpoint: http://localhost:1234
+        routepath: /debug/vars
+        interval: 1s
+        timeout: 3s
+        log_level: debug
+        backoff: 10
+    my_app2: # service name
+        type: expvar
+        endpoint: http://localhost:1234
+        routepath: /debug/vars
+        interval: 1s
+        timeout: 13s
+        log_level: debug
+        backoff: 10
+
+recorders:
+    elastic1: # service name
+        type: elasticsearch
+        endpoint: 127.0.0.1:9200
+        index_name: expvastic
+        type_name: my_app1
+        timeout: 8s
+        backoff: 10
+    elastic2: # service name
+        type: elasticsearch
+        endpoint: 127.0.0.1:9200
+        index_name: expvastic
+        type_name: my_app2
+        timeout: 18s
+        backoff: 10
+
+routes:
+    route1:
+        readers:
+            - my_app
+        recorders:
+            - elastic1
+    route2:
+        readers:
+            - my_app
+            - my_app2
+        recorders:
+            - elastic1
+    route3:
+        readers:
+            - my_app2
+        recorders:
+            - elastic1
+            - elastic2

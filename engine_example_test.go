@@ -4,74 +4,60 @@
 
 package expvastic_test
 
-import (
-	"context"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"strings"
+// func ExampleEngine_sendJob() {
+//     ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+//     defer ts.Close()
 
-	"github.com/arsham/expvastic"
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/reader"
-	"github.com/arsham/expvastic/recorder"
-)
+//     readerChan := make(chan struct{})
+//     conf := simpleRecorderSetup(ts.URL, readerChan, nil) // url, reader channel, recorder channel
 
-func ExampleEngine_sendJob() {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	defer ts.Close()
+//     ctx, cancel := context.WithCancel(context.Background())
+//     cl := expvastic.NewEngine(ctx, conf)
+//     go cl.Start()
 
-	readerChan := make(chan struct{})
-	conf := simpleRecorderSetup(ts.URL, readerChan, nil) // url, reader channel, recorder channel
+//     select {
+//     case <-ctx.Done():
+//         panic("job wasn't sent")
+//     case j := <-readerChan:
+//         fmt.Println("job was sent successfully")
+//         fmt.Printf("Job value: %v\n", j)
+//         fmt.Printf("j == struct{}{}: %t\n", j == struct{}{})
+//         cancel()
+//     }
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cl := expvastic.NewEngine(ctx, *conf)
-	go cl.Start()
+//     <-ctx.Done()
 
-	select {
-	case <-ctx.Done():
-		panic("job wasn't sent")
-	case j := <-readerChan:
-		fmt.Println("job was sent successfully")
-		fmt.Printf("Job value: %v\n", j)
-		fmt.Printf("j == struct{}{}: %t\n", j == struct{}{})
-		cancel()
-	}
+//     // Output:
+//     // job was sent successfully
+//     // Job value: {}
+//     // j == struct{}{}: true
+// }
 
-	<-ctx.Done()
+// func ExampleEngine_RecorderReturnsResult() {
+//     ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+//     defer ts.Close()
 
-	// Output:
-	// job was sent successfully
-	// Job value: {}
-	// j == struct{}{}: true
-}
+//     readerChan := make(chan struct{})
+//     recJobChan := make(chan *recorder.RecordJob)
+//     resultChan := make(chan *reader.ReadJobResult)
 
-func ExampleEngine_RecorderReturnsResult() {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	defer ts.Close()
+//     conf := simpleRecReaderSetup(ts.URL, readerChan, recJobChan, resultChan) // url, reader channel, job recorder channel, result channel
 
-	readerChan := make(chan struct{})
-	recJobChan := make(chan *recorder.RecordJob)
-	resultChan := make(chan *reader.ReadJobResult)
+//     ctx, cancel := context.WithCancel(context.Background())
+//     cl := expvastic.NewEngine(ctx, *conf)
+//     go cl.Start()
+//     ftype := datatype.FloatType{"test", 666.66}
+//     ftypeStr := fmt.Sprintf("{%s}", ftype)
 
-	conf := simpleRecReaderSetup(ts.URL, readerChan, recJobChan, resultChan) // url, reader channel, job recorder channel, result channel
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cl := expvastic.NewEngine(ctx, *conf)
-	go cl.Start()
-	ftype := datatype.FloatType{"test", 666.66}
-	ftypeStr := fmt.Sprintf("{%s}", ftype)
-
-	msg := ioutil.NopCloser(strings.NewReader(ftypeStr))
-	resultChan <- &reader.ReadJobResult{Res: msg}
-	r := <-recJobChan
-	result := r.Payload.List()[0]
-	fmt.Println(result.String())
-	fmt.Printf("Result is sent value: %t\n", result.String() == ftype.String())
-	cancel()
-	<-ctx.Done()
-	// Output:
-	// "test":666.660000
-	// Result is sent value: true
-}
+//     msg := ioutil.NopCloser(strings.NewReader(ftypeStr))
+//     resultChan <- &reader.ReadJobResult{Res: msg}
+//     r := <-recJobChan
+//     result := r.Payload.List()[0]
+//     fmt.Println(result.String())
+//     fmt.Printf("Result is sent value: %t\n", result.String() == ftype.String())
+//     cancel()
+//     <-ctx.Done()
+//     // Output:
+//     // "test":666.660000
+//     // Result is sent value: true
+// }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/config"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
@@ -29,40 +30,65 @@ type Engine struct {
 }
 
 // NewEngine copies its configurations from c.
-func NewEngine(ctx context.Context, c Conf) *Engine {
+func NewEngine(ctx context.Context, log logrus.FieldLogger, reader config.ReaderConf, recorder config.RecorderConf) (*Engine, error) {
+	rec, err := recorder.NewInstance(ctx)
+	if err != nil {
+		return nil, err
+	}
+	red, err := reader.NewInstance(ctx)
+	if err != nil {
+		return nil, err
+	}
 	cl := &Engine{
 		ctx:          ctx,
-		recorder:     c.Recorder,
-		targetReader: c.TargetReader,
-		indexName:    c.IndexName,
-		typeName:     c.TypeName,
-		interval:     c.Interval,
-		timeout:      c.Timeout,
-		logger:       c.Logger,
+		recorder:     rec,
+		targetReader: red,
+		indexName:    recorder.IndexName(),
+		typeName:     recorder.TypeName(),
+		interval:     reader.Interval(),
+		timeout:      reader.Interval(),
+		logger:       log,
 	}
-	return cl
+	return cl, nil
 }
 
 // Start begins pulling the data from TargetReader and chips them to DataRecorder.
 // When the context cancels or timesout, the engine closes all job channels, causing the readers and recorders to stop.
-func (c *Engine) Start() {
-	resultChan := c.targetReader.ResultChan()
-	ticker := time.NewTicker(c.interval)
-	for {
-		select {
-		case <-ticker.C:
-			go issueReaderJob(c.ctx, c.logger, c.targetReader, c.timeout)
-		case r := <-resultChan:
-			if r.Err != nil {
-				c.logger.Error(r.Err)
-				continue
+func (c *Engine) Start() chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		readerDone := c.targetReader.Start()
+		recorderDone := c.recorder.Start()
+		stopChan := make(chan struct{})
+		resultChan := c.targetReader.ResultChan()
+		ticker := time.NewTicker(c.interval)
+		for {
+			select {
+			case <-ticker.C:
+				go issueReaderJob(c.ctx, c.logger, c.targetReader, c.timeout)
+			case r := <-resultChan:
+				if r.Err != nil {
+					c.logger.Error(r.Err)
+					continue
+				}
+				go redirectToRecorder(c.ctx, c.logger, r, c.recorder, c.timeout, c.indexName, c.typeName)
+			case <-readerDone:
+				c.logger.Debug("reader has stopped")
+				close(stopChan)
+			case <-recorderDone:
+				c.logger.Debug("recorder has stopped")
+				close(stopChan)
+			case <-c.ctx.Done():
+				c.logger.Debug("stopping the engine")
+				close(stopChan)
+			case <-stopChan:
+				close(done)
+				c.Stop()
+				return
 			}
-			go redirectToRecorder(c.ctx, c.logger, r, c.recorder, c.timeout, c.indexName, c.typeName)
-		case <-c.ctx.Done():
-			c.Stop()
-			return
 		}
-	}
+	}()
+	return done
 }
 
 // Stop closes the job channels

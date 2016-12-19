@@ -13,3 +13,13 @@ func StringInSlice(niddle string, haystack []string) bool {
     }
     return false
 }
+
+// StringInMapKeys returns true if niddle is in the haystack's keys
+func StringInMapKeys(niddle string, haystack map[string]string) bool {
+    for b := range haystack {
+        if b == niddle {
+            return true
+        }
+    }
+    return false
+}

@@ -26,6 +26,16 @@ docker run -it --rm --name expvastic --ulimit nofile=98304:98304 -v "/path/to/so
 docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
 ```
 
+## Running Tests
+
+```bash
+go test $(glide nv)
+```
+
+### Test Coverage
+
+Use this [gist](https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a). Then run the function, that's all!
+
 ## TODO
 - [ ] Decide how to show GC information correctly
 - [ ] When reader/recorder are not available, don't check right away
