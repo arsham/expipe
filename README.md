@@ -26,6 +26,76 @@ docker run -it --rm --name expvastic --ulimit nofile=98304:98304 -v "/path/to/so
 docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
 ```
 
+## Running
+
+Here an example configuration, save it somewhere (let's call it expvastic.yml for now):
+
+```yaml
+settings:
+    debug_evel: info
+
+readers:
+    FirstApp: # service name
+        type: expvar
+        endpoint: localhost:1234
+        routepath: /debug/vars
+        interval: 500ms
+        timeout: 3s
+        log_level: debug
+        backoff: 10
+    SomeApplication:
+        type: expvar
+        endpoint: localhost:1235
+        routepath: /debug/vars
+        interval: 500ms
+        timeout: 13s
+        log_level: debug
+        backoff: 10
+
+recorders:
+    main_elasticsearch:
+        type: elasticsearch
+        endpoint: 127.0.0.1:9200
+        index_name: expvastic
+        type_name: my_app1
+        timeout: 8s
+        backoff: 10
+    the_other_elasticsearch:
+        type: elasticsearch
+        endpoint: 127.0.0.1:9200
+        index_name: expvastic
+        type_name: SomeApplication
+        timeout: 18s
+        backoff: 10
+
+routes:
+    route1:
+        readers:
+            - FirstApp
+        recorders:
+            - main_elasticsearch
+    route2:
+        readers:
+            - FirstApp
+            - SomeApplication
+        recorders:
+            - main_elasticsearch
+    route3:
+        readers:
+            - SomeApplication
+        recorders:
+            - main_elasticsearch
+            - the_other_elasticsearch
+```
+
+Then run the application:
+
+```bash
+expvasyml -c expvastic.yml
+```
+
+Please note that the name of the app will be changed to expvastic.
+
 ## Running Tests
 
 ```bash

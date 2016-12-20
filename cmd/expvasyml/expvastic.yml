@@ -4,17 +4,17 @@ settings:
 readers:
     my_app: # service name
         type: expvar
-        endpoint: http://localhost:1234
+        endpoint: localhost:1234
         routepath: /debug/vars
-        interval: 1s
+        interval: 500ms
         timeout: 3s
         log_level: debug
         backoff: 10
     my_app2: # service name
         type: expvar
-        endpoint: http://localhost:1234
+        endpoint: localhost:1235
         routepath: /debug/vars
-        interval: 1s
+        interval: 500ms
         timeout: 13s
         log_level: debug
         backoff: 10
