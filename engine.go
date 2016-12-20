@@ -19,7 +19,8 @@ import (
 // The Engine is allowed to change the index and type names at will.
 // When the context times out or canceled, the engine will close the the job channels by calling the Stop method.
 type Engine struct {
-	ctx          context.Context       // Will call Stop() when this context is canceled/timedout.
+	ctx          context.Context       // Will call Stop() when this context is canceled/timedout. This is a new context from the parent
+	cancel       context.CancelFunc    // Based on the new context
 	targetReader reader.TargetReader   // The worker that reads from an expvar provider.
 	recorder     recorder.DataRecorder // Recorder (e.g. ElasticSearch) client.
 	indexName    string                // Recorder (e.g. ElasticSearch) index name.
@@ -39,8 +40,10 @@ func NewEngine(ctx context.Context, log logrus.FieldLogger, reader config.Reader
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithCancel(ctx)
 	cl := &Engine{
 		ctx:          ctx,
+		cancel:       cancel,
 		recorder:     rec,
 		targetReader: red,
 		indexName:    recorder.IndexName(),
@@ -59,7 +62,6 @@ func (c *Engine) Start() chan struct{} {
 	go func() {
 		readerDone := c.targetReader.Start()
 		recorderDone := c.recorder.Start()
-		stopChan := make(chan struct{})
 		resultChan := c.targetReader.ResultChan()
 		ticker := time.NewTicker(c.interval)
 		for {
@@ -74,14 +76,10 @@ func (c *Engine) Start() chan struct{} {
 				go redirectToRecorder(c.ctx, c.logger, r, c.recorder, c.timeout, c.indexName, c.typeName)
 			case <-readerDone:
 				c.logger.Debug("reader has stopped")
-				close(stopChan)
 			case <-recorderDone:
 				c.logger.Debug("recorder has stopped")
-				close(stopChan)
 			case <-c.ctx.Done():
 				c.logger.Debug("stopping the engine")
-				close(stopChan)
-			case <-stopChan:
 				close(done)
 				c.Stop()
 				return
@@ -93,9 +91,7 @@ func (c *Engine) Start() chan struct{} {
 
 // Stop closes the job channels
 func (c *Engine) Stop() {
-	close(c.targetReader.JobChan())
-	close(c.recorder.PayloadChan())
-	// TODO: ask the readers/recorders for their done channels and wait until they are closed.
+	c.cancel()
 }
 
 func issueReaderJob(ctx context.Context, logger logrus.FieldLogger, reader reader.TargetReader, timeout time.Duration) {
