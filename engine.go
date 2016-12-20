@@ -27,13 +27,11 @@ type Engine struct {
 	recorder     recorder.DataRecorder // Recorder (e.g. ElasticSearch) client.
 	indexName    string                // Recorder (e.g. ElasticSearch) index name.
 	typeName     string                // Recorder (e.g. ElasticSearch) type name.
-	interval     time.Duration         // The interval for sending the next job to the reader
-	timeout      time.Duration         //TODO: remove and let the component decide
 	logger       logrus.FieldLogger
 }
 
-// NewEngine copies its configurations from c.
-func NewEngine(ctx context.Context, log logrus.FieldLogger, reader config.ReaderConf, recorder config.RecorderConf) (*Engine, error) {
+// NewWithConfig copies its configurations from c.
+func NewWithConfig(ctx context.Context, log logrus.FieldLogger, reader config.ReaderConf, recorder config.RecorderConf) (*Engine, error) {
 	rec, err := recorder.NewInstance(ctx)
 	if err != nil {
 		return nil, err
@@ -51,8 +49,6 @@ func NewEngine(ctx context.Context, log logrus.FieldLogger, reader config.Reader
 		targetReader: red,
 		indexName:    recorder.IndexName(),
 		typeName:     recorder.TypeName(),
-		interval:     reader.Interval(),
-		timeout:      reader.Interval(),
 		logger:       log,
 	}
 	return cl, nil
@@ -66,7 +62,7 @@ func (c *Engine) Start() chan struct{} {
 		c.targetReader.Start()
 		c.recorder.Start()
 		resultChan := c.targetReader.ResultChan()
-		ticker := time.NewTicker(c.interval)
+		ticker := time.NewTicker(c.targetReader.Interval())
 		c.debug("starting")
 		for {
 			select {
@@ -101,8 +97,8 @@ func (c *Engine) Stop() {
 }
 
 func (c *Engine) issueReaderJob() {
-	ctx, _ := context.WithTimeout(c.ctx, c.timeout) // QUESTION: do I need this?
-	timer := time.NewTimer(c.timeout)
+	ctx, _ := context.WithTimeout(c.ctx, c.targetReader.Timeout()) // QUESTION: do I need this?
+	timer := time.NewTimer(c.targetReader.Timeout())
 	select {
 	case c.targetReader.JobChan() <- ctx:
 		timer.Stop()
@@ -117,7 +113,7 @@ func (c *Engine) issueReaderJob() {
 
 func (c *Engine) redirectToRecorder(r *reader.ReadJobResult) {
 	defer r.Res.Close()
-	ctx, _ := context.WithTimeout(c.ctx, c.timeout) // QUESTION: do I need this?
+	ctx, _ := context.WithTimeout(c.ctx, c.recorder.Timeout()) // QUESTION: do I need this?
 	errChan := make(chan error)
 	payload := &recorder.RecordJob{
 		Ctx:       ctx,

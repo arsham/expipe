@@ -88,7 +88,7 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 }
 
 func (c *Config) NewInstance(ctx context.Context) (recorder.DataRecorder, error) {
-    return NewRecorder(ctx, c.logger, c.name, c.Endpoint(), c.IndexName())
+    return NewRecorder(ctx, c.logger, c.name, c.Endpoint(), c.IndexName(), c.interval, c.timeout)
 }
 func (c *Config) Name() string               { return c.name }
 func (c *Config) IndexName() string          { return c.IndexName_ }

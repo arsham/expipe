@@ -23,10 +23,12 @@ type Recorder struct {
     indexName string
     jobChan   chan *recorder.RecordJob
     logger    logrus.FieldLogger
+    interval  time.Duration
+    timeout   time.Duration
 }
 
 // NewRecorder returns an error if it can't create the index
-func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string) (*Recorder, error) {
+func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, interval, timeout time.Duration) (*Recorder, error) {
     log.Debug("connecting to", endpoint)
     addr := elastic.SetURL(endpoint)
     logger := elastic.SetErrorLog(log)
@@ -62,17 +64,19 @@ func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, in
         indexName: indexName,
         jobChan:   make(chan *recorder.RecordJob),
         logger:    log,
+        timeout:   timeout,
+        interval:  interval,
     }, nil
 }
 
 // Start begins reading from the target in its own goroutine
 // It will close the done channel when the job channel is closed
-func (e *Recorder) Start() chan struct{} { //QUESTION: can we receive a quit channel?
+func (r *Recorder) Start() chan struct{} { //QUESTION: can we receive a quit channel?
     done := make(chan struct{})
     go func() {
-        for job := range e.jobChan {
+        for job := range r.jobChan {
             go func(job *recorder.RecordJob) {
-                job.Err <- e.record(job.Ctx, job.TypeName, job.Time, job.Payload)
+                job.Err <- r.record(job.Ctx, job.TypeName, job.Time, job.Payload)
             }(job)
         }
         close(done)
@@ -81,14 +85,14 @@ func (e *Recorder) Start() chan struct{} { //QUESTION: can we receive a quit cha
 }
 
 // PayloadChan returns the channel it receives the information from
-func (e *Recorder) PayloadChan() chan *recorder.RecordJob { return e.jobChan }
+func (r *Recorder) PayloadChan() chan *recorder.RecordJob { return r.jobChan }
 
 // record ships the kv data to elasticsearch
 // Although this doesn't change the state of the Client, it is a part of its behaviour
-func (e *Recorder) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
+func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
     payload := list.String(timestamp)
-    _, err := e.client.Index().
-        Index(e.indexName).
+    _, err := r.client.Index().
+        Index(r.indexName).
         Type(typeName).
         BodyString(payload).
         Do(ctx)
@@ -98,4 +102,11 @@ func (e *Recorder) record(ctx context.Context, typeName string, timestamp time.T
     return ctx.Err()
 }
 
-func (e *Recorder) Name() string { return e.name }
+// Name shows the name identifier for this reader
+func (r *Recorder) Name() string { return r.name }
+
+// Interval returns the interval
+func (r *Recorder) Interval() time.Duration { return r.interval }
+
+// Timeout returns the timeout
+func (r *Recorder) Timeout() time.Duration { return r.timeout }

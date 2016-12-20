@@ -101,7 +101,7 @@ func (c *Config) NewInstance(ctx context.Context) (reader.TargetReader, error) {
     }
     endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
     ctxReader := reader.NewCtxReader(endpoint.String())
-    return NewExpvarReader(c.logger, ctxReader, c.name)
+    return NewExpvarReader(c.logger, ctxReader, c.name, c.interval, c.timeout)
 }
 
 func (c *Config) Name() string               { return c.name }

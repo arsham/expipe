@@ -21,11 +21,13 @@ type Reader struct {
 	resultChan chan *reader.ReadJobResult
 	ctxReader  reader.ContextReader
 	logger     logrus.FieldLogger
+	interval   time.Duration
+	timeout    time.Duration
 }
 
 // NewExpvarReader creates the worker and sets up its channels.
 // Because the caller is reading the resp.Body, it is its job to close it.
-func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, name string) (*Reader, error) {
+func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, name string, interval, timeout time.Duration) (*Reader, error) {
 	// TODO: ping the reader.
 	// TODO: have the user decide how large the channels can be.
 	w := &Reader{
@@ -34,6 +36,8 @@ func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, 
 		resultChan: make(chan *reader.ReadJobResult, 1000),
 		ctxReader:  ctxReader,
 		logger:     logger,
+		timeout:    timeout,
+		interval:   interval,
 	}
 	return w, nil
 }
@@ -55,6 +59,12 @@ func (r *Reader) Start() chan struct{} {
 
 // Name shows the name identifier for this reader
 func (r *Reader) Name() string { return r.name }
+
+// Interval returns the interval
+func (r *Reader) Interval() time.Duration { return r.interval }
+
+// Timeout returns the timeout
+func (r *Reader) Timeout() time.Duration { return r.timeout }
 
 // JobChan returns the job channel.
 func (r *Reader) JobChan() chan context.Context { return r.jobChan }

@@ -11,10 +11,18 @@ import (
     "github.com/arsham/expvastic/datatype"
 )
 
+// InterTimer is required by the Engine so it can read the intervals and timeouts.
+type InterTimer interface {
+    Timeout() time.Duration
+    Interval() time.Duration
+}
+
 // DataRecorder in an interface for shipping data to a repository.
 // The repository should have the concept of index/database and type/table abstractions. See ElasticSearch for more information.
 // Recorder should send nil to Err channel of the RecordJob object if no error occurs.
 type DataRecorder interface {
+    InterTimer
+
     // Recorder should not block when RecordJob is sent to this channel.
     PayloadChan() chan *RecordJob
 

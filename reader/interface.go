@@ -10,9 +10,17 @@ import (
     "time"
 )
 
+// InterTimer is required by the Engine so it can read the intervals and timeouts.
+type InterTimer interface {
+    Timeout() time.Duration
+    Interval() time.Duration
+}
+
 // TargetReader recieves job requests to read from the target, and sends its success
 // through the ResultChan channel.
 type TargetReader interface {
+    InterTimer
+
     // The engine will send a signal to this channel to inform the reader when to read
     // from the target.
     // The engine never blocks if the reader is not able to process the requests.
