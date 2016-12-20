@@ -9,20 +9,20 @@ import (
     "net/http"
 )
 
-// ContextReader reads from the url with the specified context
+// ContextReader reads from the url with the specified context.
 type ContextReader interface {
-    // Get reads from the url and returns DefaultClient errors
-    // This operation's deadline and cancellation depends on ctx
-    // You should close the Body when you finished reading from it
+    // Get reads from the url and returns DefaultClient errors.
+    // This operation's deadline and cancellation depends on ctx.
+    // You should close the Body when you finished reading.
     Get(ctx context.Context) (*http.Response, error)
 }
 
-// CtxReader implements ContextReader interface
+// CtxReader implements ContextReader interface.
 type CtxReader struct {
     url string
 }
 
-// NewCtxReader requires a sanitised url
+// NewCtxReader requires a sanitised url.
 func NewCtxReader(url string) *CtxReader {
     return &CtxReader{url}
 }

@@ -4,36 +4,54 @@
 
 package reader
 
-import "context"
+import (
+	"context"
+	"time"
 
-type MockExpvarReader struct {
-	jobCh     chan context.Context
-	resultCh  chan *ReadJobResult
-	done      chan struct{}
-	StartFunc func() chan struct{}
+	"github.com/Sirupsen/logrus"
+)
+
+// SimpleReader is useful for testing purposes.
+type SimpleReader struct {
+	name       string
+	jobChan    chan context.Context
+	resultChan chan *ReadJobResult
+	ctxReader  ContextReader
+	logger     logrus.FieldLogger
+	StartFunc  func() chan struct{}
 }
 
-func NewMockExpvarReader(jobs chan context.Context, resCh chan *ReadJobResult, f func(context.Context)) *MockExpvarReader {
-	w := &MockExpvarReader{
-		jobCh:    jobs,
-		resultCh: resCh,
-		done:     make(chan struct{}),
+func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, name string) (*SimpleReader, error) {
+	w := &SimpleReader{
+		name:       name,
+		jobChan:    make(chan context.Context),
+		resultChan: make(chan *ReadJobResult),
+		ctxReader:  ctxReader,
+		logger:     logger,
 	}
-	go func() {
-		for job := range w.jobCh {
-			f(job)
-		}
-		close(w.done)
-	}()
-	return w
+	return w, nil
 }
 
-func (m *MockExpvarReader) JobChan() chan context.Context   { return m.jobCh }
-func (m *MockExpvarReader) ResultChan() chan *ReadJobResult { return m.resultCh }
+func (m *SimpleReader) Name() string                    { return m.name }
+func (m *SimpleReader) JobChan() chan context.Context   { return m.jobChan }
+func (m *SimpleReader) ResultChan() chan *ReadJobResult { return m.resultChan }
 
-func (m *MockExpvarReader) Start() chan struct{} {
+func (m *SimpleReader) Start() chan struct{} {
 	if m.StartFunc != nil {
 		return m.StartFunc()
 	}
-	return nil
+	done := make(chan struct{})
+	go func() {
+		for job := range m.jobChan {
+			resp, _ := m.ctxReader.Get(job)
+
+			res := &ReadJobResult{
+				Time: time.Now(),
+				Res:  resp.Body,
+			}
+			m.resultChan <- res
+		}
+		close(done)
+	}()
+	return done
 }

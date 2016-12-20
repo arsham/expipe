@@ -13,20 +13,21 @@ import (
 
 // DataRecorder in an interface for shipping data to a repository.
 // The repository should have the concept of index/database and type/table abstractions. See ElasticSearch for more information.
-// Recorder should send nil to Err channel if no error occurs.
+// Recorder should send nil to Err channel of the RecordJob object if no error occurs.
 type DataRecorder interface {
-    // Reader should not block when RecordJob is sent to this channel.
+    // Recorder should not block when RecordJob is sent to this channel.
     PayloadChan() chan *RecordJob
 
-    // The recorder's loop should be inside a goroutine, and return a channel.
-    // This channel should be closed one it's work is finished and wants to quit.
+    // The recorder's loop should be inside a goroutine, and return a done channel.
+    // The done channel should be closed one it's work is finished and wants to quit.
     Start() chan struct{}
 
+    // Name should return the representation string for this recorder. Choose a very simple name.
     Name() string
 }
 
-// RecordJob is sent with a context and a payload to be recorded
-// If the TypeName and IndexName are different than the previous one, the recorder should use the new ones
+// RecordJob is sent with a context and a payload to be recorded.
+// If the TypeName and IndexName are different than the previous one, the recorder should use the ones engine provides
 type RecordJob struct {
     Ctx       context.Context
     Payload   datatype.DataContainer

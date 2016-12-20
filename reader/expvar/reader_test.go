@@ -5,12 +5,9 @@
 package expvar
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -41,30 +38,6 @@ func TestExpvarReaderErrors(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		t.Error("expecting an error result back, got nothing")
 	}
-}
-
-func TestExpvarReaderReads(t *testing.T) {
-	log := lib.DiscardLogger()
-	testCase := `{"hey": 666}`
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, testCase)
-	}))
-	ctxReader := reader.NewMockCtxReader(ts.URL)
-	rdr, _ := NewExpvarReader(log, ctxReader, "my_reader")
-	rdr.Start()
-	ctx, cancel := context.WithCancel(context.Background())
-	rdr.JobChan() <- ctx
-	res := <-rdr.ResultChan()
-	if res.Err != nil {
-		t.Errorf("Expecting no errors, got (%s)", res.Err)
-	}
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(res.Res)
-	if buf.String() != testCase {
-		t.Errorf("want (%s), got (%s)", testCase, buf.String())
-	}
-
-	cancel()
 }
 
 func TestExpvarReaderClosesStream(t *testing.T) {

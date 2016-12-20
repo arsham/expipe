@@ -91,7 +91,6 @@ func (c *Engine) Start() chan struct{} {
 
 // Name shows the name identifier for this engine
 func (c *Engine) Name() string {
-	// return fmt.Sprintf("<Engine %s>", c.name)
 	return c.name
 }
 

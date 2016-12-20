@@ -36,8 +36,8 @@ func simpleRecorderSetup(url string, readerChan chan struct{}, recJobChan chan *
 	// 		return recJobChan
 	// 	},
 	// }
-
-	return expvar.NewConfig(log, url, "", 1, 1*time.Millisecond, 3*time.Millisecond)
+	c, _ := expvar.NewConfig("my_engine", log, url, "", 1*time.Millisecond, 3*time.Millisecond, 1)
+	return c
 }
 
 // // Use this setup to test a recorder's behaviour and mock the reader

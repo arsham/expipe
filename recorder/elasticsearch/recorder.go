@@ -26,9 +26,9 @@ type Recorder struct {
 }
 
 // NewRecorder returns an error if it can't create the index
-func NewRecorder(bgCtx context.Context, log logrus.FieldLogger, name, esURL, indexName string) (*Recorder, error) {
-    log.Debug("connecting to", esURL)
-    addr := elastic.SetURL(esURL)
+func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string) (*Recorder, error) {
+    log.Debug("connecting to", endpoint)
+    addr := elastic.SetURL(endpoint)
     logger := elastic.SetErrorLog(log)
     client, err := elastic.NewClient(addr, logger)
     if err != nil {
@@ -36,8 +36,8 @@ func NewRecorder(bgCtx context.Context, log logrus.FieldLogger, name, esURL, ind
     }
 
     // QUESTION: Is there any significant for this cancel?
-    ctx, _ := context.WithTimeout(bgCtx, 10*time.Second)
-    _, _, err = client.Ping(esURL).Do(ctx)
+    ctx, _ = context.WithTimeout(ctx, 10*time.Second)
+    _, _, err = client.Ping(endpoint).Do(ctx)
     if err != nil {
         if ctx.Err() != nil {
             return nil, fmt.Errorf("Timeout: %s - %s", ctx.Err(), err)
@@ -67,7 +67,7 @@ func NewRecorder(bgCtx context.Context, log logrus.FieldLogger, name, esURL, ind
 
 // Start begins reading from the target in its own goroutine
 // It will close the done channel when the job channel is closed
-func (e *Recorder) Start() chan struct{} {
+func (e *Recorder) Start() chan struct{} { //QUESTION: can we receive a quit channel?
     done := make(chan struct{})
     go func() {
         for job := range e.jobChan {
@@ -81,9 +81,7 @@ func (e *Recorder) Start() chan struct{} {
 }
 
 // PayloadChan returns the channel it receives the information from
-func (e *Recorder) PayloadChan() chan *recorder.RecordJob {
-    return e.jobChan
-}
+func (e *Recorder) PayloadChan() chan *recorder.RecordJob { return e.jobChan }
 
 // record ships the kv data to elasticsearch
 // Although this doesn't change the state of the Client, it is a part of its behaviour
@@ -100,6 +98,4 @@ func (e *Recorder) record(ctx context.Context, typeName string, timestamp time.T
     return ctx.Err()
 }
 
-func (e *Recorder) Name() string {
-    return e.name
-}
+func (e *Recorder) Name() string { return e.name }

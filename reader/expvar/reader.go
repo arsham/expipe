@@ -54,19 +54,13 @@ func (r *Reader) Start() chan struct{} {
 }
 
 // Name shows the name identifier for this reader
-func (r *Reader) Name() string {
-	return r.name
-}
+func (r *Reader) Name() string { return r.name }
 
 // JobChan returns the job channel.
-func (r *Reader) JobChan() chan context.Context {
-	return r.jobChan
-}
+func (r *Reader) JobChan() chan context.Context { return r.jobChan }
 
 // ResultChan returns the result channel.
-func (r *Reader) ResultChan() chan *reader.ReadJobResult {
-	return r.resultChan
-}
+func (r *Reader) ResultChan() chan *reader.ReadJobResult { return r.resultChan }
 
 // will send an error back to the engine if it can't read from metrics provider
 func (r *Reader) readMetrics(job context.Context) {

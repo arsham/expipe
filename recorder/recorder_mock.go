@@ -4,29 +4,70 @@
 
 package recorder
 
-type MockRecorder struct {
+import (
+    "context"
+    "fmt"
+    "net/http"
+
+    "github.com/Sirupsen/logrus"
+)
+
+type SimpleRecorder struct {
+    name      string
+    endpoint  string
+    indexName string
+    jobChan   chan *RecordJob
+    logger    logrus.FieldLogger
+
     PayloadChanFunc func() chan *RecordJob
     ErrorFunc       func() error
     StartFunc       func() chan struct{}
 }
 
-func (m *MockRecorder) PayloadChan() chan *RecordJob {
-    if m.PayloadChanFunc != nil {
-        return m.PayloadChanFunc()
+func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, name, endpoint, indexName string) (*SimpleRecorder, error) {
+    w := &SimpleRecorder{
+        name:      name,
+        endpoint:  endpoint,
+        indexName: indexName,
+        jobChan:   make(chan *RecordJob),
+        logger:    logger,
     }
-    return make(chan *RecordJob)
+    return w, nil
 }
 
-func (m *MockRecorder) Error() error {
-    if m.ErrorFunc != nil {
-        return m.ErrorFunc()
+func (s *SimpleRecorder) PayloadChan() chan *RecordJob {
+    if s.PayloadChanFunc != nil {
+        return s.PayloadChanFunc()
+    }
+    return s.jobChan
+}
+
+func (s *SimpleRecorder) Error() error {
+    if s.ErrorFunc != nil {
+        return s.ErrorFunc()
     }
     return nil
 }
 
-func (m *MockRecorder) Start() chan struct{} {
-    if m.StartFunc != nil {
-        return m.StartFunc()
+func (s *SimpleRecorder) Start() chan struct{} {
+    if s.StartFunc != nil {
+        return s.StartFunc()
     }
-    return nil
+    done := make(chan struct{})
+    go func() {
+        for job := range s.jobChan {
+            go func(job *RecordJob) {
+                res, err := http.Get(s.endpoint)
+                if err != nil {
+                    res.Body.Close()
+                }
+                job.Err <- err
+            }(job)
+        }
+        fmt.Println("dine")
+        close(done)
+    }()
+    return done
 }
+
+func (s *SimpleRecorder) Name() string { return s.name }
