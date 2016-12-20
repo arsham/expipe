@@ -6,7 +6,7 @@ Expvastic can read from an endpoint which provides expvar data and ship them to 
 
 Here is a couple of screenshots:
 
-![Colored](http://i.imgur.com/6kB88g4.png)
+![Colored](http://i.imgur.com/83vbwoM.png)
 ![Colored](http://i.imgur.com/0ROSWsM.png)
 
 ## Installing
@@ -120,8 +120,8 @@ Use this [gist](https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a)
 - [ ] Make a compose file
 - [ ] Gracefully shutdown
 - [ ] Share kibana setups
-- [ ] Read from yaml/toml/json configuration files
-- [ ] Create different timeouts for each reader/recorder
+- [=] Read from yaml/toml/json configuration files
+- [X] Create different timeouts for each reader/recorder
 - [ ] Read from etcd/consul for configurations
 
 ## LICENSE
