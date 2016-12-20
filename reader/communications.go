@@ -25,6 +25,8 @@ type TargetReader interface {
     // The reader's loop should be inside a goroutine, and return a channel.
     // This channel should be closed one it's work is finished and wants to quit.
     Start() chan struct{}
+
+    Name() string
 }
 
 // ReadJob is sent with a context and a channel to read the errors

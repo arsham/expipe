@@ -94,8 +94,8 @@ func validateURL(url string) (string, error) {
 
 }
 
-func getES(ctx context.Context, log logrus.FieldLogger, esURL, indexName string) *elasticsearch.ElasticSearch {
-	esClient, err := elasticsearch.NewElasticSearch(ctx, log, esURL, indexName)
+func getES(ctx context.Context, log logrus.FieldLogger, esURL, indexName string) *elasticsearch.Recorder {
+	esClient, err := elasticsearch.NewRecorder(ctx, log, "temp", esURL, indexName)
 	if err != nil {
 		if ctx.Err() != nil {
 			log.Fatalf("Timeout: %s - %s", ctx.Err(), err)
@@ -105,8 +105,8 @@ func getES(ctx context.Context, log logrus.FieldLogger, esURL, indexName string)
 	return esClient
 }
 
-func getExpvar(log logrus.FieldLogger, target string) *expvar.ExpvarReader {
-	r, err := expvar.NewExpvarReader(log, reader.NewCtxReader(target))
+func getExpvar(log logrus.FieldLogger, target string) *expvar.Reader {
+	r, err := expvar.NewExpvarReader(log, reader.NewCtxReader(target), "temp")
 	if err != nil {
 		log.Fatalf("Error creating the reader: %s", err)
 	}
@@ -116,8 +116,8 @@ func getExpvar(log logrus.FieldLogger, target string) *expvar.ExpvarReader {
 func getEngine(
 	bgCtx context.Context,
 	log logrus.FieldLogger,
-	reader *expvar.ExpvarReader,
-	esClient *elasticsearch.ElasticSearch,
+	reader *expvar.Reader,
+	esClient *elasticsearch.Recorder,
 	indexName,
 	typeName string,
 	interval,

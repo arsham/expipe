@@ -24,7 +24,7 @@ func TestExpvarReaderErrors(t *testing.T) {
 	ctxReader.ContextReadFunc = func(ctx context.Context) (*http.Response, error) {
 		return nil, fmt.Errorf("Error")
 	}
-	rdr, _ := NewExpvarReader(log, ctxReader)
+	rdr, _ := NewExpvarReader(log, ctxReader, "my_reader")
 	rdr.Start()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -50,7 +50,7 @@ func TestExpvarReaderReads(t *testing.T) {
 		io.WriteString(w, testCase)
 	}))
 	ctxReader := reader.NewMockCtxReader(ts.URL)
-	rdr, _ := NewExpvarReader(log, ctxReader)
+	rdr, _ := NewExpvarReader(log, ctxReader, "my_reader")
 	rdr.Start()
 	ctx, cancel := context.WithCancel(context.Background())
 	rdr.JobChan() <- ctx
@@ -70,7 +70,7 @@ func TestExpvarReaderReads(t *testing.T) {
 func TestExpvarReaderClosesStream(t *testing.T) {
 	log := lib.DiscardLogger()
 	ctxReader := reader.NewMockCtxReader("nowhere")
-	rdr, _ := NewExpvarReader(log, ctxReader)
+	rdr, _ := NewExpvarReader(log, ctxReader, "my_reader")
 	done := rdr.Start()
 	ctx, cancel := context.WithCancel(context.Background())
 	rdr.JobChan() <- ctx

@@ -21,6 +21,8 @@ type DataRecorder interface {
     // The recorder's loop should be inside a goroutine, and return a channel.
     // This channel should be closed one it's work is finished and wants to quit.
     Start() chan struct{}
+
+    Name() string
 }
 
 // RecordJob is sent with a context and a payload to be recorded

@@ -24,7 +24,9 @@ func StartEngines(ctx context.Context, log logrus.FieldLogger, confMap *config.C
     for reader, recorders := range confMap.Routes {
         for _, recorder := range recorders {
             wg.Add(1)
-            en, err := NewEngine(ctx, log, confMap.Readers[reader], confMap.Recorders[recorder])
+            red := confMap.Readers[reader]
+            rec := confMap.Recorders[recorder]
+            en, err := NewEngine(ctx, log, red, rec)
             if err != nil {
                 return nil, err
             }

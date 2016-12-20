@@ -13,9 +13,10 @@ import (
 	"github.com/arsham/expvastic/reader"
 )
 
-// ExpvarReader contains communication channels with a worker that exposes expvar information.
+// Reader contains communication channels with a worker that exposes expvar information.
 // It implements TargetReader interface.
-type ExpvarReader struct {
+type Reader struct {
+	name       string
 	jobChan    chan context.Context
 	resultChan chan *reader.ReadJobResult
 	ctxReader  reader.ContextReader
@@ -24,10 +25,11 @@ type ExpvarReader struct {
 
 // NewExpvarReader creates the worker and sets up its channels.
 // Because the caller is reading the resp.Body, it is its job to close it.
-func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader) (*ExpvarReader, error) {
+func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, name string) (*Reader, error) {
 	// TODO: ping the reader.
 	// TODO: have the user decide how large the channels can be.
-	w := &ExpvarReader{
+	w := &Reader{
+		name:       name,
 		jobChan:    make(chan context.Context, 1000),
 		resultChan: make(chan *reader.ReadJobResult, 1000),
 		ctxReader:  ctxReader,
@@ -39,45 +41,57 @@ func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader) 
 // Start begins reading from the target in its own goroutine.
 // It will issue a goroutine on each job request.
 // It will close the done channel when the job channel is closed.
-func (e *ExpvarReader) Start() chan struct{} {
+func (r *Reader) Start() chan struct{} {
 	done := make(chan struct{})
-	e.logger.Debug("Starting reader")
+	r.debug("starting")
 	go func() {
-		for job := range e.jobChan {
-			go readMetrics(job, e.logger, e.ctxReader, e.resultChan)
+		for job := range r.jobChan {
+			go r.readMetrics(job)
 		}
 		close(done)
 	}()
 	return done
 }
 
+// Name shows the name identifier for this reader
+func (r *Reader) Name() string {
+	return r.name
+}
+
 // JobChan returns the job channel.
-func (e *ExpvarReader) JobChan() chan context.Context {
-	return e.jobChan
+func (r *Reader) JobChan() chan context.Context {
+	return r.jobChan
 }
 
 // ResultChan returns the result channel.
-func (e *ExpvarReader) ResultChan() chan *reader.ReadJobResult {
-	return e.resultChan
+func (r *Reader) ResultChan() chan *reader.ReadJobResult {
+	return r.resultChan
 }
 
 // will send an error back to the engine if it can't read from metrics provider
-func readMetrics(job context.Context, logger logrus.FieldLogger, ctxReader reader.ContextReader, resultChan chan *reader.ReadJobResult) {
-	resp, err := ctxReader.Get(job)
+func (r *Reader) readMetrics(job context.Context) {
+	resp, err := r.ctxReader.Get(job)
 	if err != nil {
-		logger.WithField("reader", "expvar_reader").Debugf("error making request: %v", err)
-		r := &reader.ReadJobResult{
+		r.logger.WithField("reader", "expvar_reader").Debugf("%s: error making request: %v", r.name, err)
+		res := &reader.ReadJobResult{
 			Time: time.Now(),
 			Res:  nil,
 			Err:  fmt.Errorf("making request to metrics provider: %s", err),
 		}
-		resultChan <- r
+		r.resultChan <- res
 		return
 	}
 
-	r := &reader.ReadJobResult{
+	res := &reader.ReadJobResult{
 		Time: time.Now(), // It is sensible to record the time now
 		Res:  resp.Body,
 	}
-	resultChan <- r
+	r.resultChan <- res
 }
+
+func (r *Reader) debug(msg string)                    { r.logger.Debugf("%s: %s", r.Name(), msg) }
+func (r *Reader) debugf(format string, msg ...string) { r.logger.Debugf("%s: "+format, r.Name(), msg) }
+func (r *Reader) error(msg string)                    { r.logger.Error("%s: %s", r.Name(), msg) }
+func (r *Reader) errorf(format string, msg ...string) { r.logger.Errorf("%s: "+format, r.Name(), msg) }
+func (r *Reader) warn(msg string)                     { r.logger.Warn("%s: %s", r.Name(), msg) }
+func (r *Reader) warnf(format string, msg ...string)  { r.logger.Warnf("%s: "+format, r.Name(), msg) }

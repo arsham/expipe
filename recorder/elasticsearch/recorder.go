@@ -15,17 +15,18 @@ import (
     "github.com/olivere/elastic"
 )
 
-// ElasticSearch contains an elasticsearch client and an indexname for recording data
+// Recorder contains an elasticsearch client and an indexname for recording data
 // It implements DataRecorder interface
-type ElasticSearch struct {
-    client    *elastic.Client // ElasticSearch client
+type Recorder struct {
+    name      string
+    client    *elastic.Client // Elasticsearch client
     indexName string
     jobChan   chan *recorder.RecordJob
     logger    logrus.FieldLogger
 }
 
-// NewElasticSearch returns an error if it can't create the index
-func NewElasticSearch(bgCtx context.Context, log logrus.FieldLogger, esURL, indexName string) (*ElasticSearch, error) {
+// NewRecorder returns an error if it can't create the index
+func NewRecorder(bgCtx context.Context, log logrus.FieldLogger, name, esURL, indexName string) (*Recorder, error) {
     log.Debug("connecting to", esURL)
     addr := elastic.SetURL(esURL)
     logger := elastic.SetErrorLog(log)
@@ -55,7 +56,8 @@ func NewElasticSearch(bgCtx context.Context, log logrus.FieldLogger, esURL, inde
             return nil, err
         }
     }
-    return &ElasticSearch{
+    return &Recorder{
+        name:      name,
         client:    client,
         indexName: indexName,
         jobChan:   make(chan *recorder.RecordJob),
@@ -65,7 +67,7 @@ func NewElasticSearch(bgCtx context.Context, log logrus.FieldLogger, esURL, inde
 
 // Start begins reading from the target in its own goroutine
 // It will close the done channel when the job channel is closed
-func (e *ElasticSearch) Start() chan struct{} {
+func (e *Recorder) Start() chan struct{} {
     done := make(chan struct{})
     go func() {
         for job := range e.jobChan {
@@ -79,13 +81,13 @@ func (e *ElasticSearch) Start() chan struct{} {
 }
 
 // PayloadChan returns the channel it receives the information from
-func (e *ElasticSearch) PayloadChan() chan *recorder.RecordJob {
+func (e *Recorder) PayloadChan() chan *recorder.RecordJob {
     return e.jobChan
 }
 
 // record ships the kv data to elasticsearch
 // Although this doesn't change the state of the Client, it is a part of its behaviour
-func (e *ElasticSearch) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
+func (e *Recorder) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
     payload := list.String(timestamp)
     _, err := e.client.Index().
         Index(e.indexName).
@@ -96,4 +98,8 @@ func (e *ElasticSearch) record(ctx context.Context, typeName string, timestamp t
         return err
     }
     return ctx.Err()
+}
+
+func (e *Recorder) Name() string {
+    return e.name
 }

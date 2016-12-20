@@ -25,7 +25,7 @@ func simpleRecorderSetup(url string, readerChan chan struct{}, recJobChan chan *
 			return http.Get(url)
 		},
 	}
-	rdr, _ := expvar.NewExpvarReader(log, read)
+	rdr, _ := expvar.NewExpvarReader(log, read, "my_reader")
 	rdr.Start()
 
 	// rec := &recorder.MockRecorder{
