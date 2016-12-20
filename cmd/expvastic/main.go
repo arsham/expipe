@@ -6,132 +6,100 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic"
+	"github.com/arsham/expvastic/config"
 	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/reader/expvar"
 	"github.com/arsham/expvastic/recorder/elasticsearch"
-	"github.com/asaskevich/govalidator"
 	"github.com/namsral/flag"
+	"github.com/spf13/viper"
 )
 
 var (
-	target     = flag.String("target", "localhost:1234/debug/vars", "Target address and port")
-	esURL      = flag.String("es", "localhost:9200", "Elasticsearch URL and port")
-	debugLevel = flag.String("loglevel", "info", "Debug level")
+	confFile = flag.String("c", "", "Confuration file. Should be in yaml format without the extension.")
+
+	reader     = flag.String("reader", "localhost:1234/debug/vars", "Target address and port")
+	recorder   = flag.String("recorder", "localhost:9200", "Elasticsearch URL and port")
+	debugLevel = flag.String("loglevel", "info", "Log level")
 	indexName  = flag.String("index", "expvastic", "Elasticsearch index name")
-	typeName   = flag.String("type", "expvastic", "Elasticsearch type name")
-	interval   = flag.Duration("int", time.Second, "Interval between pulls")
-	timeout    = flag.Duration("timeout", 30*time.Second, "Elasticsearch communication timeout")
+	typeName   = flag.String("app", "expvastic", "App name, which will be the Elasticsearch type name")
+	interval   = flag.Duration("int", time.Second, "Interval between pulls from the target")
+	timeout    = flag.Duration("timeout", 30*time.Second, "Communication timeouts to both reader and recorder")
+	backoff    = flag.Int("backoff", 15, "After this amount, it will give up accessing unresponsive endpoints") // TODO: implement!
 )
 
 func main() {
-	var wg sync.WaitGroup
-	wg.Add(3)
-	log := lib.GetLogger(*debugLevel)
+	var log *logrus.Logger
+	var confSlice *config.ConfMap
 	flag.Parse()
-	if err := checkFlags(); err != nil {
-		flag.Usage()
-		logrus.Fatalf("Error starting the application: %s", err)
+	if *confFile == "" {
+		log = lib.GetLogger(*debugLevel)
+		confSlice = fromFlags(log)
+	} else {
+		log = lib.GetLogger("info")
+		confSlice = fromConfig(log, *confFile)
 	}
-	bgCtx, cancel := context.WithCancel(context.Background())
-	captureSignals(&wg, cancel)
 
-	ctx, _ := context.WithTimeout(bgCtx, *timeout)
-	esClient := getES(ctx, log, *esURL, *indexName)
-	rdr := getExpvar(log, *target)
-
-	rDone := rdr.Start()
-	wDone := esClient.Start()
-	cl := getEngine(bgCtx, log, rdr, esClient, *indexName, *typeName, *interval, *timeout)
-	cl.Start()
-	<-wDone
-	<-rDone
-	wg.Add(-2)
-	wg.Wait()
+	ctx, cancel := context.WithCancel(context.Background())
+	captureSignals(cancel)
+	done, err := expvastic.StartEngines(ctx, log, confSlice)
+	if err != nil {
+		log.Fatal(err)
+	}
+	<-done
 }
 
-func checkFlags() error {
+func fromConfig(log *logrus.Logger, confFile string) *config.ConfMap {
+	v := viper.New()
+	v.SetConfigName(confFile)
+	v.SetConfigType("yaml")
+	v.AddConfigPath(".")
+	err := v.ReadInConfig()
+	if err != nil {
+		log.Fatalf("Config file not found or contains error: %s", err)
+	}
+
+	confSlice, err := config.LoadYAML(log, v)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return confSlice
+}
+
+func fromFlags(log *logrus.Logger) *config.ConfMap {
 	var err error
-	if *esURL, err = validateURL(*esURL); err != nil {
-		return fmt.Errorf("Invalid ElasticSearch URL")
+	confMap := &config.ConfMap{
+		Readers:   make(map[string]config.ReaderConf, 1),
+		Recorders: make(map[string]config.RecorderConf, 1),
 	}
 
-	if *target, err = validateURL(*target); err != nil {
-		return fmt.Errorf("Invalid target URL")
+	confMap.Recorders["elasticsearch"], err = elasticsearch.NewConfig("elasticsearch", log, *recorder, *interval, *timeout, *backoff, *indexName, *typeName)
+	if err != nil {
+		log.Fatal(err)
 	}
-	return nil
+	r := strings.SplitN(*reader, "/", 2)
+	confMap.Readers["expvar"], err = expvar.NewConfig("expvar", log, r[0], r[1], *interval, *timeout, *backoff)
+	if err != nil {
+		log.Fatal(err)
+	}
+	confMap.Routes = make(map[string][]string)
+	confMap.Routes["expvar"] = make([]string, 1)
+	confMap.Routes["expvar"][0] = "elasticsearch"
+	return confMap
 }
 
-func captureSignals(wg *sync.WaitGroup, cancel context.CancelFunc) {
+func captureSignals(cancel context.CancelFunc) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
 		cancel()
-		wg.Done()
 	}()
-
-}
-
-func validateURL(url string) (string, error) {
-	if govalidator.IsURL(url) {
-		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-			url = "http://" + url
-		}
-		return url, nil
-	}
-	return "", fmt.Errorf("Invalid url: %s", url)
-
-}
-
-func getES(ctx context.Context, log logrus.FieldLogger, esURL, indexName string) *elasticsearch.Recorder {
-	esClient, err := elasticsearch.NewRecorder(ctx, log, "temp", esURL, indexName)
-	if err != nil {
-		if ctx.Err() != nil {
-			log.Fatalf("Timeout: %s - %s", ctx.Err(), err)
-		}
-		log.Fatalf("Ping failed: %s", err)
-	}
-	return esClient
-}
-
-func getExpvar(log logrus.FieldLogger, target string) *expvar.Reader {
-	r, err := expvar.NewExpvarReader(log, reader.NewCtxReader(target), "temp")
-	if err != nil {
-		log.Fatalf("Error creating the reader: %s", err)
-	}
-	return r
-}
-
-func getEngine(
-	bgCtx context.Context,
-	log logrus.FieldLogger,
-	reader *expvar.Reader,
-	esClient *elasticsearch.Recorder,
-	indexName,
-	typeName string,
-	interval,
-	timeout time.Duration,
-) *expvastic.Engine {
-	// conf := expvastic.Conf{
-	// 	TargetReader: reader,
-	// 	Recorder:     esClient,
-	// 	IndexName:    indexName,
-	// 	TypeName:     typeName,
-	// 	Interval:     interval,
-	// 	Timeout:      timeout,
-	// 	Logger:       log,
-	// }
-	// return expvastic.NewEngine(bgCtx, conf)
-	return nil
 }

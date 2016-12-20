@@ -30,6 +30,27 @@ type Config struct {
     timeout  time.Duration
 }
 
+func NewConfig(name string, log logrus.FieldLogger, endpoint string, interval, timeout time.Duration, backoff int, indexName, typeName string) (*Config, error) {
+    if endpoint == "" {
+        return nil, fmt.Errorf("endpoint cannot be empty")
+    }
+    url, err := lib.SanitiseURL(endpoint)
+    if err != nil {
+        return nil, fmt.Errorf("invalid endpoint: %d", endpoint)
+    }
+
+    return &Config{
+        name:       name,
+        Endpoint_:  url,
+        timeout:    timeout,
+        interval:   interval,
+        logger:     log,
+        Backoff_:   backoff,
+        IndexName_: indexName,
+        TypeName_:  typeName,
+    }, nil
+}
+
 // FromViper constructs the necessary configuration for bootstrapping the elasticsearch reader
 func FromViper(v *viper.Viper, name, key string) (*Config, error) {
     var (

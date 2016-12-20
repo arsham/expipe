@@ -13,7 +13,7 @@ import (
     "github.com/spf13/viper"
 )
 
-func TestLoadExpvar(t *testing.T) {
+func TestLoadExpvarSuccess(t *testing.T) {
     v := viper.New()
     v.SetConfigType("yaml")
 
@@ -50,7 +50,7 @@ func TestLoadExpvar(t *testing.T) {
     }
 }
 
-func TestLoadExpvar2(t *testing.T) {
+func TestLoadExpvarErrors(t *testing.T) {
     v := viper.New()
     v.SetConfigType("yaml")
     tcs := []struct {
@@ -92,6 +92,29 @@ func TestLoadExpvar2(t *testing.T) {
                 backoff: 20w
     `)),
         },
+        { // 4
+            input: bytes.NewBuffer([]byte(`
+    readers:
+        reader1:
+            routepath: /debug/vars
+            interval: 2s
+            timeout: 3s
+            log_level: info
+            backoff: 15
+    `)),
+        },
+        { // 5
+            input: bytes.NewBuffer([]byte(`
+    readers:
+        reader1:
+            endpoint: http:// bad url
+            routepath: /debug/vars
+            interval: 2s
+            timeout: 3s
+            log_level: info
+            backoff: 15
+    `)),
+        },
     }
     for i, tc := range tcs {
         name := fmt.Sprintf("case_%d", i)
@@ -106,5 +129,4 @@ func TestLoadExpvar2(t *testing.T) {
             }
         })
     }
-
 }

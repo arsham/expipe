@@ -35,16 +35,24 @@ type Config struct {
     timeout  time.Duration
 }
 
-func NewConfig(logger logrus.FieldLogger, endpoint string, routepath string, backoff int, interval time.Duration, timeout time.Duration) *Config {
-    return &Config{
-        //TODO: name
-        logger:     logger,
-        Endpoint_:  endpoint,
-        RoutePath_: routepath,
-        interval:   interval,
-        timeout:    timeout,
-        Backoff_:   backoff,
+func NewConfig(name string, log logrus.FieldLogger, endpoint, routepath string, interval, timeout time.Duration, backoff int) (*Config, error) {
+    if endpoint == "" {
+        return nil, fmt.Errorf("endpoint cannot be empty")
     }
+    url, err := lib.SanitiseURL(endpoint)
+    if err != nil {
+        return nil, fmt.Errorf("invalid endpoint: %d", endpoint)
+    }
+
+    return &Config{
+        name:       name,
+        Endpoint_:  url,
+        RoutePath_: routepath,
+        timeout:    timeout,
+        interval:   interval,
+        logger:     log,
+        Backoff_:   backoff,
+    }, nil
 }
 
 // FromViper constructs the necessary configuration for bootstrapping the expvar reader
