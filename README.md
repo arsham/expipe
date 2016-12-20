@@ -1,6 +1,6 @@
 # About
 
-This is an early release and it is private. There will be a lot of changes soon but I'm planning to finalise and make it public  as soon as I can. I hope you enjoy it!
+This is an early release and it is under heavy development. There will be a lot of changes soon but I'm planning to finalise the API as soon as I can. I hope you enjoy it!
 
 Expvastic can read from an endpoint which provides expvar data and ship them to elasticsearch. Please refer to golang's [expvar documentation](https://golang.org/pkg/expvar/) for more information.
 
@@ -26,7 +26,22 @@ docker run -it --rm --name expvastic --ulimit nofile=98304:98304 -v "/path/to/so
 docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
 ```
 
-## Running
+## Usage
+
+### With Flags
+
+With this method you can only have one reader and ship to one recorder. Consider the next section for more flexible setup. The defaults are sensible to use, you only need to point the app to two endpoints, and it does the rest for you:
+
+```bash
+expvastic -reader="localhost:1234/debug/vars" -recorder="localhost:9200"
+```
+
+For more flags run:
+```bash
+expvastic -h
+```
+
+### With Configuration File
 
 Here an example configuration, save it somewhere (let's call it expvastic.yml for now):
 
@@ -94,7 +109,48 @@ Then run the application:
 expvasyml -c expvastic.yml
 ```
 
-Please note that the name of the app will be changed to expvastic.
+You can mix and match the routes, but the engine will choose the best setup to achive your goal without duplicating the results. For instance assume you set the routes like this:
+
+```yaml
+ readers:
+     app_0:
+     app_1:
+     app_2:
+ recorders:
+     elastic_0:
+     elastic_1:
+     elastic_2:
+     elastic_3:
+ routes:
+     route1:
+         readers:
+             - app_0
+             - app_2
+         recorders:
+             - elastic_1
+     route2:
+         readers:
+             - app_0
+         recorders:
+             - elastic_1
+             - elastic_2
+             - elastic_3
+     route2:
+         readers:
+             - app_1
+             - app_2
+         recorders:
+             - elastic_1
+             - elastic_0
+```
+
+Expvastic creates three engines like so:
+
+```
+    Data from app_0 will be shipped to: elastic_1, elastic_2 and elastic_3
+    Data from app_1 will be shipped to: elastic_1 and, elastic_0
+    Data from app_2 will be shipped to: elastic_1 and, elastic_0
+```
 
 ## Running Tests
 
