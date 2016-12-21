@@ -20,7 +20,6 @@ type Config struct {
     name       string
     Endpoint_  string `mapstructure:"endpoint"`
     Timeout_   string `mapstructure:"timeout"`
-    LogLevel_  string `mapstructure:"log_level"`
     Backoff_   int    `mapstructure:"backoff"`
     IndexName_ string `mapstructure:"index_name"`
 
@@ -68,9 +67,6 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
     c.interval, c.timeout = inter, to
 
     c.logger = logrus.StandardLogger()
-    if c.LogLevel_ != "" {
-        c.logger = lib.GetLogger(c.LogLevel_)
-    }
 
     if c.Endpoint_ == "" {
         return nil, fmt.Errorf("endpoint cannot be empty")

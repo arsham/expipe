@@ -9,7 +9,6 @@ readers:
         type_name: my_app
         interval: 1s
         timeout: 3s
-        log_level: debug
         backoff: 10
     my_app2: # service name
         type: expvar
@@ -18,7 +17,6 @@ readers:
         type_name: my_ap2
         interval: 1s
         timeout: 13s
-        log_level: debug
         backoff: 10
     self: # expvastic's self metric
         type: self # only used for this reason

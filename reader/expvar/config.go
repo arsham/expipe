@@ -28,7 +28,6 @@ type Config struct {
 	RoutePath_ string `mapstructure:"routepath"`
 	Interval_  string `mapstructure:"interval"`
 	Timeout_   string `mapstructure:"timeout"`
-	LogLevel_  string `mapstructure:"log_level"`
 	Backoff_   int    `mapstructure:"backoff"`
 
 	logger   logrus.FieldLogger
@@ -79,9 +78,6 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 	c.interval, c.timeout = inter, to
 
 	c.logger = logrus.StandardLogger()
-	if c.LogLevel_ != "" {
-		c.logger = lib.GetLogger(c.LogLevel_)
-	}
 
 	if c.TypeName_ == "" {
 		return nil, fmt.Errorf("type_name cannot be empty")
