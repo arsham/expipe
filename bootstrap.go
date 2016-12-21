@@ -13,11 +13,11 @@ import (
 )
 
 // StartEngines creates some Engines and returns a channel that closes it when it's done its work.
-// For each routes, we need one engine that has one reader and writes to a recorder.
+// For each routes, we need one engine that has one reader and writes to multiple recorders.
 // This is because:
-//    1 - Readers should not intercept each other by engaging the recorders
-//    2 - When a reader goes out of scope, we can safely stop the recorder.
-//    3 - When a recorder goes out of scope, the reader should be able to stream its data to the rest of recorders.
+//    1 - Readers should not intercept each other by engaging the recorders.
+//    2 - When a reader goes out of scope, we can safely stop the recorders.
+// When a recorder goes out of scope, the Engine stops sending to that recorder.
 func StartEngines(ctx context.Context, log logrus.FieldLogger, confMap *config.ConfMap) (chan struct{}, error) {
 	var wg sync.WaitGroup
 	done := make(chan struct{})

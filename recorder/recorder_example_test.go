@@ -16,14 +16,14 @@ import (
 
 func ExampleSimpleRecorder() {
     log := lib.DiscardLogger()
-    ctx, _ := context.WithCancel(context.Background())
+    ctx, cancel := context.WithCancel(context.Background())
     ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("I have received the payload!")
     }))
     defer ts.Close()
 
     rec, _ := NewSimpleRecorder(ctx, log, "reader_example", ts.URL, "intexName", "typeName", 10*time.Millisecond, 10*time.Millisecond)
-    done := rec.Start()
+    done := rec.Start(ctx)
     errChan := make(chan error)
     job := &RecordJob{
         Ctx:       ctx,
@@ -42,10 +42,10 @@ func ExampleSimpleRecorder() {
     fmt.Println("Error:", res)
 
     // The recorder should finish gracefully
-    // go func() {
+    cancel()
     <-done
     fmt.Println("Readed has finished")
-    // }()
+
     // We need to cancel the job now
     fmt.Println("Finished sending!")
     // close(rec.PayloadChan())

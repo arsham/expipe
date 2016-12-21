@@ -45,12 +45,18 @@ func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, 
 // Start begins reading from the target in its own goroutine.
 // It will issue a goroutine on each job request.
 // It will close the done channel when the job channel is closed.
-func (r *Reader) Start() chan struct{} {
+func (r *Reader) Start(ctx context.Context) chan struct{} {
 	done := make(chan struct{})
 	r.debug("starting")
 	go func() {
-		for job := range r.jobChan {
-			go r.readMetrics(job)
+	LOOP:
+		for {
+			select {
+			case job := <-r.jobChan:
+				go r.readMetrics(job)
+			case <-ctx.Done():
+				break LOOP
+			}
 		}
 		close(done)
 	}()

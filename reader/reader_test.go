@@ -18,7 +18,7 @@ import (
 
 func TestSimpleReader(t *testing.T) {
     log := lib.DiscardLogger()
-    ctx, _ := context.WithCancel(context.Background())
+    ctx, cancel := context.WithCancel(context.Background())
     desire := `{"the key": "is the value!"}`
     ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         io.WriteString(w, desire)
@@ -27,12 +27,12 @@ func TestSimpleReader(t *testing.T) {
 
     ctxReader := NewCtxReader(ts.URL)
     rdr, _ := NewSimpleReader(log, ctxReader, "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-    done := rdr.Start()
+    done := rdr.Start(ctx)
 
     job, _ := context.WithCancel(ctx)
     select {
     case rdr.JobChan() <- job:
-    case <-time.After(time.Second):
+    case <-time.After(5 * time.Second):
         t.Error("expected the reader to recive the job, but it blocked")
     }
 
@@ -43,7 +43,7 @@ func TestSimpleReader(t *testing.T) {
         if res.Err != nil {
             t.Errorf("want (nil), got (%v)", res.Err)
         }
-    case <-time.After(time.Second):
+    case <-time.After(5 * time.Second):
         t.Error("expected to recive a data back, nothing recieved")
     }
 
@@ -53,10 +53,10 @@ func TestSimpleReader(t *testing.T) {
         t.Errorf("want (%s), got (%s)", desire, buf.String())
     }
 
-    close(rdr.JobChan())
+    cancel()
     select {
     case <-done:
-    case <-time.After(time.Second):
+    case <-time.After(5 * time.Second):
         t.Error("expected to be done with the reader, but it blocked")
     }
 

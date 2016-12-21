@@ -36,21 +36,27 @@ func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, name st
 	return w, nil
 }
 
-func (m *SimpleReader) Start() chan struct{} {
+func (m *SimpleReader) Start(ctx context.Context) chan struct{} {
 	if m.StartFunc != nil {
 		return m.StartFunc()
 	}
 	done := make(chan struct{})
 	go func() {
-		for job := range m.jobChan {
-			resp, err := m.ctxReader.Get(job)
-			res := &ReadJobResult{
-				Time: time.Now(),
-				Res:  resp.Body,
-				Err:  err,
+	LOOP:
+		for {
+			select {
+			case job := <-m.jobChan:
+				resp, err := m.ctxReader.Get(job)
+				res := &ReadJobResult{
+					Time: time.Now(),
+					Res:  resp.Body,
+					Err:  err,
+				}
+				m.resultChan <- res
+			case <-ctx.Done():
+				break LOOP
 			}
 
-			m.resultChan <- res
 		}
 		close(done)
 	}()

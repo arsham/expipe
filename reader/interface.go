@@ -35,7 +35,8 @@ type TargetReader interface {
 
     // The reader's loop should be inside a goroutine, and return a done channel.
     // This channel should be closed once its work is finished and the reader wants to quit.
-    Start() chan struct{}
+    // When the context is timedout or canceled, the reader should return.
+    Start(ctx context.Context) chan struct{}
 
     // Name should return the representation string for this reader. Choose a very simple name.
     Name() string

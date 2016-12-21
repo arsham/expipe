@@ -7,7 +7,9 @@ package expvastic_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -24,7 +26,7 @@ func TestEngineSendJob(t *testing.T) {
 	log := lib.DiscardLogger()
 	ctx, cancel := context.WithCancel(context.Background())
 	desire := `{"the key": "is the value!"}`
-	recorded := false
+	recorded := make(chan struct{})
 
 	redTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, desire)
@@ -32,15 +34,15 @@ func TestEngineSendJob(t *testing.T) {
 	defer redTs.Close()
 
 	recTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		recorded = true
+		recorded <- struct{}{}
 	}))
 	defer recTs.Close()
 
 	ctxReader := reader.NewCtxReader(redTs.URL)
-	red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", 1*time.Millisecond, 1*time.Millisecond)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", "typeName", 1*time.Millisecond, 1*time.Millisecond)
-	redDone := red.Start()
-	recDone := rec.Start()
+	red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", time.Millisecond, time.Millisecond)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, "recorder_example", recTs.URL, "intexName", "typeName", time.Millisecond, time.Millisecond)
+	redDone := red.Start(ctx)
+	recDone := rec.Start(ctx)
 
 	cl, err := expvastic.NewWithReadRecorder(ctx, log, red, rec)
 	if err != nil {
@@ -70,14 +72,13 @@ func TestEngineSendJob(t *testing.T) {
 		t.Errorf("want (%s), got (%s)", desire, buf.String())
 	}
 
-	if !recorded {
+	select {
+	case <-recorded:
+	case <-time.After(5 * time.Second):
 		t.Errorf("recorder didn't record the request")
 	}
 
 	cancel()
-	cl.Stop()
-	close(red.JobChan())
-	close(rec.PayloadChan())
 	if _, ok := <-redDone; ok {
 		t.Error("expected the channel to be closed")
 	}
@@ -88,3 +89,65 @@ func TestEngineSendJob(t *testing.T) {
 		t.Error("expected the channel to be closed", v)
 	}
 }
+
+func TestEngineMultiRecorder(t *testing.T) {
+	log := lib.DiscardLogger()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	defer ts.Close()
+
+	red, _ := reader.NewSimpleReader(log, &reader.MockCtxReader{}, "reader_example", time.Second, time.Second)
+	red.StartFunc = func() chan struct{} {
+		done := make(chan struct{})
+		go func() {
+			<-red.JobChan()
+			res := &reader.ReadJobResult{
+				Time: time.Now(),
+				Res:  ioutil.NopCloser(bytes.NewBufferString("")),
+				Err:  nil,
+			}
+			red.ResultChan() <- res
+			close(done)
+			return
+		}()
+		return done
+	}
+	length := 10
+	recorders := make([]recorder.DataRecorder, length)
+	results := make(chan struct{}, 20)
+	for i := 0; i < length; i++ {
+		name := fmt.Sprintf("rec_%d", i)
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, name, ts.URL, "intexName", "typeName", time.Second, time.Second)
+		go func(rec *recorder.SimpleRecorder) {
+			job := make(chan *recorder.RecordJob)
+			done := make(chan struct{})
+			rec.StartFunc = func() chan struct{} { return done }
+			rec.PayloadChanFunc = func() chan *recorder.RecordJob { return job }
+			j := <-job
+			j.Err <- nil
+			results <- struct{}{}
+			close(done)
+		}(rec)
+		recorders[i] = rec
+	}
+	cl, err := expvastic.NewWithReadRecorder(ctx, log, red, recorders...)
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
+	}
+	clDone := cl.Start()
+	red.JobChan() <- ctx
+
+	for i := 0; i < length; i++ {
+		<-results
+	}
+	if len(results) != 0 {
+		t.Errorf("want (%d) results, got (%d)", length, len(results)+length)
+	}
+	cancel()
+	<-clDone
+}
+
+// test engine closes all recorders
+// test engine closes recorders when reader goes out of scope

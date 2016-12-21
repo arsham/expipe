@@ -7,6 +7,8 @@ package expvastic
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -19,36 +21,50 @@ import (
 // Engine represents an engine that receives information from readers and ships them to recorders.
 // The Engine is allowed to change the index and type names at will.
 // When the context times out or canceled, the engine will close the the job channels by calling the Stop method.
+// Note that we could create a channel and distribute the recorders payload, but we didn't because there
+// is no way to find out which recorder errors right after the payload has been sent.
 type Engine struct {
-	name         string                // Name identifier for this engine.
-	ctx          context.Context       // Will call Stop() when this context is canceled/timedout. This is a new context from the parent
-	cancel       context.CancelFunc    // Based on the new context
-	targetReader reader.TargetReader   // The worker that reads from an expvar provider.
-	recorder     recorder.DataRecorder // Recorder (e.g. ElasticSearch) client.
+	once         sync.Once
+	name         string                           // Name identifier for this engine.
+	ctx          context.Context                  // Will call Stop() when this context is canceled/timedout. This is a new context from the parent
+	cancel       context.CancelFunc               // Based on the new context
+	targetReader reader.TargetReader              // The worker that reads from an expvar provider.
+	recorders    map[string]recorder.DataRecorder // Recorder (e.g. ElasticSearch) client. The key is the name of the recorder
 	logger       logrus.FieldLogger
 }
 
-// NewWithConfig copies its configurations from c.
-func NewWithConfig(ctx context.Context, log logrus.FieldLogger, reader config.ReaderConf, recorder config.RecorderConf) (*Engine, error) {
-	rec, err := recorder.NewInstance(ctx)
-	if err != nil {
-		return nil, err
+// NewWithConfig instantiates reader and recorders from the configurations.
+func NewWithConfig(ctx context.Context, log logrus.FieldLogger, reader config.ReaderConf, recorders ...config.RecorderConf) (*Engine, error) {
+	recs := make([]recorder.DataRecorder, len(recorders))
+	for i, recConf := range recorders {
+		rec, err := recConf.NewInstance(ctx)
+		if err != nil {
+			return nil, err
+		}
+		recs[i] = rec
 	}
+
 	red, err := reader.NewInstance(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return NewWithReadRecorder(ctx, log, red, rec)
+	return NewWithReadRecorder(ctx, log, red, recs...)
 }
 
-// NewWithReadRecorder creates an instance with already made reader and recorder.
-func NewWithReadRecorder(ctx context.Context, log logrus.FieldLogger, red reader.TargetReader, rec recorder.DataRecorder) (*Engine, error) {
-	ctx, cancel := context.WithCancel(ctx)
+// NewWithReadRecorder creates an instance with already made reader and recorders.
+func NewWithReadRecorder(ctx context.Context, log logrus.FieldLogger, red reader.TargetReader, recs ...recorder.DataRecorder) (*Engine, error) {
+	recNames := make([]string, len(recs))
+	recsMap := make(map[string]recorder.DataRecorder, len(recs))
+	for i, rec := range recs {
+		recNames[i] = rec.Name()
+		recsMap[rec.Name()] = rec
+	}
+	engineName := fmt.Sprintf("( %s >-x-< %s )", red.Name(), strings.Join(recNames, ","))
+	log = log.WithField("engine", engineName)
 	cl := &Engine{
-		name:         fmt.Sprintf("( %s >=< %s )", red.Name(), rec.Name()),
+		name:         engineName,
 		ctx:          ctx,
-		cancel:       cancel,
-		recorder:     rec,
+		recorders:    recsMap,
 		targetReader: red,
 		logger:       log,
 	}
@@ -57,89 +73,103 @@ func NewWithReadRecorder(ctx context.Context, log logrus.FieldLogger, red reader
 
 // Start begins pulling the data from TargetReader and chips them to DataRecorder.
 // When the context cancels or timesout, the engine closes all job channels, causing the readers and recorders to stop.
-func (c *Engine) Start() chan struct{} {
+func (e *Engine) Start() chan struct{} {
 	done := make(chan struct{})
-	go func() {
-		c.targetReader.Start()
-		c.recorder.Start()
-		resultChan := c.targetReader.ResultChan()
-		ticker := time.NewTicker(c.targetReader.Interval())
-		c.debug("starting")
-		for {
-			select {
-			case <-ticker.C:
-				go c.issueReaderJob()
-			case r := <-resultChan:
-				if r.Err != nil {
-					c.error(r.Err.Error())
-					continue
-				}
-				go c.redirectToRecorder(r)
-			case <-c.ctx.Done():
-				c.debug("context has been canceled")
-				close(done)
-				c.Stop()
-				return
-			}
+	go e.once.Do(func() {
+		ctx, cancel := context.WithCancel(e.ctx)
+		e.cancel = cancel
+		readerDone := e.targetReader.Start(ctx)
+		for _, rec := range e.recorders {
+			// TODO: keep the done channels
+			rec.Start(ctx)
 		}
-	}()
+		e.readMsgLoop(done, readerDone)
+	})
 	return done
 }
 
-// Name shows the name identifier for this engine
-func (c *Engine) Name() string {
-	return c.name
+// TODO: test
+func (e *Engine) readMsgLoop(selfDone, readerDone chan struct{}) {
+	resultChan := e.targetReader.ResultChan()
+	ticker := time.NewTicker(e.targetReader.Interval())
+	e.logger.Debug("starting")
+	for {
+		select {
+		case <-ticker.C:
+			go e.issueReaderJob()
+		case r := <-resultChan:
+			if r.Err != nil {
+				e.logger.Errorf(r.Err.Error())
+				continue
+			}
+			go e.redirectToRecorders(r)
+		case <-readerDone:
+			e.logger.Debug("reader is gone now")
+			e.Stop()
+			close(selfDone)
+			return
+		case <-e.ctx.Done():
+			e.logger.Debug("context has been canceled")
+			e.Stop()
+			close(selfDone)
+			return
+		}
+	}
 }
+
+// Name shows the name identifier for this engine
+func (e *Engine) Name() string { return e.name }
 
 // Stop closes the job channels
-func (c *Engine) Stop() {
+func (e *Engine) Stop() {
 	// TODO: should I close the readers/recorders channels here?
-	c.debug("stopping")
-	c.cancel()
+	e.logger.Debug("stopping")
+	e.cancel()
 }
 
-func (c *Engine) issueReaderJob() {
-	ctx, _ := context.WithTimeout(c.ctx, c.targetReader.Timeout()) // QUESTION: do I need this?
-	timer := time.NewTimer(c.targetReader.Timeout())
+func (e *Engine) issueReaderJob() {
+	ctx, _ := context.WithTimeout(e.ctx, e.targetReader.Timeout()) // QUESTION: do I need this?
+	timer := time.NewTimer(e.targetReader.Timeout())
 	select {
-	case c.targetReader.JobChan() <- ctx:
+	case e.targetReader.JobChan() <- ctx:
 		timer.Stop()
 		return
 	case <-timer.C: // QUESTION: Do I need this? Or should I apply the same for recorder?
-		c.warn("timedout before receiving the error")
+		e.logger.Warn("timedout before receiving the error")
 	case <-ctx.Done():
-		c.warnf("timedout before receiving the error response: %s", ctx.Err().Error())
+		e.logger.Warnf("timedout before receiving the error response: %s", ctx.Err().Error())
 	}
 
 }
 
 // Be aware that I am closing the stream.
-func (c *Engine) redirectToRecorder(r *reader.ReadJobResult) {
+func (e *Engine) redirectToRecorders(r *reader.ReadJobResult) {
 	defer r.Res.Close()
-	ctx, _ := context.WithTimeout(c.ctx, c.recorder.Timeout()) // QUESTION: do I need this?
-	errChan := make(chan error)
-	payload := &recorder.RecordJob{
-		Ctx:       ctx,
-		Payload:   datatype.JobResultDataTypes(r.Res),
-		IndexName: c.recorder.IndexName(),
-		TypeName:  c.recorder.TypeName(),
-		Time:      r.Time,
-		Err:       errChan,
-	}
-	c.recorder.PayloadChan() <- payload
-	select {
-	case err := <-errChan:
-		if err != nil {
-			c.errorf("%s", err.Error())
-		}
-	case <-ctx.Done():
-		c.warnf("timedout before receiving the error: %s", ctx.Err().Error())
+	payload := datatype.JobResultDataTypes(r.Res)
+	for name, rec := range e.recorders {
+		go func(name string, rec recorder.DataRecorder) {
+			e.logger.Debug("sending payload")
+			errChan := make(chan error)
+			ctx, _ := context.WithTimeout(e.ctx, rec.Timeout())
+			payload := &recorder.RecordJob{
+				Ctx:       ctx,
+				Payload:   payload,
+				IndexName: rec.IndexName(),
+				TypeName:  rec.TypeName(),
+				Time:      r.Time,
+				Err:       errChan,
+			}
+			rec.PayloadChan() <- payload
+			select {
+			case err := <-errChan:
+				if err != nil {
+					e.logger.Errorf("%s", err.Error())
+				}
+			case <-ctx.Done():
+				e.logger.Warnf("timedout before receiving the error: %s", ctx.Err().Error())
+			case <-e.ctx.Done():
+				e.logger.Warnf("main context was canceled before receiving the error: %s", ctx.Err().Error())
+			}
+		}(name, rec)
 	}
 }
-
-func (c *Engine) debug(msg string)                    { c.logger.Debugf("%s: %s", c.Name(), msg) }
-func (c *Engine) debugf(format string, msg ...string) { c.logger.Debugf("%s: "+format, c.Name(), msg) }
-func (c *Engine) error(msg string)                    { c.logger.Error("%s: %s", c.Name(), msg) }
-func (c *Engine) errorf(format string, msg ...string) { c.logger.Errorf("%s: "+format, c.Name(), msg) }
-func (c *Engine) warn(msg string)                     { c.logger.Warn("%s: %s", c.Name(), msg) }
-func (c *Engine) warnf(format string, msg ...string)  { c.logger.Warnf("%s: "+format, c.Name(), msg) }

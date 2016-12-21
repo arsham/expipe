@@ -26,7 +26,7 @@ func ExampleSimpleReader() {
 
     ctxReader := NewCtxReader(ts.URL)
     rdr, _ := NewSimpleReader(log, ctxReader, "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-    done := rdr.Start()
+    done := rdr.Start(ctx)
 
     job, _ := context.WithCancel(ctx)
     // Issueing a job
@@ -42,16 +42,14 @@ func ExampleSimpleReader() {
     fmt.Println("Result is:", buf.String())
 
     // The reader should finish gracefully
-    go func() {
-        <-done
-        fmt.Println("Readed has finished")
-    }()
-    // We need to cancel the job now
     cancel()
+    <-done
+    fmt.Println("Readed has finished")
+    // We need to cancel the job now
     fmt.Println("All done!")
-
     // Output:
     // Error: <nil>
     // Result is: {"the key": "is the value!"}
+    // Readed has finished
     // All done!
 }

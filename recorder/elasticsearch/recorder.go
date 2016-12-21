@@ -73,13 +73,19 @@ func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, in
 
 // Start begins reading from the target in its own goroutine
 // It will close the done channel when the job channel is closed
-func (r *Recorder) Start() chan struct{} { //QUESTION: can we receive a quit channel?
+func (r *Recorder) Start(ctx context.Context) chan struct{} { //QUESTION: can we receive a quit channel?
     done := make(chan struct{})
     go func() {
-        for job := range r.jobChan {
-            go func(job *recorder.RecordJob) {
-                job.Err <- r.record(job.Ctx, job.TypeName, job.Time, job.Payload)
-            }(job)
+    LOOP:
+        for {
+            select {
+            case job := <-r.jobChan:
+                go func(job *recorder.RecordJob) {
+                    job.Err <- r.record(job.Ctx, job.TypeName, job.Time, job.Payload)
+                }(job)
+            case <-ctx.Done():
+                break LOOP
+            }
         }
         close(done)
     }()

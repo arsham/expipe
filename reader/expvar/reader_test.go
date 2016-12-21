@@ -17,13 +17,13 @@ import (
 
 func TestExpvarReaderErrors(t *testing.T) {
 	log := lib.DiscardLogger()
+	ctx, cancel := context.WithCancel(context.Background())
 	ctxReader := reader.NewMockCtxReader("nowhere")
 	ctxReader.ContextReadFunc = func(ctx context.Context) (*http.Response, error) {
 		return nil, fmt.Errorf("Error")
 	}
 	rdr, _ := NewExpvarReader(log, ctxReader, "my_reader", time.Second, time.Second)
-	rdr.Start()
-	ctx, cancel := context.WithCancel(context.Background())
+	rdr.Start(ctx)
 	defer cancel()
 
 	rdr.JobChan() <- ctx
@@ -38,25 +38,25 @@ func TestExpvarReaderErrors(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		t.Error("expecting an error result back, got nothing")
 	}
+	cancel()
 }
 
 func TestExpvarReaderClosesStream(t *testing.T) {
 	log := lib.DiscardLogger()
 	ctxReader := reader.NewMockCtxReader("nowhere")
-	rdr, _ := NewExpvarReader(log, ctxReader, "my_reader", time.Second, time.Second)
-	done := rdr.Start()
 	ctx, cancel := context.WithCancel(context.Background())
+	rdr, _ := NewExpvarReader(log, ctxReader, "my_reader", time.Second, time.Second)
+	done := rdr.Start(ctx)
 	rdr.JobChan() <- ctx
 
 	select {
 	case <-rdr.ResultChan():
 	default:
-		close(rdr.JobChan())
+		cancel()
 	}
 	select {
 	case <-done:
 	case <-time.After(1 * time.Second):
 		t.Error("The channel was not closed in time")
 	}
-	cancel()
 }

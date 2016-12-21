@@ -28,7 +28,8 @@ type DataRecorder interface {
 
     // The recorder's loop should be inside a goroutine, and return a done channel.
     // The done channel should be closed one it's work is finished and wants to quit.
-    Start() chan struct{}
+    // When the context is timedout or canceled, the recorder should return.
+    Start(ctx context.Context) chan struct{}
 
     // Name should return the representation string for this recorder. Choose a very simple name.
     Name() string

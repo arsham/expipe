@@ -38,8 +38,8 @@ func ExampleEngine_sendJob() {
     ctxReader := reader.NewCtxReader(redTs.URL)
     red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     rec, _ := recorder.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", "typeName", 10*time.Millisecond, 10*time.Millisecond)
-    redDone := red.Start()
-    recDone := rec.Start()
+    redDone := red.Start(ctx)
+    recDone := rec.Start(ctx)
 
     cl, err := expvastic.NewWithReadRecorder(ctx, log, red, rec)
     fmt.Println("Engine creation success:", err == nil)
@@ -64,9 +64,6 @@ func ExampleEngine_sendJob() {
     fmt.Println("Reader just received payload:", buf.String())
 
     cancel()
-    cl.Stop()
-    close(red.JobChan())
-    close(rec.PayloadChan())
 
     _, open := <-redDone
     fmt.Println("Reader closure:", !open)

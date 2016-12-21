@@ -55,20 +55,26 @@ func (s *SimpleRecorder) Error() error {
     return nil
 }
 
-func (s *SimpleRecorder) Start() chan struct{} {
+func (s *SimpleRecorder) Start(ctx context.Context) chan struct{} {
     if s.StartFunc != nil {
         return s.StartFunc()
     }
     done := make(chan struct{})
     go func() {
-        for job := range s.jobChan {
-            go func(job *RecordJob) {
-                res, err := http.Get(s.endpoint)
-                if err != nil {
-                    res.Body.Close()
-                }
-                job.Err <- err
-            }(job)
+    LOOP:
+        for {
+            select {
+            case job := <-s.jobChan:
+                go func(job *RecordJob) {
+                    res, err := http.Get(s.endpoint)
+                    if err != nil {
+                        res.Body.Close()
+                    }
+                    job.Err <- err
+                }(job)
+            case <-ctx.Done():
+                break LOOP
+            }
         }
         close(done)
     }()

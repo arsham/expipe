@@ -17,14 +17,14 @@ import (
 
 func TestSimpleRecorder(t *testing.T) {
     log := lib.DiscardLogger()
-    ctx, _ := context.WithCancel(context.Background())
+    ctx, cancel := context.WithCancel(context.Background())
     ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("I have received the payload!")
     }))
     defer ts.Close()
 
     rec, _ := NewSimpleRecorder(ctx, log, "reader_example", ts.URL, "intexName", "typeName", 10*time.Millisecond, 10*time.Millisecond)
-    done := rec.Start()
+    done := rec.Start(ctx)
     errChan := make(chan error)
     job := &RecordJob{
         Ctx:       ctx,
@@ -37,7 +37,7 @@ func TestSimpleRecorder(t *testing.T) {
 
     select {
     case rec.PayloadChan() <- job:
-    case <-time.After(time.Second):
+    case <-time.After(5 * time.Second):
         t.Error("expected the recorder to recive the payload, but it blocked")
     }
 
@@ -46,14 +46,14 @@ func TestSimpleRecorder(t *testing.T) {
         if err != nil {
             t.Errorf("want (nil), got (%v)", err)
         }
-    case <-time.After(time.Second):
+    case <-time.After(5 * time.Second):
         t.Error("expected to recive a data back, nothing recieved")
     }
 
-    close(rec.PayloadChan())
+    cancel()
     select {
     case <-done:
-    case <-time.After(time.Second):
+    case <-time.After(5 * time.Second):
         t.Error("expected to be done with the recorder, but it blocked")
     }
 
