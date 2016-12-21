@@ -31,6 +31,7 @@ type Engine struct {
 	cancel     context.CancelFunc               // Based on the new context.
 	dataReader reader.DataReader                // Reads from an expvar provider.
 	recorders  map[string]recorder.DataRecorder // Records to ElasticSearch client. The key is the name of the recorder.
+	observer   *observer
 	logger     logrus.FieldLogger
 }
 
@@ -80,6 +81,7 @@ func NewWithReadRecorder(ctx context.Context, logger logrus.FieldLogger, red rea
 		recorders:  recsMap,
 		dataReader: red,
 		logger:     logger,
+		observer:   newobserver(ctx, logger, len(recs)),
 	}
 	return cl, nil
 }
@@ -97,7 +99,7 @@ func (e *Engine) Start() chan struct{} {
 		expReaders.Add(1)
 		for _, rec := range e.recorders {
 			// TODO: keep the done channels
-			rec.Start(ctx)
+			e.observer.Add(ctx, rec)
 			expReaders.Add(1)
 		}
 
@@ -170,50 +172,5 @@ func (e *Engine) issueReaderJob() {
 func (e *Engine) redirectToRecorders(r *reader.ReadJobResult) {
 	defer r.Res.Close()
 	payload := datatype.JobResultDataTypes(r.Res)
-
-	for name, rec := range e.recorders {
-		// we are sending the payload for each recorder separately.
-		go func(name string, rec recorder.DataRecorder) {
-			e.logger.Debug("sending payload to")
-			errChan := make(chan error)
-			timeout := rec.Timeout() + time.Duration(10*time.Second)
-			timer := time.NewTimer(timeout)
-			payload := &recorder.RecordJob{
-				Ctx:       e.ctx,
-				Payload:   payload,
-				IndexName: rec.IndexName(),
-				TypeName:  r.TypeName,
-				Time:      r.Time,
-				Err:       errChan,
-			}
-
-			// sending payload
-			select {
-			case rec.PayloadChan() <- payload:
-				// job was sent, let's do the same for the error message.
-				if !timer.Stop() {
-					<-timer.C
-				}
-				timer.Reset(timeout)
-			case <-timer.C:
-				e.logger.Warn("timedout before receiving the error")
-			case <-e.ctx.Done():
-				e.logger.Warnf("main context was closed before receiving the error response: %s", e.ctx.Err().Error())
-			}
-
-			// waiting for the result
-			select {
-			case err := <-errChan:
-				if err != nil {
-					e.logger.Errorf("%s", err.Error())
-				}
-				// received the response
-				timer.Stop()
-			case <-timer.C:
-				e.logger.Warn("timedout before receiving the error")
-			case <-e.ctx.Done():
-				e.logger.Warnf("main context was canceled before receiving the error: %s", e.ctx.Err().Error())
-			}
-		}(name, rec)
-	}
+	e.observer.Send(e.ctx, r.TypeName, r.Time, payload)
 }

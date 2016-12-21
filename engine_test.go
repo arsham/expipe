@@ -134,6 +134,7 @@ func TestEngineMultiRecorder(t *testing.T) {
 				TypeName: "example_type",
 			}
 			red.ResultChan() <- res
+			<-ctx.Done()
 			close(done)
 			return
 		}()
@@ -163,7 +164,6 @@ func TestEngineMultiRecorder(t *testing.T) {
 	}
 	clDone := cl.Start()
 	red.JobChan() <- ctx
-
 	for i := 0; i < length; i++ {
 		<-results
 	}
