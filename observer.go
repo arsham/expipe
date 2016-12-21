@@ -74,8 +74,8 @@ func (o *observer) Remove(name string) {
 }
 
 func (o *observer) Send(ctx context.Context, typeName string, t time.Time, payload datatype.DataContainer) {
-    // o.mu.RLock()
-    // defer o.mu.RUnlock()
+    o.mu.RLock()
+    defer o.mu.RUnlock()
 
     for name, rec := range o.recorders {
         // we are sending the payload for each recorder separately.
