@@ -20,6 +20,7 @@ import (
 // Config holds the necessary configuration for setting up an self reading facility.
 type Config struct {
 	name      string
+	TypeName_ string `mapstructure:"type_name"`
 	Interval_ string `mapstructure:"interval"`
 
 	interval time.Duration
@@ -40,6 +41,10 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 		return nil, fmt.Errorf("parse interval (%v): %s", c.Interval_, err)
 	}
 
+	if c.TypeName_ == "" {
+		return nil, fmt.Errorf("type_name cannot be empty: %s", c.TypeName_)
+	}
+
 	c.interval = inter
 	c.logger = logrus.StandardLogger()
 	c.name = name
@@ -47,10 +52,11 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 }
 
 func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
-	return NewSelfReader(c.logger, c.name, c.interval)
+	return NewSelfReader(c.logger, c.name, c.TypeName(), c.interval)
 }
 
 func (c *Config) Name() string               { return c.name }
+func (c *Config) TypeName() string           { return c.TypeName_ }
 func (c *Config) Endpoint() string           { return "" }
 func (c *Config) RoutePath() string          { return "" }
 func (c *Config) Interval() time.Duration    { return c.interval }

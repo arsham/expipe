@@ -24,8 +24,8 @@ import (
 func TestNewWithReadRecorder(t *testing.T) {
 	log := lib.DiscardLogger()
 	ctx, _ := context.WithCancel(context.Background())
-	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), "a", time.Millisecond, time.Millisecond)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, "", "nowhere", "", "", time.Millisecond, time.Millisecond)
+	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), "a", "", time.Millisecond, time.Millisecond)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, "", "nowhere", "", time.Millisecond, time.Millisecond)
 	e, err := expvastic.NewWithReadRecorder(ctx, log, red, rec)
 	if err != expvastic.ErrEmptyRecName {
 		t.Error("want ErrEmptyRecName, got nil")
@@ -34,8 +34,8 @@ func TestNewWithReadRecorder(t *testing.T) {
 		t.Errorf("want (nil), got (%v)", e)
 	}
 
-	rec, _ = recorder.NewSimpleRecorder(ctx, log, "name1", "nowhere", "", "", time.Millisecond, time.Millisecond)
-	rec2, _ := recorder.NewSimpleRecorder(ctx, log, "name1", "nowhere", "", "", time.Millisecond, time.Millisecond)
+	rec, _ = recorder.NewSimpleRecorder(ctx, log, "name1", "nowhere", "", time.Millisecond, time.Millisecond)
+	rec2, _ := recorder.NewSimpleRecorder(ctx, log, "name1", "nowhere", "", time.Millisecond, time.Millisecond)
 	e, err = expvastic.NewWithReadRecorder(ctx, log, red, rec, rec2)
 	if err != expvastic.ErrDupRecName {
 		t.Error("want error, got nil")
@@ -63,8 +63,8 @@ func TestEngineSendJob(t *testing.T) {
 	defer recTs.Close()
 
 	ctxReader := reader.NewCtxReader(redTs.URL)
-	red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", time.Millisecond, time.Millisecond)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, "recorder_example", recTs.URL, "intexName", "typeName", time.Millisecond, time.Millisecond)
+	red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", "example_type", time.Millisecond, time.Millisecond)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, "recorder_example", recTs.URL, "intexName", time.Millisecond, time.Millisecond)
 	redDone := red.Start(ctx)
 	recDone := rec.Start(ctx)
 
@@ -122,15 +122,16 @@ func TestEngineMultiRecorder(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	red, _ := reader.NewSimpleReader(log, &reader.MockCtxReader{}, "reader_example", time.Second, time.Second)
+	red, _ := reader.NewSimpleReader(log, &reader.MockCtxReader{}, "reader_example", "example_type", time.Second, time.Second)
 	red.StartFunc = func() chan struct{} {
 		done := make(chan struct{})
 		go func() {
 			<-red.JobChan()
 			res := &reader.ReadJobResult{
-				Time: time.Now(),
-				Res:  ioutil.NopCloser(bytes.NewBufferString("")),
-				Err:  nil,
+				Time:     time.Now(),
+				Res:      ioutil.NopCloser(bytes.NewBufferString("")),
+				Err:      nil,
+				TypeName: "example_type",
 			}
 			red.ResultChan() <- res
 			close(done)
@@ -143,7 +144,7 @@ func TestEngineMultiRecorder(t *testing.T) {
 	results := make(chan struct{}, 20)
 	for i := 0; i < length; i++ {
 		name := fmt.Sprintf("rec_%d", i)
-		rec, _ := recorder.NewSimpleRecorder(ctx, log, name, ts.URL, "intexName", "typeName", time.Second, time.Second)
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, name, ts.URL, "intexName", time.Second, time.Second)
 		go func(rec *recorder.SimpleRecorder) {
 			job := make(chan *recorder.RecordJob)
 			done := make(chan struct{})

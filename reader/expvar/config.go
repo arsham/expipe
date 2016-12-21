@@ -23,6 +23,7 @@ import (
 // Config holds the necessary configuration for setting up an expvar reader endpoint.
 type Config struct {
 	name       string
+	TypeName_  string `mapstructure:"type_name"`
 	Endpoint_  string `mapstructure:"endpoint"`
 	RoutePath_ string `mapstructure:"routepath"`
 	Interval_  string `mapstructure:"interval"`
@@ -35,7 +36,7 @@ type Config struct {
 	timeout  time.Duration
 }
 
-func NewConfig(name string, log logrus.FieldLogger, endpoint, routepath string, interval, timeout time.Duration, backoff int) (*Config, error) {
+func NewConfig(name, typeName string, log logrus.FieldLogger, endpoint, routepath string, interval, timeout time.Duration, backoff int) (*Config, error) {
 	if endpoint == "" {
 		return nil, fmt.Errorf("endpoint cannot be empty")
 	}
@@ -46,6 +47,7 @@ func NewConfig(name string, log logrus.FieldLogger, endpoint, routepath string, 
 
 	return &Config{
 		name:       name,
+		TypeName_:  typeName,
 		Endpoint_:  url,
 		RoutePath_: routepath,
 		timeout:    timeout,
@@ -81,6 +83,10 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 		c.logger = lib.GetLogger(c.LogLevel_)
 	}
 
+	if c.TypeName_ == "" {
+		return nil, fmt.Errorf("type_name cannot be empty")
+	}
+
 	if c.Endpoint_ == "" {
 		return nil, fmt.Errorf("endpoint cannot be empty")
 	}
@@ -101,10 +107,11 @@ func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
 	ctxReader := reader.NewCtxReader(endpoint.String())
-	return NewExpvarReader(c.logger, ctxReader, c.name, c.interval, c.timeout)
+	return NewExpvarReader(c.logger, ctxReader, c.name, c.TypeName_, c.interval, c.timeout)
 }
 
 func (c *Config) Name() string               { return c.name }
+func (c *Config) TypeName() string           { return c.TypeName_ }
 func (c *Config) Endpoint() string           { return c.Endpoint_ }
 func (c *Config) RoutePath() string          { return c.RoutePath_ }
 func (c *Config) Interval() time.Duration    { return c.interval }

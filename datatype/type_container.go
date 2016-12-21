@@ -67,7 +67,10 @@ func (c *Container) Error() error {
     return c.Err
 }
 
-// TODO: Use JSON encoder instead
+// String prepends the timestamp to the list, and gererates a json objest suitable for recording into
+// a donument store.
+// TODO: also provide JSONDeocder encoder
+// TODO: a lot of data doesn't require processing, use them as they are
 func (c *Container) String(timestamp time.Time) string {
     ts := fmt.Sprintf(`"@timestamp":"%s"`, timestamp.Format("2006-01-02T15:04:05.999999-07:00"))
     l := make([]string, c.Len()+1)

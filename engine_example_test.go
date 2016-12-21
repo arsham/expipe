@@ -36,8 +36,8 @@ func ExampleEngine_sendJob() {
     defer recTs.Close()
 
     ctxReader := reader.NewCtxReader(redTs.URL)
-    red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-    rec, _ := recorder.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", "typeName", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", "typeName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := recorder.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
     redDone := red.Start(ctx)
     recDone := rec.Start(ctx)
 

@@ -38,6 +38,11 @@ type DataReader interface {
 	// When the context is timedout or canceled, the reader should return.
 	Start(ctx context.Context) chan struct{}
 
+	// TypeName is usually the application name.
+	// Recorders should not intercept the engine for its decision, unless they have a
+	// valid reason.
+	TypeName() string
+
 	// Name should return the representation string for this reader. Choose a very simple name.
 	Name() string
 }
@@ -54,7 +59,8 @@ type ReadJob struct {
 // ReadJobResult is constructed everytime a new record is fetched.
 // The time is set after the request was successfully read.
 type ReadJobResult struct {
-	Time time.Time
-	Res  io.ReadCloser
-	Err  error
+	Time     time.Time
+	TypeName string
+	Res      io.ReadCloser
+	Err      error
 }

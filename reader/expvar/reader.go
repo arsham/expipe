@@ -17,6 +17,7 @@ import (
 // It implements DataReader interface.
 type Reader struct {
 	name       string
+	typeName   string
 	jobChan    chan context.Context
 	resultChan chan *reader.ReadJobResult
 	ctxReader  reader.ContextReader
@@ -27,12 +28,13 @@ type Reader struct {
 
 // NewExpvarReader creates the worker and sets up its channels.
 // Because the caller is reading the resp.Body, it is its job to close it.
-func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, name string, interval, timeout time.Duration) (*Reader, error) {
+func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, name, typeName string, interval, timeout time.Duration) (*Reader, error) {
 	// TODO: ping the reader.
 	// TODO: have the user decide how large the channels can be.
 	logger = logger.WithField("reader", "expvar")
 	w := &Reader{
 		name:       name,
+		typeName:   typeName,
 		jobChan:    make(chan context.Context, 1000),
 		resultChan: make(chan *reader.ReadJobResult, 1000),
 		ctxReader:  ctxReader,
@@ -67,6 +69,9 @@ func (r *Reader) Start(ctx context.Context) chan struct{} {
 // Name shows the name identifier for this reader
 func (r *Reader) Name() string { return r.name }
 
+// TypeName shows the typeName the recorder should record as
+func (r *Reader) TypeName() string { return r.typeName }
+
 // Interval returns the interval
 func (r *Reader) Interval() time.Duration { return r.interval }
 
@@ -94,8 +99,9 @@ func (r *Reader) readMetrics(job context.Context) {
 	}
 
 	res := &reader.ReadJobResult{
-		Time: time.Now(), // It is sensible to record the time now
-		Res:  resp.Body,
+		Time:     time.Now(), // It is sensible to record the time now
+		Res:      resp.Body,
+		TypeName: r.TypeName(),
 	}
 	r.resultChan <- res
 }

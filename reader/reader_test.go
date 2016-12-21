@@ -26,12 +26,12 @@ func TestSimpleReader(t *testing.T) {
     defer ts.Close()
 
     ctxReader := NewCtxReader(ts.URL)
-    rdr, _ := NewSimpleReader(log, ctxReader, "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-    done := rdr.Start(ctx)
+    red, _ := NewSimpleReader(log, ctxReader, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    done := red.Start(ctx)
 
     job, _ := context.WithCancel(ctx)
     select {
-    case rdr.JobChan() <- job:
+    case red.JobChan() <- job:
     case <-time.After(5 * time.Second):
         t.Error("expected the reader to recive the job, but it blocked")
     }
@@ -39,7 +39,7 @@ func TestSimpleReader(t *testing.T) {
     var res *ReadJobResult
 
     select {
-    case res = <-rdr.ResultChan():
+    case res = <-red.ResultChan():
         if res.Err != nil {
             t.Errorf("want (nil), got (%v)", res.Err)
         }

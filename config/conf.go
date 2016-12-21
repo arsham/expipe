@@ -29,6 +29,11 @@ type ReaderConf interface {
 
 	// NewInstance should return an intialised Reader instance.
 	NewInstance(context.Context) (reader.DataReader, error)
+
+	// TypeName is usually the application name.
+	// Recorders should not intercept the engine for its decision, unless they have a
+	// valid reason.
+	TypeName() string
 }
 
 // RecorderConf defines a behaviour that requies the recorders to have the concept
@@ -43,9 +48,4 @@ type RecorderConf interface {
 	// Recorders should not intercept the engine for its decision, unless they have a
 	// valid reason.
 	IndexName() string
-
-	// TypeName is usually the application name.
-	// Recorders should not intercept the engine for its decision, unless they have a
-	// valid reason.
-	TypeName() string
 }

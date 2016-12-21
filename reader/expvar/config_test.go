@@ -21,6 +21,7 @@ func TestLoadExpvarSuccess(t *testing.T) {
     readers:
         reader1:
             endpoint: http://localhost
+            type_name: example_type
             routepath: /debug/vars
             interval: 2s
             timeout: 3s
@@ -32,6 +33,9 @@ func TestLoadExpvarSuccess(t *testing.T) {
     c, err := FromViper(v, "reader1", "readers.reader1")
     if err != nil {
         t.Fatalf("want no errors, got (%v)", err)
+    }
+    if c.TypeName() != "example_type" {
+        t.Errorf("want (example_type), got (%v)", c.TypeName())
     }
     if c.Endpoint() != "http://localhost" {
         t.Errorf("want (http://localhost), got (%v)", c.Endpoint())
@@ -60,6 +64,7 @@ func TestLoadExpvarErrors(t *testing.T) {
             input: bytes.NewBuffer([]byte(`
     readers:
         reader1:
+                type_name: example_type
                 interval: 2sq
                 timeout: 3s
                 backoff: 15
@@ -69,6 +74,7 @@ func TestLoadExpvarErrors(t *testing.T) {
             input: bytes.NewBuffer([]byte(`
     readers:
         reader1:
+                type_name: example_type
                 interval: 2s
                 timeout: 3sw
                 backoff: 15
@@ -78,6 +84,7 @@ func TestLoadExpvarErrors(t *testing.T) {
             input: bytes.NewBuffer([]byte(`
     readers:
         reader1:
+                type_name: example_type
                 interval: 2s
                 timeout: 3s
                 backoff: 1
@@ -87,6 +94,7 @@ func TestLoadExpvarErrors(t *testing.T) {
             input: bytes.NewBuffer([]byte(`
     readers:
         reader1:
+                type_name: example_type
                 interval: 2s
                 timeout: 3s
                 backoff: 20w
@@ -96,6 +104,7 @@ func TestLoadExpvarErrors(t *testing.T) {
             input: bytes.NewBuffer([]byte(`
     readers:
         reader1:
+            type_name: example_type
             routepath: /debug/vars
             interval: 2s
             timeout: 3s
@@ -107,7 +116,20 @@ func TestLoadExpvarErrors(t *testing.T) {
             input: bytes.NewBuffer([]byte(`
     readers:
         reader1:
+            type_name: example_type
             endpoint: http:// bad url
+            routepath: /debug/vars
+            interval: 2s
+            timeout: 3s
+            log_level: info
+            backoff: 15
+    `)),
+        },
+        { // 5 No types specified
+            input: bytes.NewBuffer([]byte(`
+    readers:
+        reader1:
+            endpoint: http://localhost
             routepath: /debug/vars
             interval: 2s
             timeout: 3s

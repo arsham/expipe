@@ -12,6 +12,9 @@ import (
 )
 
 // JobResultDataTypes generates a list of DataType and puts them inside the DataContainer
+// TODO: bypass the operation that won't be converted in any way. They are not supposed to be read
+// and converted back.
+// TODO: this operation can happen only once. Lazy load the thing
 func JobResultDataTypes(r io.Reader) DataContainer {
     obj, err := jason.NewObjectFromReader(r)
     if err != nil {
@@ -33,7 +36,6 @@ func getJasonValues(prefix string, values map[string]*jason.Value) *Container {
         } else if obj, err := value.Object(); err == nil {
             // we are dealing with nested objects
             v := getJasonValues(prefix+key+".", obj.Map())
-            // TODO: merge them instead
             result.Add(v.List()...)
         } else if arr, err := value.Array(); err == nil {
             // we are dealing with an array object

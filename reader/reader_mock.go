@@ -14,6 +14,7 @@ import (
 // SimpleReader is useful for testing purposes.
 type SimpleReader struct {
 	name       string
+	typeName   string
 	jobChan    chan context.Context
 	resultChan chan *ReadJobResult
 	ctxReader  ContextReader
@@ -23,9 +24,10 @@ type SimpleReader struct {
 	StartFunc  func() chan struct{}
 }
 
-func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, name string, interval, timeout time.Duration) (*SimpleReader, error) {
+func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, name, typeName string, interval, timeout time.Duration) (*SimpleReader, error) {
 	w := &SimpleReader{
 		name:       name,
+		typeName:   typeName,
 		jobChan:    make(chan context.Context),
 		resultChan: make(chan *ReadJobResult),
 		ctxReader:  ctxReader,
@@ -48,9 +50,10 @@ func (m *SimpleReader) Start(ctx context.Context) chan struct{} {
 			case job := <-m.jobChan:
 				resp, err := m.ctxReader.Get(job)
 				res := &ReadJobResult{
-					Time: time.Now(),
-					Res:  resp.Body,
-					Err:  err,
+					Time:     time.Now(),
+					Res:      resp.Body,
+					Err:      err,
+					TypeName: m.TypeName(),
 				}
 				m.resultChan <- res
 			case <-ctx.Done():
@@ -64,6 +67,7 @@ func (m *SimpleReader) Start(ctx context.Context) chan struct{} {
 }
 
 func (m *SimpleReader) Name() string                    { return m.name }
+func (m *SimpleReader) TypeName() string                { return m.typeName }
 func (m *SimpleReader) JobChan() chan context.Context   { return m.jobChan }
 func (m *SimpleReader) ResultChan() chan *ReadJobResult { return m.resultChan }
 func (m *SimpleReader) Interval() time.Duration         { return time.Second }

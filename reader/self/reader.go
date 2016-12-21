@@ -22,6 +22,7 @@ import (
 // It implements DataReader interface.
 type Reader struct {
 	name       string
+	typeName   string
 	jobChan    chan context.Context
 	resultChan chan *reader.ReadJobResult
 	logger     logrus.FieldLogger
@@ -30,7 +31,7 @@ type Reader struct {
 }
 
 // NewSelfReader exposes expvastic's own metrics.
-func NewSelfReader(logger logrus.FieldLogger, name string, interval time.Duration) (*Reader, error) {
+func NewSelfReader(logger logrus.FieldLogger, name, typeName string, interval time.Duration) (*Reader, error) {
 	l, _ := net.Listen("tcp", ":0")
 	l.Close()
 	go http.ListenAndServe(l.Addr().String(), nil)
@@ -39,6 +40,7 @@ func NewSelfReader(logger logrus.FieldLogger, name string, interval time.Duratio
 	logger = logger.WithField("engine", "expvastic")
 	w := &Reader{
 		name:       name,
+		typeName:   typeName,
 		jobChan:    make(chan context.Context, 10),
 		resultChan: make(chan *reader.ReadJobResult, 10),
 		logger:     logger,
@@ -72,6 +74,9 @@ func (r *Reader) Start(ctx context.Context) chan struct{} {
 // Name shows the name identifier for this reader
 func (r *Reader) Name() string { return r.name }
 
+// TypeName shows the typeName the recorder should record as
+func (r *Reader) TypeName() string { return r.typeName }
+
 // Interval returns the interval
 func (r *Reader) Interval() time.Duration { return r.interval }
 
@@ -100,8 +105,9 @@ func (r *Reader) readMetrics(job context.Context) {
 	}
 
 	res := &reader.ReadJobResult{
-		Time: time.Now(), // It is sensible to record the time now
-		Res:  resp.Body,
+		Time:     time.Now(), // It is sensible to record the time now
+		Res:      resp.Body,
+		TypeName: r.TypeName(),
 	}
 	r.resultChan <- res
 }

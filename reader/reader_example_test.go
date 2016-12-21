@@ -25,15 +25,15 @@ func ExampleSimpleReader() {
     defer ts.Close()
 
     ctxReader := NewCtxReader(ts.URL)
-    rdr, _ := NewSimpleReader(log, ctxReader, "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-    done := rdr.Start(ctx)
+    red, _ := NewSimpleReader(log, ctxReader, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    done := red.Start(ctx)
 
     job, _ := context.WithCancel(ctx)
     // Issueing a job
-    rdr.JobChan() <- job
+    red.JobChan() <- job
 
     // Now waiting for the results
-    res := <-rdr.ResultChan()
+    res := <-red.ResultChan()
     fmt.Println("Error:", res.Err)
 
     // Let's read what it retreived

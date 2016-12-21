@@ -38,11 +38,6 @@ type DataRecorder interface {
     // Recorders should not intercept the engine for its decision, unless they have a
     // valid reason.
     IndexName() string
-
-    // TypeName is usually the application name.
-    // Recorders should not intercept the engine for its decision, unless they have a
-    // valid reason.
-    TypeName() string
 }
 
 // RecordJob is sent with a context and a payload to be recorded.

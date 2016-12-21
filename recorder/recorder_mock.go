@@ -16,7 +16,6 @@ type SimpleRecorder struct {
     name      string
     endpoint  string
     indexName string
-    typeName  string
     jobChan   chan *RecordJob
     logger    logrus.FieldLogger
     interval  time.Duration
@@ -27,12 +26,11 @@ type SimpleRecorder struct {
     StartFunc       func() chan struct{}
 }
 
-func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, name, endpoint, indexName, typeName string, interval, timeout time.Duration) (*SimpleRecorder, error) {
+func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, name, endpoint, indexName string, interval, timeout time.Duration) (*SimpleRecorder, error) {
     w := &SimpleRecorder{
         name:      name,
         endpoint:  endpoint,
         indexName: indexName,
-        typeName:  typeName,
         jobChan:   make(chan *RecordJob),
         logger:    logger,
         timeout:   timeout,
@@ -83,6 +81,5 @@ func (s *SimpleRecorder) Start(ctx context.Context) chan struct{} {
 
 func (s *SimpleRecorder) Name() string            { return s.name }
 func (s *SimpleRecorder) IndexName() string       { return s.indexName }
-func (s *SimpleRecorder) TypeName() string        { return s.typeName }
 func (s *SimpleRecorder) Interval() time.Duration { return s.interval }
 func (s *SimpleRecorder) Timeout() time.Duration  { return s.timeout }

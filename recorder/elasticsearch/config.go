@@ -23,14 +23,13 @@ type Config struct {
     LogLevel_  string `mapstructure:"log_level"`
     Backoff_   int    `mapstructure:"backoff"`
     IndexName_ string `mapstructure:"index_name"`
-    TypeName_  string `mapstructure:"type_name"`
 
     logger   logrus.FieldLogger
     interval time.Duration
     timeout  time.Duration
 }
 
-func NewConfig(name string, log logrus.FieldLogger, endpoint string, interval, timeout time.Duration, backoff int, indexName, typeName string) (*Config, error) {
+func NewConfig(name string, log logrus.FieldLogger, endpoint string, interval, timeout time.Duration, backoff int, indexName string) (*Config, error) {
     if endpoint == "" {
         return nil, fmt.Errorf("endpoint cannot be empty")
     }
@@ -47,7 +46,6 @@ func NewConfig(name string, log logrus.FieldLogger, endpoint string, interval, t
         logger:     log,
         Backoff_:   backoff,
         IndexName_: indexName,
-        TypeName_:  typeName,
     }, nil
 }
 
@@ -88,11 +86,10 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 }
 
 func (c *Config) NewInstance(ctx context.Context) (recorder.DataRecorder, error) {
-    return NewRecorder(ctx, c.logger, c.name, c.Endpoint(), c.IndexName(), c.TypeName(), c.interval, c.timeout)
+    return NewRecorder(ctx, c.logger, c.name, c.Endpoint(), c.IndexName(), c.interval, c.timeout)
 }
 func (c *Config) Name() string               { return c.name }
 func (c *Config) IndexName() string          { return c.IndexName_ }
-func (c *Config) TypeName() string           { return c.TypeName_ }
 func (c *Config) Endpoint() string           { return c.Endpoint_ }
 func (c *Config) RoutePath() string          { return "" }
 func (c *Config) Interval() time.Duration    { return c.interval }

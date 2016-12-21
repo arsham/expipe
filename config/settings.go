@@ -86,7 +86,8 @@ func LoadYAML(log *logrus.Logger, v *viper.Viper) (*ConfMap, error) {
     return loadConfiguration(v, routes, readerKeys, recorderKeys)
 }
 
-//readers is a map of keyName:typeName
+// readers is a map of keyName:typeName
+// typeName is not the recorder's type, it's the extension name.
 func getReaders(v *viper.Viper) (readers map[string]string, err error) {
     if !v.IsSet("readers") {
         return nil, newNotSpecifiedErr("readers", "", nil)
@@ -109,7 +110,8 @@ func getReaders(v *viper.Viper) (readers map[string]string, err error) {
     return
 }
 
-//recorders is a map of keyName:typeName
+// recorders is a map of keyName:typeName
+// typeName is not the recorder's type, it's the extension name.
 func getRecorders(v *viper.Viper) (recorders map[string]string, err error) {
     if !v.IsSet("recorders") {
         return nil, newNotSpecifiedErr("recorders", "", nil)

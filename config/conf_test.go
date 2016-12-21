@@ -25,6 +25,7 @@ func TestParseReader(t *testing.T) {
     readers:
         reader1:
             type: expvar
+            type_name: expvar_type
             endpoint: http://localhost
             routepath: /debug/vars
             interval: 2s

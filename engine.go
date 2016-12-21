@@ -182,7 +182,7 @@ func (e *Engine) redirectToRecorders(r *reader.ReadJobResult) {
 				Ctx:       e.ctx,
 				Payload:   payload,
 				IndexName: rec.IndexName(),
-				TypeName:  rec.TypeName(),
+				TypeName:  r.TypeName,
 				Time:      r.Time,
 				Err:       errChan,
 			}
