@@ -14,7 +14,7 @@ import (
 )
 
 // Reader contains communication channels with a worker that exposes expvar information.
-// It implements TargetReader interface.
+// It implements DataReader interface.
 type Reader struct {
 	name       string
 	jobChan    chan context.Context

@@ -21,6 +21,30 @@ import (
 	"github.com/arsham/expvastic/recorder"
 )
 
+func TestNewWithReadRecorder(t *testing.T) {
+	log := lib.DiscardLogger()
+	ctx, _ := context.WithCancel(context.Background())
+	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), "a", time.Millisecond, time.Millisecond)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, "", "nowhere", "", "", time.Millisecond, time.Millisecond)
+	e, err := expvastic.NewWithReadRecorder(ctx, log, red, rec)
+	if err != expvastic.ErrEmptyRecName {
+		t.Error("want ErrEmptyRecName, got nil")
+	}
+	if e != nil {
+		t.Errorf("want (nil), got (%v)", e)
+	}
+
+	rec, _ = recorder.NewSimpleRecorder(ctx, log, "name1", "nowhere", "", "", time.Millisecond, time.Millisecond)
+	rec2, _ := recorder.NewSimpleRecorder(ctx, log, "name1", "nowhere", "", "", time.Millisecond, time.Millisecond)
+	e, err = expvastic.NewWithReadRecorder(ctx, log, red, rec, rec2)
+	if err != expvastic.ErrDupRecName {
+		t.Error("want error, got nil")
+	}
+	if e != nil {
+		t.Errorf("want (nil), got (%v)", e)
+	}
+}
+
 func TestEngineSendJob(t *testing.T) {
 	var res *reader.ReadJobResult
 	log := lib.DiscardLogger()

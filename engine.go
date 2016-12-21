@@ -23,14 +23,15 @@ import (
 // When the context times out or canceled, the engine will close the the job channels by calling the Stop method.
 // Note that we could create a channel and distribute the recorders payload, but we didn't because there
 // is no way to find out which recorder errors right after the payload has been sent.
+// IMPORTANT: the readers should not close their streams, I am closing them here.
 type Engine struct {
-	once         sync.Once
-	name         string                           // Name identifier for this engine.
-	ctx          context.Context                  // Will call Stop() when this context is canceled/timedout. This is a new context from the parent
-	cancel       context.CancelFunc               // Based on the new context
-	targetReader reader.TargetReader              // The worker that reads from an expvar provider.
-	recorders    map[string]recorder.DataRecorder // Recorder (e.g. ElasticSearch) client. The key is the name of the recorder
-	logger       logrus.FieldLogger
+	once       sync.Once                        // For guarding the Start method
+	name       string                           // Name identifier for this engine.
+	ctx        context.Context                  // Will call Stop() when this context is canceled/timedout. This is a new context from the parent.
+	cancel     context.CancelFunc               // Based on the new context.
+	dataReader reader.DataReader                // Reads from an expvar provider.
+	recorders  map[string]recorder.DataRecorder // Records to ElasticSearch client. The key is the name of the recorder.
+	logger     logrus.FieldLogger
 }
 
 // NewWithConfig instantiates reader and recorders from the configurations.
@@ -52,52 +53,73 @@ func NewWithConfig(ctx context.Context, log logrus.FieldLogger, reader config.Re
 }
 
 // NewWithReadRecorder creates an instance with already made reader and recorders.
-func NewWithReadRecorder(ctx context.Context, log logrus.FieldLogger, red reader.TargetReader, recs ...recorder.DataRecorder) (*Engine, error) {
+// It spawns one reader and streams its payload to all recorders.
+// Returns an error if there are recorders with the same name, or any of them have no name.
+func NewWithReadRecorder(ctx context.Context, logger logrus.FieldLogger, red reader.DataReader, recs ...recorder.DataRecorder) (*Engine, error) {
 	recNames := make([]string, len(recs))
 	recsMap := make(map[string]recorder.DataRecorder, len(recs))
+	seenNames := make(map[string]struct{}, len(recs))
 	for i, rec := range recs {
+		if rec.Name() == "" {
+			return nil, ErrEmptyRecName
+		}
+		if _, ok := seenNames[rec.Name()]; ok {
+			return nil, ErrDupRecName
+		}
+		seenNames[rec.Name()] = struct{}{}
 		recNames[i] = rec.Name()
 		recsMap[rec.Name()] = rec
 	}
+
+	// just to be cute
 	engineName := fmt.Sprintf("( %s >-x-< %s )", red.Name(), strings.Join(recNames, ","))
-	log = log.WithField("engine", engineName)
+	logger = logger.WithField("engine", engineName)
 	cl := &Engine{
-		name:         engineName,
-		ctx:          ctx,
-		recorders:    recsMap,
-		targetReader: red,
-		logger:       log,
+		name:       engineName,
+		ctx:        ctx,
+		recorders:  recsMap,
+		dataReader: red,
+		logger:     logger,
 	}
 	return cl, nil
 }
 
-// Start begins pulling the data from TargetReader and chips them to DataRecorder.
-// When the context cancels or timesout, the engine closes all job channels, causing the readers and recorders to stop.
+// Start begins pulling the data from DataReader and chips them to DataRecorder.
+// When the context is canceled or timed out, the engine closes all job channels, causing the readers and recorders to stop.
 func (e *Engine) Start() chan struct{} {
 	done := make(chan struct{})
+	e.logger.Debugf("starting with %d recorders", len(e.recorders))
+
 	go e.once.Do(func() {
 		ctx, cancel := context.WithCancel(e.ctx)
 		e.cancel = cancel
-		readerDone := e.targetReader.Start(ctx)
+		readerDone := e.dataReader.Start(ctx)
+
 		for _, rec := range e.recorders {
 			// TODO: keep the done channels
 			rec.Start(ctx)
 		}
+
 		e.readMsgLoop(done, readerDone)
 	})
+
 	return done
 }
 
 // TODO: test
-func (e *Engine) readMsgLoop(selfDone, readerDone chan struct{}) {
-	resultChan := e.targetReader.ResultChan()
-	ticker := time.NewTicker(e.targetReader.Interval())
-	e.logger.Debug("starting")
+// reads from DataReader and issues jobs to DataRecorders.
+// done channel is used for signalling the caller that we are done.
+func (e *Engine) readMsgLoop(done, readerDone chan struct{}) {
+	resultChan := e.dataReader.ResultChan()
+	ticker := time.NewTicker(e.dataReader.Interval())
+	e.logger.Debug("starting message loop")
 	for {
 		select {
 		case <-ticker.C:
+			// job's life cycle starts here...
 			go e.issueReaderJob()
 		case r := <-resultChan:
+			// ...then the result from the job's outcome arrives here.
 			if r.Err != nil {
 				e.logger.Errorf(r.Err.Error())
 				continue
@@ -106,12 +128,12 @@ func (e *Engine) readMsgLoop(selfDone, readerDone chan struct{}) {
 		case <-readerDone:
 			e.logger.Debug("reader is gone now")
 			e.Stop()
-			close(selfDone)
+			close(done)
 			return
 		case <-e.ctx.Done():
 			e.logger.Debug("context has been canceled")
 			e.Stop()
-			close(selfDone)
+			close(done)
 			return
 		}
 	}
@@ -122,53 +144,74 @@ func (e *Engine) Name() string { return e.name }
 
 // Stop closes the job channels
 func (e *Engine) Stop() {
-	// TODO: should I close the readers/recorders channels here?
+	// TODO: wait for the reader/recorders to finish their jobs.
 	e.logger.Debug("stopping")
 	e.cancel()
 }
 
 func (e *Engine) issueReaderJob() {
-	ctx, _ := context.WithTimeout(e.ctx, e.targetReader.Timeout()) // QUESTION: do I need this?
-	timer := time.NewTimer(e.targetReader.Timeout())
+	// to make sure the reader is behaving.
+	timeout := e.dataReader.Timeout() + time.Duration(10*time.Second)
+	timer := time.NewTimer(timeout)
 	select {
-	case e.targetReader.JobChan() <- ctx:
+	case e.dataReader.JobChan() <- e.ctx:
+		// job was sent, we are done here.
 		timer.Stop()
 		return
-	case <-timer.C: // QUESTION: Do I need this? Or should I apply the same for recorder?
-		e.logger.Warn("timedout before receiving the error")
-	case <-ctx.Done():
-		e.logger.Warnf("timedout before receiving the error response: %s", ctx.Err().Error())
+	case <-timer.C:
+		e.logger.Warn("timedout before job was read")
+	case <-e.ctx.Done():
+		e.logger.Warnf("main context closed before job was read: %s", e.ctx.Err().Error())
 	}
-
 }
 
 // Be aware that I am closing the stream.
 func (e *Engine) redirectToRecorders(r *reader.ReadJobResult) {
 	defer r.Res.Close()
 	payload := datatype.JobResultDataTypes(r.Res)
+
 	for name, rec := range e.recorders {
+		// we are sending the payload for each recorder separately.
 		go func(name string, rec recorder.DataRecorder) {
-			e.logger.Debug("sending payload")
+			e.logger.Debug("sending payload to")
 			errChan := make(chan error)
-			ctx, _ := context.WithTimeout(e.ctx, rec.Timeout())
+			timeout := rec.Timeout() + time.Duration(10*time.Second)
+			timer := time.NewTimer(timeout)
 			payload := &recorder.RecordJob{
-				Ctx:       ctx,
+				Ctx:       e.ctx,
 				Payload:   payload,
 				IndexName: rec.IndexName(),
 				TypeName:  rec.TypeName(),
 				Time:      r.Time,
 				Err:       errChan,
 			}
-			rec.PayloadChan() <- payload
+
+			// sending payload
+			select {
+			case rec.PayloadChan() <- payload:
+				// job was sent, let's do the same for the error message.
+				if !timer.Stop() {
+					<-timer.C
+				}
+				timer.Reset(timeout)
+			case <-timer.C:
+				e.logger.Warn("timedout before receiving the error")
+			case <-e.ctx.Done():
+				e.logger.Warnf("main context was closed before receiving the error response: %s", e.ctx.Err().Error())
+			}
+
+			// waiting for the result
 			select {
 			case err := <-errChan:
 				if err != nil {
 					e.logger.Errorf("%s", err.Error())
 				}
-			case <-ctx.Done():
-				e.logger.Warnf("timedout before receiving the error: %s", ctx.Err().Error())
+				// received the response
+				timer.Stop()
+			case <-timer.C:
+				e.logger.Warn("timedout before receiving the error")
 			case <-e.ctx.Done():
-				e.logger.Warnf("main context was canceled before receiving the error: %s", ctx.Err().Error())
+				e.logger.Warnf("main context was canceled before receiving the error: %s", e.ctx.Err().Error())
 			}
 		}(name, rec)
 	}
