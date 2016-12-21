@@ -23,7 +23,7 @@ func TestSimpleRecorder(t *testing.T) {
     }))
     defer ts.Close()
 
-    rec, _ := NewSimpleRecorder(ctx, log, "reader_example", ts.URL, "intexName")
+    rec, _ := NewSimpleRecorder(ctx, log, "reader_example", ts.URL, "intexName", "typeName", 10*time.Millisecond, 10*time.Millisecond)
     done := rec.Start()
     errChan := make(chan error)
     job := &RecordJob{

@@ -4,60 +4,86 @@
 
 package expvastic_test
 
-// func ExampleEngine_sendJob() {
-//     ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-//     defer ts.Close()
+import (
+    "bytes"
+    "context"
+    "fmt"
+    "io"
+    "net/http"
+    "net/http/httptest"
+    "time"
 
-//     readerChan := make(chan struct{})
-//     conf := simpleRecorderSetup(ts.URL, readerChan, nil) // url, reader channel, recorder channel
+    "github.com/arsham/expvastic"
+    "github.com/arsham/expvastic/lib"
+    "github.com/arsham/expvastic/reader"
+    "github.com/arsham/expvastic/recorder"
+)
 
-//     ctx, cancel := context.WithCancel(context.Background())
-//     cl := expvastic.NewEngine(ctx, conf)
-//     go cl.Start()
+func ExampleEngine_sendJob() {
+    var res *reader.ReadJobResult
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+    desire := `{"the key": "is the value!"}`
 
-//     select {
-//     case <-ctx.Done():
-//         panic("job wasn't sent")
-//     case j := <-readerChan:
-//         fmt.Println("job was sent successfully")
-//         fmt.Printf("Job value: %v\n", j)
-//         fmt.Printf("j == struct{}{}: %t\n", j == struct{}{})
-//         cancel()
-//     }
+    redTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        io.WriteString(w, desire)
+    }))
+    defer redTs.Close()
 
-//     <-ctx.Done()
+    recTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Job was recorded")
+    }))
+    defer recTs.Close()
 
-//     // Output:
-//     // job was sent successfully
-//     // Job value: {}
-//     // j == struct{}{}: true
-// }
+    ctxReader := reader.NewCtxReader(redTs.URL)
+    red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := recorder.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", "typeName", 10*time.Millisecond, 10*time.Millisecond)
+    redDone := red.Start()
+    recDone := rec.Start()
 
-// func ExampleEngine_RecorderReturnsResult() {
-//     ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-//     defer ts.Close()
+    cl, err := expvastic.NewWithReadRecorder(ctx, log, red, rec)
+    fmt.Println("Engine creation success:", err == nil)
+    clDone := cl.Start()
 
-//     readerChan := make(chan struct{})
-//     recJobChan := make(chan *recorder.RecordJob)
-//     resultChan := make(chan *reader.ReadJobResult)
+    select {
+    case red.JobChan() <- ctx:
+        fmt.Println("Just sent a job request")
+    case <-time.After(time.Second):
+        panic("expected the reader to recive the job, but it blocked")
+    }
 
-//     conf := simpleRecReaderSetup(ts.URL, readerChan, recJobChan, resultChan) // url, reader channel, job recorder channel, result channel
+    select {
+    case res = <-red.ResultChan():
+        fmt.Println("Job operation success:", res.Err == nil)
+    case <-time.After(5 * time.Second): // Should be more than the interval, otherwise the response is not ready yet
+        panic("expected to recive a data back, nothing recieved")
+    }
 
-//     ctx, cancel := context.WithCancel(context.Background())
-//     cl := expvastic.NewEngine(ctx, *conf)
-//     go cl.Start()
-//     ftype := datatype.FloatType{"test", 666.66}
-//     ftypeStr := fmt.Sprintf("{%s}", ftype)
+    buf := new(bytes.Buffer)
+    buf.ReadFrom(res.Res)
+    fmt.Println("Reader just received payload:", buf.String())
 
-//     msg := ioutil.NopCloser(strings.NewReader(ftypeStr))
-//     resultChan <- &reader.ReadJobResult{Res: msg}
-//     r := <-recJobChan
-//     result := r.Payload.List()[0]
-//     fmt.Println(result.String())
-//     fmt.Printf("Result is sent value: %t\n", result.String() == ftype.String())
-//     cancel()
-//     <-ctx.Done()
-//     // Output:
-//     // "test":666.660000
-//     // Result is sent value: true
-// }
+    cancel()
+    cl.Stop()
+    close(red.JobChan())
+    close(rec.PayloadChan())
+
+    _, open := <-redDone
+    fmt.Println("Reader closure:", !open)
+
+    _, open = <-recDone
+    fmt.Println("Recorder closure:", !open)
+
+    _, open = <-clDone
+    fmt.Println("Client closure:", !open)
+
+    // Output:
+    // Engine creation success: true
+    // Just sent a job request
+    // Job was recorded
+    // Job operation success: true
+    // Reader just received payload: {"the key": "is the value!"}
+    // Reader closure: true
+    // Recorder closure: true
+    // Client closure: true
+}

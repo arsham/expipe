@@ -18,23 +18,23 @@ type SimpleReader struct {
 	resultChan chan *ReadJobResult
 	ctxReader  ContextReader
 	logger     logrus.FieldLogger
+	interval   time.Duration
+	timeout    time.Duration
 	StartFunc  func() chan struct{}
 }
 
-func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, name string) (*SimpleReader, error) {
+func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, name string, interval, timeout time.Duration) (*SimpleReader, error) {
 	w := &SimpleReader{
 		name:       name,
 		jobChan:    make(chan context.Context),
 		resultChan: make(chan *ReadJobResult),
 		ctxReader:  ctxReader,
 		logger:     logger,
+		timeout:    timeout,
+		interval:   interval,
 	}
 	return w, nil
 }
-
-func (m *SimpleReader) Name() string                    { return m.name }
-func (m *SimpleReader) JobChan() chan context.Context   { return m.jobChan }
-func (m *SimpleReader) ResultChan() chan *ReadJobResult { return m.resultChan }
 
 func (m *SimpleReader) Start() chan struct{} {
 	if m.StartFunc != nil {
@@ -43,15 +43,22 @@ func (m *SimpleReader) Start() chan struct{} {
 	done := make(chan struct{})
 	go func() {
 		for job := range m.jobChan {
-			resp, _ := m.ctxReader.Get(job)
-
+			resp, err := m.ctxReader.Get(job)
 			res := &ReadJobResult{
 				Time: time.Now(),
 				Res:  resp.Body,
+				Err:  err,
 			}
+
 			m.resultChan <- res
 		}
 		close(done)
 	}()
 	return done
 }
+
+func (m *SimpleReader) Name() string                    { return m.name }
+func (m *SimpleReader) JobChan() chan context.Context   { return m.jobChan }
+func (m *SimpleReader) ResultChan() chan *ReadJobResult { return m.resultChan }
+func (m *SimpleReader) Interval() time.Duration         { return time.Second }
+func (m *SimpleReader) Timeout() time.Duration          { return time.Second }

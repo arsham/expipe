@@ -21,6 +21,7 @@ type Recorder struct {
     name      string
     client    *elastic.Client // Elasticsearch client
     indexName string
+    typeName  string
     jobChan   chan *recorder.RecordJob
     logger    logrus.FieldLogger
     interval  time.Duration
@@ -28,7 +29,7 @@ type Recorder struct {
 }
 
 // NewRecorder returns an error if it can't create the index
-func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, interval, timeout time.Duration) (*Recorder, error) {
+func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName, typeName string, interval, timeout time.Duration) (*Recorder, error) {
     log.Debug("connecting to", endpoint)
     addr := elastic.SetURL(endpoint)
     logger := elastic.SetErrorLog(log)
@@ -62,6 +63,7 @@ func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, in
         name:      name,
         client:    client,
         indexName: indexName,
+        typeName:  typeName,
         jobChan:   make(chan *recorder.RecordJob),
         logger:    log,
         timeout:   timeout,
@@ -104,6 +106,12 @@ func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.T
 
 // Name shows the name identifier for this reader
 func (r *Recorder) Name() string { return r.name }
+
+// IndexName is the index/database
+func (r *Recorder) IndexName() string { return r.indexName }
+
+// TypeName is the type/table name
+func (r *Recorder) TypeName() string { return r.typeName }
 
 // Interval returns the interval
 func (r *Recorder) Interval() time.Duration { return r.interval }

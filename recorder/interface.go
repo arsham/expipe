@@ -32,6 +32,16 @@ type DataRecorder interface {
 
     // Name should return the representation string for this recorder. Choose a very simple name.
     Name() string
+
+    // IndexName comes from the configuration, but the engine takes over.
+    // Recorders should not intercept the engine for its decision, unless they have a
+    // valid reason.
+    IndexName() string
+
+    // TypeName is usually the application name.
+    // Recorders should not intercept the engine for its decision, unless they have a
+    // valid reason.
+    TypeName() string
 }
 
 // RecordJob is sent with a context and a payload to be recorded.

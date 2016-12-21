@@ -6,8 +6,8 @@ package recorder
 
 import (
     "context"
-    "fmt"
     "net/http"
+    "time"
 
     "github.com/Sirupsen/logrus"
 )
@@ -16,21 +16,27 @@ type SimpleRecorder struct {
     name      string
     endpoint  string
     indexName string
+    typeName  string
     jobChan   chan *RecordJob
     logger    logrus.FieldLogger
+    interval  time.Duration
+    timeout   time.Duration
 
     PayloadChanFunc func() chan *RecordJob
     ErrorFunc       func() error
     StartFunc       func() chan struct{}
 }
 
-func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, name, endpoint, indexName string) (*SimpleRecorder, error) {
+func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, name, endpoint, indexName, typeName string, interval, timeout time.Duration) (*SimpleRecorder, error) {
     w := &SimpleRecorder{
         name:      name,
         endpoint:  endpoint,
         indexName: indexName,
+        typeName:  typeName,
         jobChan:   make(chan *RecordJob),
         logger:    logger,
+        timeout:   timeout,
+        interval:  interval,
     }
     return w, nil
 }
@@ -64,10 +70,13 @@ func (s *SimpleRecorder) Start() chan struct{} {
                 job.Err <- err
             }(job)
         }
-        fmt.Println("dine")
         close(done)
     }()
     return done
 }
 
-func (s *SimpleRecorder) Name() string { return s.name }
+func (s *SimpleRecorder) Name() string            { return s.name }
+func (s *SimpleRecorder) IndexName() string       { return s.indexName }
+func (s *SimpleRecorder) TypeName() string        { return s.typeName }
+func (s *SimpleRecorder) Interval() time.Duration { return s.interval }
+func (s *SimpleRecorder) Timeout() time.Duration  { return s.timeout }

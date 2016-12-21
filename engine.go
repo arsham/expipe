@@ -25,8 +25,6 @@ type Engine struct {
 	cancel       context.CancelFunc    // Based on the new context
 	targetReader reader.TargetReader   // The worker that reads from an expvar provider.
 	recorder     recorder.DataRecorder // Recorder (e.g. ElasticSearch) client.
-	indexName    string                // Recorder (e.g. ElasticSearch) index name.
-	typeName     string                // Recorder (e.g. ElasticSearch) type name.
 	logger       logrus.FieldLogger
 }
 
@@ -40,6 +38,11 @@ func NewWithConfig(ctx context.Context, log logrus.FieldLogger, reader config.Re
 	if err != nil {
 		return nil, err
 	}
+	return NewWithReadRecorder(ctx, log, red, rec)
+}
+
+// NewWithReadRecorder creates an instance with already made reader and recorder.
+func NewWithReadRecorder(ctx context.Context, log logrus.FieldLogger, red reader.TargetReader, rec recorder.DataRecorder) (*Engine, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	cl := &Engine{
 		name:         fmt.Sprintf("( %s >=< %s )", red.Name(), rec.Name()),
@@ -47,8 +50,6 @@ func NewWithConfig(ctx context.Context, log logrus.FieldLogger, reader config.Re
 		cancel:       cancel,
 		recorder:     rec,
 		targetReader: red,
-		indexName:    recorder.IndexName(),
-		typeName:     recorder.TypeName(),
 		logger:       log,
 	}
 	return cl, nil
@@ -92,6 +93,7 @@ func (c *Engine) Name() string {
 
 // Stop closes the job channels
 func (c *Engine) Stop() {
+	// TODO: should I close the readers/recorders channels here?
 	c.debug("stopping")
 	c.cancel()
 }
@@ -111,6 +113,7 @@ func (c *Engine) issueReaderJob() {
 
 }
 
+// Be aware that I am closing the stream.
 func (c *Engine) redirectToRecorder(r *reader.ReadJobResult) {
 	defer r.Res.Close()
 	ctx, _ := context.WithTimeout(c.ctx, c.recorder.Timeout()) // QUESTION: do I need this?
@@ -118,8 +121,8 @@ func (c *Engine) redirectToRecorder(r *reader.ReadJobResult) {
 	payload := &recorder.RecordJob{
 		Ctx:       ctx,
 		Payload:   datatype.JobResultDataTypes(r.Res),
-		IndexName: c.indexName,
-		TypeName:  c.typeName,
+		IndexName: c.recorder.IndexName(),
+		TypeName:  c.recorder.TypeName(),
 		Time:      r.Time,
 		Err:       errChan,
 	}

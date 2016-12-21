@@ -26,7 +26,7 @@ func TestSimpleReader(t *testing.T) {
     defer ts.Close()
 
     ctxReader := NewCtxReader(ts.URL)
-    rdr, _ := NewSimpleReader(log, ctxReader, "reader_example")
+    rdr, _ := NewSimpleReader(log, ctxReader, "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     done := rdr.Start()
 
     job, _ := context.WithCancel(ctx)

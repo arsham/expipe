@@ -5,60 +5,86 @@
 package expvastic_test
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/config"
+	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
-	"github.com/arsham/expvastic/reader/expvar"
 	"github.com/arsham/expvastic/recorder"
 )
 
-// Use this setup to test a recorder's behaviour
-func simpleRecorderSetup(url string, readerChan chan struct{}, recJobChan chan *recorder.RecordJob) config.Conf {
+func TestEngineSendJob(t *testing.T) {
+	var res *reader.ReadJobResult
 	log := lib.DiscardLogger()
-	read := &reader.MockCtxReader{
-		ContextReadFunc: func(ctx context.Context) (*http.Response, error) {
-			readerChan <- struct{}{}
-			return http.Get(url)
-		},
+	ctx, cancel := context.WithCancel(context.Background())
+	desire := `{"the key": "is the value!"}`
+	recorded := false
+
+	redTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, desire)
+	}))
+	defer redTs.Close()
+
+	recTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recorded = true
+	}))
+	defer recTs.Close()
+
+	ctxReader := reader.NewCtxReader(redTs.URL)
+	red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", 1*time.Millisecond, 1*time.Millisecond)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", "typeName", 1*time.Millisecond, 1*time.Millisecond)
+	redDone := red.Start()
+	recDone := rec.Start()
+
+	cl, err := expvastic.NewWithReadRecorder(ctx, log, red, rec)
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
 	}
-	rdr, _ := expvar.NewExpvarReader(log, read, "my_reader")
-	rdr.Start()
+	clDone := cl.Start()
 
-	// rec := &recorder.MockRecorder{
-	// 	PayloadChanFunc: func() chan *recorder.RecordJob {
-	// 		if recJobChan == nil {
-	// 			recJobChan = make(chan *recorder.RecordJob)
-	// 		}
-	// 		return recJobChan
-	// 	},
-	// }
-	c, _ := expvar.NewConfig("my_engine", log, url, "", 1*time.Millisecond, 3*time.Millisecond, 1)
-	return c
-}
+	select {
+	case red.JobChan() <- ctx:
+	case <-time.After(time.Second):
+		t.Error("expected the reader to recive the job, but it blocked")
+	}
 
-// // Use this setup to test a recorder's behaviour and mock the reader
-func simpleRecReaderSetup(url string, readerChan chan struct{}, recJobChan chan *recorder.RecordJob, resultChan chan *reader.ReadJobResult) *config.Conf {
-	return nil
-	// log := lib.DiscardLogger()
-	// jobs := make(chan context.Context)
+	select {
+	case res = <-red.ResultChan():
+		if res.Err != nil {
+			t.Fatalf("want (nil), got (%v)", res.Err)
+		}
+	case <-time.After(5 * time.Second): // Should be more than the interval, otherwise the response is not ready yet
+		//TODO: investigate
+		t.Error("expected to recive a data back, nothing recieved")
+	}
 
-	// rdr := reader.NewMockExpvarReader(jobs, resultChan, func(c context.Context) {})
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(res.Res)
+	if buf.String() != desire {
+		t.Errorf("want (%s), got (%s)", desire, buf.String())
+	}
 
-	// rec := &recorder.MockRecorder{
-	// 	PayloadChanFunc: func() chan *recorder.RecordJob {
-	// 		return recJobChan
-	// 	},
-	// }
+	if !recorded {
+		t.Errorf("recorder didn't record the request")
+	}
 
-	// return &expvastic.Conf{
-	// 	Logger:       log,
-	// 	TargetReader: rdr,
-	// 	Recorder:     rec,
-	// 	Target:       url,
-	// 	Interval:     1 * time.Millisecond, Timeout: 3 * time.Millisecond,
-	// }
+	cancel()
+	cl.Stop()
+	close(red.JobChan())
+	close(rec.PayloadChan())
+	if _, ok := <-redDone; ok {
+		t.Error("expected the channel to be closed")
+	}
+	if _, ok := <-recDone; ok {
+		t.Error("expected the channel to be closed")
+	}
+	if v, ok := <-clDone; ok {
+		t.Error("expected the channel to be closed", v)
+	}
 }

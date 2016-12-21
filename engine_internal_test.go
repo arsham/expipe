@@ -4,44 +4,34 @@
 
 package expvastic_test
 
-import (
-	"io/ioutil"
-	"strings"
-	"testing"
-	"time"
+// func TestInspectResult(t *testing.T) {
+// 	buf := ioutil.NopCloser(strings.NewReader(`{"key": 6.6}`))
+// 	r := reader.ReadJobResult{
+// 		Res:  buf,
+// 		Time: time.Now(),
+// 	}
 
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/reader"
-)
+// 	res := datatype.JobResultDataTypes(r.Res)
+// 	if res.Error() != nil {
+// 		t.Errorf("expected no errors, got: %s", res.Error())
+// 	}
+// 	if res.Len() == 0 {
+// 		t.Error("expected results, got nothing")
+// 	}
 
-func TestInspectResult(t *testing.T) {
-	buf := ioutil.NopCloser(strings.NewReader(`{"key": 6.6}`))
-	r := reader.ReadJobResult{
-		Res:  buf,
-		Time: time.Now(),
-	}
+// 	buf = ioutil.NopCloser(strings.NewReader(`{"key: 6.6}`))
+// 	r = reader.ReadJobResult{
+// 		Res:  buf,
+// 		Time: time.Now(),
+// 	}
 
-	res := datatype.JobResultDataTypes(r.Res)
-	if res.Error() != nil {
-		t.Errorf("expected no errors, got: %s", res.Error())
-	}
-	if res.Len() == 0 {
-		t.Error("expected results, got nothing")
-	}
+// 	res = datatype.JobResultDataTypes(r.Res)
+// 	if res.Error() == nil {
+// 		t.Error("expected an error, got nothing")
+// 	}
 
-	buf = ioutil.NopCloser(strings.NewReader(`{"key: 6.6}`))
-	r = reader.ReadJobResult{
-		Res:  buf,
-		Time: time.Now(),
-	}
+// 	if res.Len() != 0 {
+// 		t.Errorf("expected no results, got %s", res)
+// 	}
 
-	res = datatype.JobResultDataTypes(r.Res)
-	if res.Error() == nil {
-		t.Error("expected an error, got nothing")
-	}
-
-	if res.Len() != 0 {
-		t.Errorf("expected no results, got %s", res)
-	}
-
-}
+// }
