@@ -94,10 +94,11 @@ func (e *Engine) Start() chan struct{} {
 		ctx, cancel := context.WithCancel(e.ctx)
 		e.cancel = cancel
 		readerDone := e.dataReader.Start(ctx)
-
+		expReaders.Add(1)
 		for _, rec := range e.recorders {
 			// TODO: keep the done channels
 			rec.Start(ctx)
+			expReaders.Add(1)
 		}
 
 		e.readMsgLoop(done, readerDone)

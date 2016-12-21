@@ -30,7 +30,7 @@ type Recorder struct {
 
 // NewRecorder returns an error if it can't create the index
 func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName, typeName string, interval, timeout time.Duration) (*Recorder, error) {
-    log.Debug("connecting to", endpoint)
+    log.Debug("connecting to: ", endpoint)
     addr := elastic.SetURL(endpoint)
     logger := elastic.SetErrorLog(log)
     client, err := elastic.NewClient(addr, logger)

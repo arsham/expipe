@@ -6,7 +6,7 @@ readers:
         type: expvar
         endpoint: localhost:1234
         routepath: /debug/vars
-        interval: 500ms
+        interval: 1s
         timeout: 3s
         log_level: debug
         backoff: 10
@@ -14,10 +14,13 @@ readers:
         type: expvar
         endpoint: localhost:1235
         routepath: /debug/vars
-        interval: 500ms
+        interval: 1s
         timeout: 13s
         log_level: debug
         backoff: 10
+    self: # expvastic's self metric
+        type: self # only used for this reason
+        interval: 1s
 
 recorders:
     elastic1: # service name
@@ -27,11 +30,18 @@ recorders:
         type_name: my_app1
         timeout: 8s
         backoff: 10
-    elastic2: # service name
+    elastic2:
         type: elasticsearch
         endpoint: 127.0.0.1:9200
         index_name: expvastic
         type_name: my_app2
+        timeout: 8s
+        backoff: 10
+    elastic3:
+        type: elasticsearch
+        endpoint: 127.0.0.1:9200
+        index_name: expvastic
+        type_name: self
         timeout: 18s
         backoff: 10
 
@@ -43,13 +53,11 @@ routes:
             - elastic1
     route2:
         readers:
-            - my_app
             - my_app2
         recorders:
-            - elastic1
-    route3:
-        readers:
-            - my_app2
-        recorders:
-            - elastic1
             - elastic2
+    self_route:
+        readers:
+            - self
+        recorders:
+            - elastic3

@@ -10,6 +10,7 @@ import (
     "github.com/Sirupsen/logrus"
     "github.com/arsham/expvastic/lib"
     "github.com/arsham/expvastic/reader/expvar"
+    "github.com/arsham/expvastic/reader/self"
     "github.com/arsham/expvastic/recorder/elasticsearch"
     "github.com/spf13/viper"
 )
@@ -94,6 +95,8 @@ func getReaders(v *viper.Viper) (readers map[string]string, err error) {
     for reader, settings := range v.GetStringMap("readers") {
         _ = settings
         switch rType := v.GetString("readers." + reader + ".type"); rType {
+        case "self":
+            readers[reader] = rType
         case "expvar":
             readers[reader] = rType
         case "":
@@ -202,6 +205,8 @@ func parseReader(v *viper.Viper, readerType, name string) (ReaderConf, error) {
     switch readerType {
     case "expvar":
         return expvar.FromViper(v, name, "readers."+name)
+    case "self":
+        return self.FromViper(v, name, "readers."+name)
     }
     return nil, notSupportedErr(readerType)
 }

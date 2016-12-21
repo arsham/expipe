@@ -22,8 +22,8 @@ glide install
 You also need elasticsearch and kibana, here is a couple of docker images for you:
 
 ```bash
-docker run -it --rm --name expvastic --ulimit nofile=98304:98304 -v "/path/to/somewhere/expvastic":/usr/share/elasticsearch/data elasticsearch
-docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
+docker run -d --restart always --name expvastic -p 9200:9200 --ulimit nofile=98304:98304 -v "/path/to/somewhere/expvastic":/usr/share/elasticsearch/data elasticsearch
+docker run -d --restart always --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
 ```
 
 ## Usage

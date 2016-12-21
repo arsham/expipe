@@ -2,11 +2,16 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvar
+// Package self contains codes for recording expvars own metrics
+package self
 
 import (
 	"context"
+	"net"
+	// to expose the metrics
+	_ "expvar"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -19,26 +24,26 @@ type Reader struct {
 	name       string
 	jobChan    chan context.Context
 	resultChan chan *reader.ReadJobResult
-	ctxReader  reader.ContextReader
 	logger     logrus.FieldLogger
 	interval   time.Duration
-	timeout    time.Duration
+	url        string
 }
 
-// NewExpvarReader creates the worker and sets up its channels.
-// Because the caller is reading the resp.Body, it is its job to close it.
-func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, name string, interval, timeout time.Duration) (*Reader, error) {
-	// TODO: ping the reader.
-	// TODO: have the user decide how large the channels can be.
-	logger = logger.WithField("reader", "expvar")
+// NewSelfReader exposes expvastic's own metrics.
+func NewSelfReader(logger logrus.FieldLogger, name string, interval time.Duration) (*Reader, error) {
+	l, _ := net.Listen("tcp", ":0")
+	l.Close()
+	go http.ListenAndServe(l.Addr().String(), nil)
+	addr := "http://" + l.Addr().String() + "/debug/vars"
+	logger.Debugf("running self expvar on %s", addr)
+	logger = logger.WithField("engine", "expvastic")
 	w := &Reader{
 		name:       name,
-		jobChan:    make(chan context.Context, 1000),
-		resultChan: make(chan *reader.ReadJobResult, 1000),
-		ctxReader:  ctxReader,
+		jobChan:    make(chan context.Context, 10),
+		resultChan: make(chan *reader.ReadJobResult, 10),
 		logger:     logger,
-		timeout:    timeout,
 		interval:   interval,
+		url:        addr,
 	}
 	return w, nil
 }
@@ -71,7 +76,7 @@ func (r *Reader) Name() string { return r.name }
 func (r *Reader) Interval() time.Duration { return r.interval }
 
 // Timeout returns the timeout
-func (r *Reader) Timeout() time.Duration { return r.timeout }
+func (r *Reader) Timeout() time.Duration { return 0 }
 
 // JobChan returns the job channel.
 func (r *Reader) JobChan() chan context.Context { return r.jobChan }
@@ -81,9 +86,10 @@ func (r *Reader) ResultChan() chan *reader.ReadJobResult { return r.resultChan }
 
 // will send an error back to the engine if it can't read from metrics provider
 func (r *Reader) readMetrics(job context.Context) {
-	resp, err := r.ctxReader.Get(job)
+
+	resp, err := http.Get(r.url)
 	if err != nil {
-		r.logger.WithField("reader", "expvar_reader").Debugf("%s: error making request: %v", r.name, err)
+		r.logger.WithField("reader", "self").Debugf("%s: error making request: %v", r.name, err)
 		res := &reader.ReadJobResult{
 			Time: time.Now(),
 			Res:  nil,
