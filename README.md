@@ -2,7 +2,7 @@
 
 This is an early release and it is under heavy development. There will be a lot of changes soon but I'm planning to finalise the API as soon as I can. I hope you enjoy it!
 
-Expvastic can read from any endpoints that provides expvar data and ships them to (elasticsearch)[https://github.com/elastic/elasticsearch]. You can inspect the metrics with (kibana)[https://github.com/elastic/kibana] (dashboar is provided)[https://github.com/arsham/expvastic/blob/master/bin/dashboard.json].
+Expvastic can read from any endpoints that provides expvar data and ships them to [elasticsearch](https://github.com/elastic/elasticsearch). You can inspect the metrics with [kibana](https://github.com/elastic/kibana) [dashboard is provided](https://github.com/arsham/expvastic/blob/master/bin/dashboard.json).
 
 Please refer to golang's [expvar documentation](https://golang.org/pkg/expvar/) for more information.
 
