@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/lib"
 )
 
 // SimpleReader is useful for testing purposes.
@@ -24,12 +25,12 @@ type SimpleReader struct {
 	StartFunc  func() chan struct{}
 }
 
-func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, name, typeName string, interval, timeout time.Duration) (*SimpleReader, error) {
+func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, jobChan chan context.Context, resultChan chan *ReadJobResult, name, typeName string, interval, timeout time.Duration) (*SimpleReader, error) {
 	w := &SimpleReader{
 		name:       name,
 		typeName:   typeName,
-		jobChan:    make(chan context.Context),
-		resultChan: make(chan *ReadJobResult),
+		jobChan:    jobChan,
+		resultChan: resultChan,
 		ctxReader:  ctxReader,
 		logger:     logger,
 		timeout:    timeout,
@@ -38,7 +39,7 @@ func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, name, t
 	return w, nil
 }
 
-func (m *SimpleReader) Start(ctx context.Context) chan struct{} {
+func (m *SimpleReader) Start(ctx context.Context) <-chan struct{} {
 	if m.StartFunc != nil {
 		return m.StartFunc()
 	}
@@ -51,15 +52,17 @@ func (m *SimpleReader) Start(ctx context.Context) chan struct{} {
 				resp, err := m.ctxReader.Get(job)
 				res := &ReadJobResult{
 					Time:     time.Now(),
-					Res:      resp.Body,
+					Res:      &lib.DummyReadCloser{},
 					Err:      err,
 					TypeName: m.TypeName(),
+				}
+				if err == nil {
+					res.Res = resp.Body
 				}
 				m.resultChan <- res
 			case <-ctx.Done():
 				break LOOP
 			}
-
 		}
 		close(done)
 	}()

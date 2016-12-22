@@ -52,6 +52,7 @@ settings:
 readers:
     FirstApp: # service name
         type: expvar
+        type_name: my_app1
         endpoint: localhost:1234
         routepath: /debug/vars
         interval: 500ms
@@ -60,6 +61,7 @@ readers:
         backoff: 10
     SomeApplication:
         type: expvar
+        type_name: SomeApplication
         endpoint: localhost:1235
         routepath: /debug/vars
         interval: 500ms
@@ -72,14 +74,12 @@ recorders:
         type: elasticsearch
         endpoint: 127.0.0.1:9200
         index_name: expvastic
-        type_name: my_app1
         timeout: 8s
         backoff: 10
     the_other_elasticsearch:
         type: elasticsearch
         endpoint: 127.0.0.1:9200
         index_name: expvastic
-        type_name: SomeApplication
         timeout: 18s
         backoff: 10
 
@@ -106,7 +106,7 @@ routes:
 Then run the application:
 
 ```bash
-expvasyml -c expvastic.yml
+expvastic -c expvastic.yml
 ```
 
 You can mix and match the routes, but the engine will choose the best setup to achive your goal without duplicating the results. For instance assume you set the routes like this:
@@ -152,29 +152,23 @@ Expvastic creates three engines like so:
     Data from app_2 will be shipped to: elastic_1 and, elastic_0
 ```
 
-## Running Tests
+## Tests and Benchmarks
 
-```bash
-go test $(glide nv)
-```
-
-### Test Coverage
-
-Use this [gist](https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a). Then run the function, that's all!
+Please refer to this [document](https://github.com/arsham/expvastic/blob/master/TESTING.md).
 
 ## TODO
 - [ ] Decide how to show GC information correctly
 - [ ] When reader/recorder are not available, don't check right away
 - [ ] Create UUID for messages in order to log them
-- [ ] Read from multiple sources
-- [ ] Record expvastic's own metrics
+- [X] Read from multiple sources
+- [X] Record expvastic's own metrics
 - [ ] Use dates on index names
 - [ ] Read from other providers; python, JMX etc.
 - [ ] Read from log files
-- [ ] Benchmarks
+- [X] Benchmarks
 - [ ] Create a docker image
 - [ ] Make a compose file
-- [ ] Gracefully shutdown
+- [=] Gracefully shutdown
 - [ ] Share kibana setups
 - [=] Read from yaml/toml/json configuration files
 - [X] Create different timeouts for each reader/recorder

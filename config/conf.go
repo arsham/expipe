@@ -2,6 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
+// Package config reads the configurations from a yaml file and produces necessary configuration for instantiating readers and recorders.
 package config
 
 import (
@@ -28,7 +29,7 @@ type ReaderConf interface {
 	Conf
 
 	// NewInstance should return an intialised Reader instance.
-	NewInstance(context.Context) (reader.DataReader, error)
+	NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult) (reader.DataReader, error)
 
 	// TypeName is usually the application name.
 	// Recorders should not intercept the engine for its decision, unless they have a
@@ -42,7 +43,7 @@ type RecorderConf interface {
 	Conf
 
 	// NewInstance should return an intialised Recorder instance.
-	NewInstance(context.Context) (recorder.DataRecorder, error)
+	NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob) (recorder.DataRecorder, error)
 
 	// IndexName comes from the configuration, but the engine takes over.
 	// Recorders should not intercept the engine for its decision, unless they have a

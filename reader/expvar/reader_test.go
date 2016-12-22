@@ -22,13 +22,16 @@ func TestExpvarReaderErrors(t *testing.T) {
 	ctxReader.ContextReadFunc = func(ctx context.Context) (*http.Response, error) {
 		return nil, fmt.Errorf("Error")
 	}
-	rdr, _ := NewExpvarReader(log, ctxReader, "my_reader", "example_type", time.Second, time.Second)
-	rdr.Start(ctx)
+	jobChan := make(chan context.Context)
+	resultChan := make(chan *reader.ReadJobResult)
+
+	red, _ := NewExpvarReader(log, ctxReader, jobChan, resultChan, "my_reader", "example_type", time.Second, time.Second)
+	red.Start(ctx)
 	defer cancel()
 
-	rdr.JobChan() <- ctx
+	red.JobChan() <- ctx
 	select {
-	case res := <-rdr.ResultChan():
+	case res := <-red.ResultChan():
 		if res.Res != nil {
 			t.Errorf("expecting no results, got(%v)", res.Res)
 		}
@@ -45,15 +48,15 @@ func TestExpvarReaderClosesStream(t *testing.T) {
 	log := lib.DiscardLogger()
 	ctxReader := reader.NewMockCtxReader("nowhere")
 	ctx, cancel := context.WithCancel(context.Background())
-	rdr, _ := NewExpvarReader(log, ctxReader, "my_reader", "example_type", time.Second, time.Second)
-	done := rdr.Start(ctx)
-	rdr.JobChan() <- ctx
+	jobChan := make(chan context.Context)
+	resultChan := make(chan *reader.ReadJobResult)
 
-	select {
-	case <-rdr.ResultChan():
-	default:
-		cancel()
-	}
+	red, _ := NewExpvarReader(log, ctxReader, jobChan, resultChan, "my_reader", "example_type", time.Second, time.Second)
+	done := red.Start(ctx)
+	jobChan <- ctx
+
+	<-resultChan
+	cancel()
 	select {
 	case <-done:
 	case <-time.After(1 * time.Second):

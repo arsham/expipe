@@ -18,17 +18,17 @@ import (
 // Recorder contains an elasticsearch client and an indexname for recording data
 // It implements DataRecorder interface
 type Recorder struct {
-    name      string
-    client    *elastic.Client // Elasticsearch client
-    indexName string
-    jobChan   chan *recorder.RecordJob
-    logger    logrus.FieldLogger
-    interval  time.Duration
-    timeout   time.Duration
+    name        string
+    client      *elastic.Client // Elasticsearch client
+    indexName   string
+    payloadChan chan *recorder.RecordJob
+    logger      logrus.FieldLogger
+    interval    time.Duration
+    timeout     time.Duration
 }
 
 // NewRecorder returns an error if it can't create the index
-func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, interval, timeout time.Duration) (*Recorder, error) {
+func NewRecorder(ctx context.Context, log logrus.FieldLogger, payloadChan chan *recorder.RecordJob, name, endpoint, indexName string, interval, timeout time.Duration) (*Recorder, error) {
     log.Debug("connecting to: ", endpoint)
     addr := elastic.SetURL(endpoint)
     logger := elastic.SetErrorLog(log)
@@ -59,25 +59,25 @@ func NewRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, in
         }
     }
     return &Recorder{
-        name:      name,
-        client:    client,
-        indexName: indexName,
-        jobChan:   make(chan *recorder.RecordJob),
-        logger:    log,
-        timeout:   timeout,
-        interval:  interval,
+        name:        name,
+        client:      client,
+        indexName:   indexName,
+        payloadChan: payloadChan,
+        logger:      log,
+        timeout:     timeout,
+        interval:    interval,
     }, nil
 }
 
 // Start begins reading from the target in its own goroutine
 // It will close the done channel when the job channel is closed
-func (r *Recorder) Start(ctx context.Context) chan struct{} { //QUESTION: can we receive a quit channel?
+func (r *Recorder) Start(ctx context.Context) <-chan struct{} { //QUESTION: can we receive a quit channel?
     done := make(chan struct{})
     go func() {
     LOOP:
         for {
             select {
-            case job := <-r.jobChan:
+            case job := <-r.payloadChan:
                 go func(job *recorder.RecordJob) {
                     job.Err <- r.record(job.Ctx, job.TypeName, job.Time, job.Payload)
                 }(job)
@@ -91,7 +91,7 @@ func (r *Recorder) Start(ctx context.Context) chan struct{} { //QUESTION: can we
 }
 
 // PayloadChan returns the channel it receives the information from
-func (r *Recorder) PayloadChan() chan *recorder.RecordJob { return r.jobChan }
+func (r *Recorder) PayloadChan() chan *recorder.RecordJob { return r.payloadChan }
 
 // record ships the kv data to elasticsearch
 // Although this doesn't change the state of the Client, it is a part of its behaviour

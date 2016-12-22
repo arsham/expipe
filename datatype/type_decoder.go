@@ -23,36 +23,6 @@ func JobResultDataTypes(r io.Reader) DataContainer {
     return getJasonValues("", obj.Map())
 }
 
-// getJasonValues flattens the map
-func getJasonValues(prefix string, values map[string]*jason.Value) *Container {
-    result := new(Container)
-    for key, value := range values {
-        if lib.IsMBType(key) {
-            v, err := value.Float64()
-            if err != nil {
-                continue
-            }
-            result.Add(ByteType{prefix + key, v})
-        } else if obj, err := value.Object(); err == nil {
-            // we are dealing with nested objects
-            v := getJasonValues(prefix+key+".", obj.Map())
-            result.Add(v.List()...)
-        } else if arr, err := value.Array(); err == nil {
-            // we are dealing with an array object
-            result.Add(floatListValues(prefix+key, arr)...)
-        } else {
-            v, err := FromJason(prefix+key, *value)
-            if err == nil {
-                result.Add(v)
-            }
-        }
-    }
-    if result.Len() == 0 {
-        return &Container{Err: ErrUnidentifiedJason}
-    }
-    return result
-}
-
 // FromJason returns an instance of DataType from jason value
 func FromJason(key string, value jason.Value) (DataType, error) {
     var (

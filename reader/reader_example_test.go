@@ -24,8 +24,10 @@ func ExampleSimpleReader() {
     }))
     defer ts.Close()
 
+    jobChan := make(chan context.Context, 10)
+    resultChan := make(chan *ReadJobResult, 10)
     ctxReader := NewCtxReader(ts.URL)
-    red, _ := NewSimpleReader(log, ctxReader, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     done := red.Start(ctx)
 
     job, _ := context.WithCancel(ctx)
@@ -52,4 +54,34 @@ func ExampleSimpleReader() {
     // Result is: {"the key": "is the value!"}
     // Readed has finished
     // All done!
+}
+
+func ExampleSimpleReader_start1() {
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, `{"the key": "is the value!"}`) }))
+    defer ts.Close()
+
+    jobChan := make(chan context.Context)
+    resultChan := make(chan *ReadJobResult)
+
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    done := red.Start(ctx)
+    fmt.Println("Reader has started its event loop!")
+
+    select {
+    case <-done:
+        panic("Reader shouldn't have closed its done channel")
+    default:
+        fmt.Println("Reader is working!")
+    }
+
+    cancel()
+    <-done
+    fmt.Println("Reader has stopped its event loop!")
+    // Output:
+    // Reader has started its event loop!
+    // Reader is working!
+    // Reader has stopped its event loop!
 }

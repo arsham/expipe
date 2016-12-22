@@ -96,14 +96,14 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 	return &c, nil
 }
 
-func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
+func (c *Config) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult) (reader.DataReader, error) {
 	endpoint, err := url.Parse(c.Endpoint())
 	if err != nil {
 		return nil, err
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
 	ctxReader := reader.NewCtxReader(endpoint.String())
-	return NewExpvarReader(c.logger, ctxReader, c.name, c.TypeName_, c.interval, c.timeout)
+	return NewExpvarReader(c.logger, ctxReader, jobChan, resultChan, c.name, c.TypeName_, c.interval, c.timeout)
 }
 
 func (c *Config) Name() string               { return c.name }

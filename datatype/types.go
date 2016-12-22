@@ -19,6 +19,8 @@ const (
     MEGABYTE = 1024 * KILOBYTE
 )
 
+// TODO: refactor to use byte slices
+
 // ErrUnidentifiedJason .
 var ErrUnidentifiedJason = errors.New("unidentified jason value")
 

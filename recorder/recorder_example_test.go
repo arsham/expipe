@@ -7,6 +7,7 @@ package recorder
 import (
     "context"
     "fmt"
+    "io"
     "net/http"
     "net/http/httptest"
     "time"
@@ -22,8 +23,10 @@ func ExampleSimpleRecorder() {
     }))
     defer ts.Close()
 
-    rec, _ := NewSimpleRecorder(ctx, log, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    payloadChan := make(chan *RecordJob)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
     done := rec.Start(ctx)
+
     errChan := make(chan error)
     job := &RecordJob{
         Ctx:       ctx,
@@ -34,11 +37,14 @@ func ExampleSimpleRecorder() {
     }
     // Issueing a job
     rec.PayloadChan() <- job
-    rec.PayloadChan() <- job
 
     // Now waiting for the results
     res := <-errChan
     fmt.Println("Error:", res)
+    // Issueing another job
+    rec.PayloadChan() <- job
+    // Make sure you drain the errors
+    <-errChan
 
     // The recorder should finish gracefully
     cancel()
@@ -53,4 +59,33 @@ func ExampleSimpleRecorder() {
     // Error: <nil>
     // Finished sending!
     // cReaded has finished
+}
+
+func ExampleSimpleRecorder_start1() {
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, `{"the key": "is the value!"}`) }))
+    defer ts.Close()
+
+    payloadChan := make(chan *RecordJob)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    done := rec.Start(ctx)
+
+    fmt.Println("Recorder has started its event loop!")
+
+    select {
+    case <-done:
+        panic("Recorder shouldn't have closed its done channel")
+    default:
+        fmt.Println("Recorder is working!")
+    }
+
+    cancel()
+    <-done
+    fmt.Println("Recorder has stopped its event loop!")
+    // Output:
+    // Recorder has started its event loop!
+    // Recorder is working!
+    // Recorder has stopped its event loop!
 }

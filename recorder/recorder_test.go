@@ -6,7 +6,6 @@ package recorder
 
 import (
     "context"
-    "fmt"
     "net/http"
     "net/http/httptest"
     "testing"
@@ -15,30 +14,57 @@ import (
     "github.com/arsham/expvastic/lib"
 )
 
-func TestSimpleRecorder(t *testing.T) {
+// The purpose of these tests is to make sure the simple recorder, which is a mock,
+// works perfect, so other tests can rely on it.
+
+func TestSimpleRecorderReceivesPayload(t *testing.T) {
     log := lib.DiscardLogger()
     ctx, cancel := context.WithCancel(context.Background())
-    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        fmt.Println("I have received the payload!")
-    }))
+    defer cancel()
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
     defer ts.Close()
 
-    rec, _ := NewSimpleRecorder(ctx, log, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
-    done := rec.Start(ctx)
+    payloadChan := make(chan *RecordJob)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec.Start(ctx)
+
     errChan := make(chan error)
-    job := &RecordJob{
+    payload := &RecordJob{
         Ctx:       ctx,
         Payload:   nil,
         IndexName: "my index",
         Time:      time.Now(),
         Err:       errChan,
     }
-
     select {
-    case rec.PayloadChan() <- job:
+    case rec.PayloadChan() <- payload:
     case <-time.After(5 * time.Second):
         t.Error("expected the recorder to recive the payload, but it blocked")
     }
+}
+
+func TestSimpleRecorderSendsResult(t *testing.T) {
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+    defer ts.Close()
+
+    payloadChan := make(chan *RecordJob)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec.Start(ctx)
+
+    errChan := make(chan error)
+    payload := &RecordJob{
+        Ctx:       ctx,
+        Payload:   nil,
+        IndexName: "my index",
+        Time:      time.Now(),
+        Err:       errChan,
+    }
+    rec.PayloadChan() <- payload
 
     select {
     case err := <-errChan:
@@ -48,12 +74,58 @@ func TestSimpleRecorder(t *testing.T) {
     case <-time.After(5 * time.Second):
         t.Error("expected to recive a data back, nothing recieved")
     }
+}
 
-    cancel()
+func TestSimpleRecorderErrorsOnBadURL(t *testing.T) {
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
+    payloadChan := make(chan *RecordJob)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", "leads nowhere", "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec.Start(ctx)
+
+    errChan := make(chan error)
+    payload := &RecordJob{
+        Ctx:       ctx,
+        Payload:   nil,
+        IndexName: "my index",
+        Time:      time.Now(),
+        Err:       errChan,
+    }
+    rec.PayloadChan() <- payload
+
     select {
-    case <-done:
+    case err := <-errChan:
+        if err == nil {
+            t.Errorf("want (nil), got (%v)", err)
+        }
     case <-time.After(5 * time.Second):
-        t.Error("expected to be done with the recorder, but it blocked")
+        t.Error("expected to recive a data back, nothing recieved")
+    }
+}
+
+func TestSimpleRecorderCloses(t *testing.T) {
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+    defer ts.Close()
+
+    payloadChan := make(chan *RecordJob)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    doneChan := rec.Start(ctx)
+    select {
+    case <-doneChan:
+        t.Error("expected the recorder to continue working")
+    default:
     }
 
+    cancel()
+
+    select {
+    case <-doneChan:
+    case <-time.After(5 * time.Second):
+        t.Error("expected the recorder to quit working")
+    }
 }

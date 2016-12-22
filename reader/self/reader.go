@@ -31,7 +31,7 @@ type Reader struct {
 }
 
 // NewSelfReader exposes expvastic's own metrics.
-func NewSelfReader(logger logrus.FieldLogger, name, typeName string, interval time.Duration) (*Reader, error) {
+func NewSelfReader(logger logrus.FieldLogger, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, name, typeName string, interval time.Duration) (*Reader, error) {
 	l, _ := net.Listen("tcp", ":0")
 	l.Close()
 	go http.ListenAndServe(l.Addr().String(), nil)
@@ -41,8 +41,8 @@ func NewSelfReader(logger logrus.FieldLogger, name, typeName string, interval ti
 	w := &Reader{
 		name:       name,
 		typeName:   typeName,
-		jobChan:    make(chan context.Context, 10),
-		resultChan: make(chan *reader.ReadJobResult, 10),
+		jobChan:    jobChan,
+		resultChan: resultChan,
 		logger:     logger,
 		interval:   interval,
 		url:        addr,
@@ -53,7 +53,7 @@ func NewSelfReader(logger logrus.FieldLogger, name, typeName string, interval ti
 // Start begins reading from the target in its own goroutine.
 // It will issue a goroutine on each job request.
 // It will close the done channel when the job channel is closed.
-func (r *Reader) Start(ctx context.Context) chan struct{} {
+func (r *Reader) Start(ctx context.Context) <-chan struct{} {
 	done := make(chan struct{})
 	r.logger.Debug("starting")
 	go func() {

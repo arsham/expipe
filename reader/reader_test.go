@@ -16,18 +16,22 @@ import (
     "github.com/arsham/expvastic/lib"
 )
 
-func TestSimpleReader(t *testing.T) {
+// The purpose of these tests is to make sure the simple reader, which is a mock,
+// works perfect, so other tests can rely on it.
+func TestSimpleReaderReceivesJob(t *testing.T) {
     log := lib.DiscardLogger()
     ctx, cancel := context.WithCancel(context.Background())
-    desire := `{"the key": "is the value!"}`
+    defer cancel()
+
     ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        io.WriteString(w, desire)
+        io.WriteString(w, `{"the key": "is the value!"}`)
     }))
     defer ts.Close()
 
-    ctxReader := NewCtxReader(ts.URL)
-    red, _ := NewSimpleReader(log, ctxReader, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-    done := red.Start(ctx)
+    jobChan := make(chan context.Context)
+    resultChan := make(chan *ReadJobResult, 1)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red.Start(ctx)
 
     job, _ := context.WithCancel(ctx)
     select {
@@ -35,11 +39,30 @@ func TestSimpleReader(t *testing.T) {
     case <-time.After(5 * time.Second):
         t.Error("expected the reader to recive the job, but it blocked")
     }
+}
 
+func TestSimpleReaderSendsResult(t *testing.T) {
     var res *ReadJobResult
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+    desire := `{"the key": "is the value!"}`
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        io.WriteString(w, desire)
+    }))
+    defer ts.Close()
+
+    jobChan := make(chan context.Context)
+    resultChan := make(chan *ReadJobResult)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red.Start(ctx)
+
+    job, _ := context.WithCancel(ctx)
+    red.JobChan() <- job
 
     select {
-    case res = <-red.ResultChan():
+    case res = <-resultChan:
         if res.Err != nil {
             t.Errorf("want (nil), got (%v)", res.Err)
         }
@@ -52,6 +75,158 @@ func TestSimpleReader(t *testing.T) {
     if buf.String() != desire {
         t.Errorf("want (%s), got (%s)", desire, buf.String())
     }
+}
+
+func TestSimpleReaderReadsOnBufferedChan(t *testing.T) {
+    var res *ReadJobResult
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+    desire := `{"the key": "is the value!"}`
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        io.WriteString(w, desire)
+    }))
+    defer ts.Close()
+
+    jobChan := make(chan context.Context, 10)
+    resultChan := make(chan *ReadJobResult)
+
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red.Start(ctx)
+
+    job, _ := context.WithCancel(ctx)
+    red.JobChan() <- job
+
+    select {
+    case res = <-resultChan:
+        if res.Err != nil {
+            t.Errorf("want (nil), got (%v)", res.Err)
+        }
+    case <-time.After(5 * time.Second):
+        t.Error("expected to recive a data back, nothing recieved")
+    }
+
+    drained := false
+    // Go is fast!
+    for i := 0; i < 10; i++ {
+        if len(red.JobChan()) == 0 {
+            drained = true
+            break
+        }
+        time.Sleep(10 * time.Millisecond)
+
+    }
+    if !drained {
+        t.Errorf("expected to drain the jobChan, got (%d) left", len(red.JobChan()))
+    }
+
+    buf := new(bytes.Buffer)
+    buf.ReadFrom(res.Res)
+    if buf.String() != desire {
+        t.Errorf("want (%s), got (%s)", desire, buf.String())
+    }
+}
+
+func TestSimpleReaderDrainsAfterClosingContext(t *testing.T) {
+    var res *ReadJobResult
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+    desire := `{"the key": "is the value!"}`
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        io.WriteString(w, desire)
+    }))
+    defer ts.Close()
+
+    jobChan := make(chan context.Context, 10)
+    resultChan := make(chan *ReadJobResult)
+
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red.Start(ctx)
+
+    job, _ := context.WithCancel(ctx)
+    red.JobChan() <- job
+
+    select {
+    case res = <-resultChan:
+        if res.Err != nil {
+            t.Errorf("want (nil), got (%v)", res.Err)
+        }
+    case <-time.After(5 * time.Second):
+        t.Error("expected to recive a data back, nothing recieved")
+    }
+    cancel()
+    drained := false
+    // Go is fast!
+    for i := 0; i < 10; i++ {
+        if len(red.JobChan()) == 0 {
+            drained = true
+            break
+        }
+        time.Sleep(10 * time.Millisecond)
+
+    }
+    if !drained {
+        t.Errorf("expected to drain the jobChan, got (%d) left", len(red.JobChan()))
+    }
+
+    buf := new(bytes.Buffer)
+    buf.ReadFrom(res.Res)
+    if buf.String() != desire {
+        t.Errorf("want (%s), got (%s)", desire, buf.String())
+    }
+}
+
+func TestSimpleReaderCloses(t *testing.T) {
+    var res *ReadJobResult
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+    desire := `{"the key": "is the value!"}`
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        io.WriteString(w, desire)
+    }))
+    defer ts.Close()
+
+    jobChan := make(chan context.Context)
+    resultChan := make(chan *ReadJobResult)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    done := red.Start(ctx)
+
+    job, _ := context.WithCancel(ctx)
+    red.JobChan() <- job
+    res = <-resultChan
+    defer res.Res.Close()
+    cancel()
+
+    select {
+    case <-done:
+    case <-time.After(5 * time.Second):
+        t.Error("expected to be done with the reader, but it blocked")
+    }
+}
+
+func TestSimpleReaderClosesWithBufferedChans(t *testing.T) {
+    var res *ReadJobResult
+    log := lib.DiscardLogger()
+    ctx, cancel := context.WithCancel(context.Background())
+    desire := `{"the key": "is the value!"}`
+
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        io.WriteString(w, desire)
+    }))
+    defer ts.Close()
+
+    jobChan := make(chan context.Context, 1000)
+    resultChan := make(chan *ReadJobResult, 1000)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    done := red.Start(ctx)
+
+    job, _ := context.WithCancel(ctx)
+    red.JobChan() <- job
+    res = <-resultChan
+    defer res.Res.Close()
 
     cancel()
     select {
@@ -59,5 +234,4 @@ func TestSimpleReader(t *testing.T) {
     case <-time.After(5 * time.Second):
         t.Error("expected to be done with the reader, but it blocked")
     }
-
 }

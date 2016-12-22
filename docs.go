@@ -29,6 +29,7 @@
 //    readers:
 //        FirstApp: # service name
 //            type: expvar
+//            type_name: my_app1 # this is the elasticsearch type name
 //            endpoint: localhost:1234
 //            routepath: /debug/vars
 //            interval: 500ms
@@ -37,6 +38,7 @@
 //            backoff: 10
 //        SomeApplication:
 //            type: expvar
+//            type_name: SomeApplication
 //            endpoint: localhost:1235
 //            routepath: /debug/vars
 //            interval: 500ms
@@ -49,14 +51,12 @@
 //            type: elasticsearch
 //            endpoint: 127.0.0.1:9200
 //            index_name: expvastic
-//            type_name: my_app1
 //            timeout: 8s
 //            backoff: 10
 //        the_other_elasticsearch:
 //            type: elasticsearch
 //            endpoint: 127.0.0.1:9200
 //            index_name: expvastic
-//            type_name: SomeApplication
 //            timeout: 18s
 //            backoff: 10
 //

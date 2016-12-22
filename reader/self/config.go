@@ -51,8 +51,8 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 	return &c, nil
 }
 
-func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
-	return NewSelfReader(c.logger, c.name, c.TypeName(), c.interval)
+func (c *Config) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult) (reader.DataReader, error) {
+	return NewSelfReader(c.logger, jobChan, resultChan, c.name, c.TypeName(), c.interval)
 }
 
 func (c *Config) Name() string               { return c.name }

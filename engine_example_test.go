@@ -19,11 +19,12 @@ import (
     "github.com/arsham/expvastic/recorder"
 )
 
-func ExampleEngine_sendJob() {
+func ExampleEngine_sendingJobs() {
     var res *reader.ReadJobResult
     log := lib.DiscardLogger()
     ctx, cancel := context.WithCancel(context.Background())
     desire := `{"the key": "is the value!"}`
+    recorded := make(chan string)
 
     redTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         io.WriteString(w, desire)
@@ -31,17 +32,19 @@ func ExampleEngine_sendJob() {
     defer redTs.Close()
 
     recTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        fmt.Println("Job was recorded")
+        recorded <- "Job was recorded"
     }))
     defer recTs.Close()
-
+    jobChan := make(chan context.Context)
+    resultChan := make(chan *reader.ReadJobResult)
+    payloadChan := make(chan *recorder.RecordJob)
     ctxReader := reader.NewCtxReader(redTs.URL)
-    red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", "typeName", 10*time.Millisecond, 10*time.Millisecond)
-    rec, _ := recorder.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "typeName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "reader_example", recTs.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
     redDone := red.Start(ctx)
     recDone := rec.Start(ctx)
 
-    cl, err := expvastic.NewWithReadRecorder(ctx, log, red, rec)
+    cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, rec)
     fmt.Println("Engine creation success:", err == nil)
     clDone := cl.Start()
 
@@ -51,7 +54,7 @@ func ExampleEngine_sendJob() {
     case <-time.After(time.Second):
         panic("expected the reader to recive the job, but it blocked")
     }
-
+    fmt.Println(<-recorded)
     select {
     case res = <-red.ResultChan():
         fmt.Println("Job operation success:", res.Err == nil)

@@ -28,12 +28,12 @@ type SimpleRecorder struct {
     StartFunc       func() chan struct{}
 }
 
-func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, name, endpoint, indexName string, interval, timeout time.Duration) (*SimpleRecorder, error) {
+func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, payloadChan chan *RecordJob, name, endpoint, indexName string, interval, timeout time.Duration) (*SimpleRecorder, error) {
     w := &SimpleRecorder{
         name:      name,
         endpoint:  endpoint,
         indexName: indexName,
-        jobChan:   make(chan *RecordJob),
+        jobChan:   payloadChan,
         logger:    logger,
         timeout:   timeout,
         interval:  interval,
@@ -57,7 +57,7 @@ func (s *SimpleRecorder) Error() error {
     return nil
 }
 
-func (s *SimpleRecorder) Start(ctx context.Context) chan struct{} {
+func (s *SimpleRecorder) Start(ctx context.Context) <-chan struct{} {
     s.Smu.RLock()
     if s.StartFunc != nil {
         s.Smu.RUnlock()
@@ -72,7 +72,7 @@ func (s *SimpleRecorder) Start(ctx context.Context) chan struct{} {
             case job := <-s.jobChan:
                 go func(job *RecordJob) {
                     res, err := http.Get(s.endpoint)
-                    if err != nil {
+                    if err == nil {
                         res.Body.Close()
                     }
                     job.Err <- err

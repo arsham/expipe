@@ -6,8 +6,11 @@ package main
 
 import (
 	"context"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
+	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
@@ -23,7 +26,9 @@ import (
 )
 
 var (
-	confFile = flag.String("c", "", "Confuration file. Should be in yaml format without the extension.")
+	log       *logrus.Logger
+	confSlice *config.ConfMap
+	confFile  = flag.String("c", "", "Confuration file. Should be in yaml format without the extension.")
 
 	reader     = flag.String("reader", "localhost:1234/debug/vars", "Target address and port")
 	recorder   = flag.String("recorder", "localhost:9200", "Elasticsearch URL and port")
@@ -33,18 +38,30 @@ var (
 	interval   = flag.Duration("int", time.Second, "Interval between pulls from the target")
 	timeout    = flag.Duration("timeout", 30*time.Second, "Communication timeouts to both reader and recorder")
 	backoff    = flag.Int("backoff", 15, "After this amount, it will give up accessing unresponsive endpoints") // TODO: implement!
+	cpuprofile = flag.String("cpuprof", "", "./expvastic -c expvastic -cpuprof=cpu.out")
+	memprofile = flag.String("memprof", "", "./expvastic -c expvastic -memprof=mem.out")
 )
 
 func main() {
-	var log *logrus.Logger
-	var confSlice *config.ConfMap
 	flag.Parse()
+	if *cpuprofile != "" {
+		cpuFile, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		if err := pprof.StartCPUProfile(cpuFile); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		defer cpuFile.Close()
+		defer pprof.StopCPUProfile()
+	}
+
 	if *confFile == "" {
 		log = lib.GetLogger(*debugLevel)
-		confSlice = fromFlags(log)
+		confSlice = fromFlags()
 	} else {
 		log = lib.GetLogger("info")
-		confSlice = fromConfig(log, *confFile)
+		confSlice = fromConfig(*confFile)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -53,10 +70,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	<-time.After(5 * time.Second)
+	close(done)
 	<-done
+
+	if *memprofile != "" {
+		memFile, err := os.Create(*memprofile)
+		if err != nil {
+			log.Fatal("could not create memory profile: ", err)
+		}
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(memFile); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
+		memFile.Close()
+	}
 }
 
-func fromConfig(log *logrus.Logger, confFile string) *config.ConfMap {
+func fromConfig(confFile string) *config.ConfMap {
 	v := viper.New()
 	v.SetConfigName(confFile)
 	v.SetConfigType("yaml")
@@ -73,7 +104,7 @@ func fromConfig(log *logrus.Logger, confFile string) *config.ConfMap {
 	return confSlice
 }
 
-func fromFlags(log *logrus.Logger) *config.ConfMap {
+func fromFlags() *config.ConfMap {
 	var err error
 	confMap := &config.ConfMap{
 		Readers:   make(map[string]config.ReaderConf, 1),

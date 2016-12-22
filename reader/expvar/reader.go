@@ -28,15 +28,15 @@ type Reader struct {
 
 // NewExpvarReader creates the worker and sets up its channels.
 // Because the caller is reading the resp.Body, it is its job to close it.
-func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, name, typeName string, interval, timeout time.Duration) (*Reader, error) {
+func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, name, typeName string, interval, timeout time.Duration) (*Reader, error) {
 	// TODO: ping the reader.
 	// TODO: have the user decide how large the channels can be.
 	logger = logger.WithField("reader", "expvar")
 	w := &Reader{
 		name:       name,
 		typeName:   typeName,
-		jobChan:    make(chan context.Context, 1000),
-		resultChan: make(chan *reader.ReadJobResult, 1000),
+		jobChan:    jobChan,
+		resultChan: resultChan,
 		ctxReader:  ctxReader,
 		logger:     logger,
 		timeout:    timeout,
@@ -48,7 +48,7 @@ func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, 
 // Start begins reading from the target in its own goroutine.
 // It will issue a goroutine on each job request.
 // It will close the done channel when the job channel is closed.
-func (r *Reader) Start(ctx context.Context) chan struct{} {
+func (r *Reader) Start(ctx context.Context) <-chan struct{} {
 	done := make(chan struct{})
 	r.logger.Debug("starting")
 	go func() {

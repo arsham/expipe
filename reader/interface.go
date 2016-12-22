@@ -36,7 +36,7 @@ type DataReader interface {
 	// The reader's loop should be inside a goroutine, and return a done channel.
 	// This channel should be closed once its work is finished and the reader wants to quit.
 	// When the context is timedout or canceled, the reader should return.
-	Start(ctx context.Context) chan struct{}
+	Start(ctx context.Context) <-chan struct{}
 
 	// TypeName is usually the application name.
 	// Recorders should not intercept the engine for its decision, unless they have a

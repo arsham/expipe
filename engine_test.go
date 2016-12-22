@@ -21,12 +21,21 @@ import (
 	"github.com/arsham/expvastic/recorder"
 )
 
+// TODO: test engine closes all recorders
+// TODO: test engine closes recorders when reader goes out of scope
+
 func TestNewWithReadRecorder(t *testing.T) {
 	log := lib.DiscardLogger()
-	ctx, _ := context.WithCancel(context.Background())
-	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), "a", "", time.Millisecond, time.Millisecond)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, "", "nowhere", "", time.Millisecond, time.Millisecond)
-	e, err := expvastic.NewWithReadRecorder(ctx, log, red, rec)
+	ctx := context.Background()
+
+	jobChan := make(chan context.Context)
+	resultChan := make(chan *reader.ReadJobResult)
+	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), jobChan, resultChan, "a", "", time.Millisecond, time.Millisecond)
+
+	payloadChan := make(chan *recorder.RecordJob)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "", "nowhere", "", time.Millisecond, time.Millisecond)
+
+	e, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, rec)
 	if err != expvastic.ErrEmptyRecName {
 		t.Error("want ErrEmptyRecName, got nil")
 	}
@@ -34,9 +43,10 @@ func TestNewWithReadRecorder(t *testing.T) {
 		t.Errorf("want (nil), got (%v)", e)
 	}
 
-	rec, _ = recorder.NewSimpleRecorder(ctx, log, "name1", "nowhere", "", time.Millisecond, time.Millisecond)
-	rec2, _ := recorder.NewSimpleRecorder(ctx, log, "name1", "nowhere", "", time.Millisecond, time.Millisecond)
-	e, err = expvastic.NewWithReadRecorder(ctx, log, red, rec, rec2)
+	rec, _ = recorder.NewSimpleRecorder(ctx, log, payloadChan, "same_name_is_illegal", "nowhere", "", time.Millisecond, time.Millisecond)
+	rec2, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "same_name_is_illegal", "nowhere", "", time.Millisecond, time.Millisecond)
+
+	e, err = expvastic.NewWithReadRecorder(ctx, log, 0, red, rec, rec2)
 	if err != expvastic.ErrDupRecName {
 		t.Error("want error, got nil")
 	}
@@ -62,13 +72,17 @@ func TestEngineSendJob(t *testing.T) {
 	}))
 	defer recTs.Close()
 
+	jobChan := make(chan context.Context)
+	resultChan := make(chan *reader.ReadJobResult)
 	ctxReader := reader.NewCtxReader(redTs.URL)
-	red, _ := reader.NewSimpleReader(log, ctxReader, "reader_example", "example_type", time.Millisecond, time.Millisecond)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, "recorder_example", recTs.URL, "intexName", time.Millisecond, time.Millisecond)
+	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "example_type", time.Millisecond, time.Millisecond)
 	redDone := red.Start(ctx)
+
+	payloadChan := make(chan *recorder.RecordJob)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "recorder_example", recTs.URL, "intexName", time.Millisecond, time.Millisecond)
 	recDone := rec.Start(ctx)
 
-	cl, err := expvastic.NewWithReadRecorder(ctx, log, red, rec)
+	cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, rec)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -122,7 +136,9 @@ func TestEngineMultiRecorder(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	red, _ := reader.NewSimpleReader(log, &reader.MockCtxReader{}, "reader_example", "example_type", time.Second, time.Second)
+	jobChan := make(chan context.Context)
+	resultChan := make(chan *reader.ReadJobResult)
+	red, _ := reader.NewSimpleReader(log, &reader.MockCtxReader{}, jobChan, resultChan, "reader_example", "example_type", time.Second, time.Second)
 	red.StartFunc = func() chan struct{} {
 		done := make(chan struct{})
 		go func() {
@@ -140,41 +156,51 @@ func TestEngineMultiRecorder(t *testing.T) {
 		}()
 		return done
 	}
+
 	length := 10
 	recorders := make([]recorder.DataRecorder, length)
 	results := make(chan struct{}, 20)
 	for i := 0; i < length; i++ {
 		name := fmt.Sprintf("rec_%d", i)
-		rec, _ := recorder.NewSimpleRecorder(ctx, log, name, ts.URL, "intexName", time.Second, time.Second)
+		payloadChan := make(chan *recorder.RecordJob)
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, name, ts.URL, "intexName", time.Second, time.Second)
+
 		go func(rec *recorder.SimpleRecorder) {
 			job := make(chan *recorder.RecordJob)
 			done := make(chan struct{})
+
 			rec.Smu.Lock()
 			rec.StartFunc = func() chan struct{} {
 				return done
 			}
 			rec.Smu.Unlock()
+
 			rec.Pmu.Lock()
 			rec.PayloadChanFunc = func() chan *recorder.RecordJob {
 				return job
 			}
 			rec.Pmu.Unlock()
+
 			j := <-job
 			j.Err <- nil
 			results <- struct{}{}
 			close(done)
 		}(rec)
+
 		recorders[i] = rec
 	}
-	cl, err := expvastic.NewWithReadRecorder(ctx, log, red, recorders...)
+
+	cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, recorders...)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
 	clDone := cl.Start()
+
 	red.JobChan() <- ctx
 	for i := 0; i < length; i++ {
 		<-results
 	}
+
 	if len(results) != 0 {
 		t.Errorf("want (%d) results, got (%d)", length, len(results)+length)
 	}
@@ -182,5 +208,29 @@ func TestEngineMultiRecorder(t *testing.T) {
 	<-clDone
 }
 
-// test engine closes all recorders
-// test engine closes recorders when reader goes out of scope
+func TestEngineNewWithConfig(t *testing.T) {
+	ctx := context.Background()
+	log := lib.DiscardLogger()
+
+	red, _ := reader.NewMockConfig("reader_example", "reader_example", log, "nowhere", "/still/nowhere", time.Millisecond, time.Millisecond, 1)
+	rec, _ := recorder.NewMockConfig("", log, "nowhere", time.Millisecond, time.Millisecond, 1, "index")
+
+	e, err := expvastic.NewWithConfig(ctx, log, 0, 0, 0, 0, red, rec)
+	if err != expvastic.ErrEmptyRecName {
+		t.Error("want ErrEmptyRecName, got nil")
+	}
+	if e != nil {
+		t.Errorf("want (nil), got (%v)", e)
+	}
+
+	rec, _ = recorder.NewMockConfig("same_name_is_illegal", log, "nowhere", time.Millisecond, time.Millisecond, 1, "index")
+	rec2, _ := recorder.NewMockConfig("same_name_is_illegal", log, "nowhere", time.Millisecond, time.Millisecond, 1, "index")
+
+	e, err = expvastic.NewWithConfig(ctx, log, 0, 0, 0, 0, red, rec, rec2)
+	if err != expvastic.ErrDupRecName {
+		t.Error("want error, got nil")
+	}
+	if e != nil {
+		t.Errorf("want (nil), got (%v)", e)
+	}
+}
