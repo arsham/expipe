@@ -70,9 +70,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	<-time.After(5 * time.Second)
-	close(done)
-	<-done
 
 	if *memprofile != "" {
 		memFile, err := os.Create(*memprofile)
@@ -85,6 +82,7 @@ func main() {
 		}
 		memFile.Close()
 	}
+	<-done
 }
 
 func fromConfig(confFile string) *config.ConfMap {

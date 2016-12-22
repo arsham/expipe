@@ -20,21 +20,21 @@ import (
 	"github.com/arsham/expvastic/recorder"
 )
 
-// func BenchmarkEngineSingle(b *testing.B) {
-// 	benchmarkEngineOnManyRecorders(1, b)
-// }
+func BenchmarkEngineSingle(b *testing.B) {
+	benchmarkEngineOnManyRecorders(1, b)
+}
 
-// func BenchmarkEngineMulti2(b *testing.B) {
-// 	benchmarkEngineOnManyRecorders(2, b)
-// }
+func BenchmarkEngineMulti2(b *testing.B) {
+	benchmarkEngineOnManyRecorders(2, b)
+}
 
-// func BenchmarkEngineMulti10(b *testing.B) {
-// 	benchmarkEngineOnManyRecorders(10, b)
-// }
+func BenchmarkEngineMulti10(b *testing.B) {
+	benchmarkEngineOnManyRecorders(10, b)
+}
 
-// func BenchmarkEngineMulti20(b *testing.B) {
-// 	benchmarkEngineOnManyRecorders(20, b)
-// }
+func BenchmarkEngineMulti20(b *testing.B) {
+	benchmarkEngineOnManyRecorders(20, b)
+}
 
 func BenchmarkEngineMulti100(b *testing.B) {
 	benchmarkEngineOnManyRecorders(100, b)
@@ -44,16 +44,16 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 	bcs := []struct {
 		readChanBuff, readResChanBuff, recChanBuff, recResChan int
 	}{
-		// {0, 0, 0, 0},
-		// {0, 0, 0, 10},
-		// {0, 0, 10, 0},
-		// {0, 10, 0, 0},
-		// {10, 0, 0, 0},
-		// {0, 0, 10, 10},
-		// {0, 10, 0, 10},
-		// {10, 0, 0, 10},
-		// {0, 10, 10, 10},
-		// {10, 0, 10, 10},
+		{0, 0, 0, 0},
+		{0, 0, 0, 10},
+		{0, 0, 10, 0},
+		{0, 10, 0, 0},
+		{10, 0, 0, 0},
+		{0, 0, 10, 10},
+		{0, 10, 0, 10},
+		{10, 0, 0, 10},
+		{0, 10, 10, 10},
+		{10, 0, 10, 10},
 		{10, 10, 10, 10},
 		{100, 100, 100, 100},
 		{1000, 1000, 1000, 1000},
