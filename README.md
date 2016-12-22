@@ -2,7 +2,9 @@
 
 This is an early release and it is under heavy development. There will be a lot of changes soon but I'm planning to finalise the API as soon as I can. I hope you enjoy it!
 
-Expvastic can read from an endpoint which provides expvar data and ship them to elasticsearch. Please refer to golang's [expvar documentation](https://golang.org/pkg/expvar/) for more information.
+Expvastic can read from any endpoints that provides expvar data and ships them to (elasticsearch)[https://github.com/elastic/elasticsearch]. You can inspect the metrics with (kibana)[https://github.com/elastic/kibana] (dashboar is provided)[https://github.com/arsham/expvastic/blob/master/bin/dashboard.json].
+
+Please refer to golang's [expvar documentation](https://golang.org/pkg/expvar/) for more information.
 
 Here is a couple of screenshots:
 
@@ -28,11 +30,13 @@ docker run -d --restart always --name kibana -p 80:5601 --link expvastic:elastic
 
 ### Kibana
 
-Access http://localhost (or any other ports you have exposed kibana to, notice the "-p:80:5601" above), and enter "expvastic" as "Index name or pattern" in management section. Select "@timestamp" as "Time-field name". In case it doesn't show up, click "Index contains time-based events" twice, it will provice you with the timestamp. Then click on create button. On the next page:
+Access (the dashboard)[http://localhost] (or any other ports you have exposed kibana to, notice the "-p:80:5601" above), and enter "expvastic" as "Index name or pattern" in management section.
+
+Select "@timestamp" as "Time-field name". In case it doesn't show up, click "Index contains time-based events" twice, it will provice you with the timestamp. Then click on create button. On the next page:
 
 ### Import Dashboard
 
-Go to "Saved Objects" section of management, and click on the "import" button. Upload [this](https://github.com/arsham/expvastic/blob/master/bin/kibana.json) file and you're done!
+Go to "Saved Objects" section of management, and click on the "import" button. Upload [this](https://github.com/arsham/expvastic/blob/master/bin/dashboard.json) file and you're done!
 
 There are two dashboards provided, one shows the expvastic's metrics, and you can use the other one for everything you have setup expvastic for.
 
