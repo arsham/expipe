@@ -6,6 +6,7 @@ package expvastic
 
 import (
     "context"
+    "expvar"
     "time"
 
     "sync"
@@ -15,6 +16,8 @@ import (
     "github.com/arsham/expvastic/reader"
     "github.com/arsham/expvastic/recorder"
 )
+
+var recordsDistributed = expvar.NewInt("Records Distributed")
 
 // observer contains two maps for traking the recorders.
 type observer struct {
@@ -122,7 +125,7 @@ func (o *observer) send(ctx context.Context, typeName string, t time.Time, paylo
                 Time:      t,
                 Err:       o.resultChan,
             }
-
+            recordsDistributed.Add(1)
             // sending payload
             select {
             case rec.PayloadChan() <- payload:

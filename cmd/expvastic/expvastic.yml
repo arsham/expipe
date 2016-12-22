@@ -1,5 +1,5 @@
 settings:
-    debug_evel: debug
+    debug_evel: info
 
 readers:
     my_app: # service name
@@ -7,7 +7,7 @@ readers:
         endpoint: localhost:1234
         routepath: /debug/vars
         type_name: my_app
-        interval: 1s
+        interval: 500ms
         timeout: 3s
         backoff: 10
     my_app2: # service name
@@ -15,13 +15,13 @@ readers:
         endpoint: localhost:1235
         routepath: /debug/vars
         type_name: my_ap2
-        interval: 1s
+        interval: 500ms
         timeout: 13s
         backoff: 10
     self: # expvastic's self metric
         type: self # only used for this reason
         type_name: expvastic
-        interval: 1s
+        interval: 500ms
 
 recorders:
     elastic1: # service name

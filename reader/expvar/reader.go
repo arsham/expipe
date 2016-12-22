@@ -6,11 +6,16 @@ package expvar
 
 import (
 	"context"
+	"expvar"
 	"fmt"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/reader"
+)
+
+var (
+	expvarReads = expvar.NewInt("Expvar Reads")
 )
 
 // Reader contains communication channels with a worker that exposes expvar information.
@@ -103,5 +108,6 @@ func (r *Reader) readMetrics(job context.Context) {
 		Res:      resp.Body,
 		TypeName: r.TypeName(),
 	}
+	expvarReads.Add(1)
 	r.resultChan <- res
 }

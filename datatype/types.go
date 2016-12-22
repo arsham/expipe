@@ -6,8 +6,16 @@ package datatype
 
 import (
     "errors"
+    "expvar"
     "fmt"
     "strings"
+)
+
+var (
+    stringTypeCount = expvar.NewInt("StringType Count")
+    floatTypeCount  = expvar.NewInt("FloatType Count")
+    gcListTypeCount = expvar.NewInt("GCListType Count")
+    byteTypeCount   = expvar.NewInt("ByteType Count")
 )
 
 const (
@@ -37,6 +45,7 @@ type FloatType struct {
 
 // String satisfies the Stringer interface
 func (f FloatType) String() string {
+    floatTypeCount.Add(1)
     return fmt.Sprintf(`"%s":%f`, f.Key, f.Value)
 }
 
@@ -48,6 +57,7 @@ type StringType struct {
 
 // String satisfies the Stringer interface
 func (s StringType) String() string {
+    stringTypeCount.Add(1)
     return fmt.Sprintf(`"%s":"%s"`, s.Key, s.Value)
 }
 
@@ -59,6 +69,7 @@ type FloatListType struct {
 
 // String satisfies the Stringer interface
 func (fl FloatListType) String() string {
+    floatTypeCount.Add(1)
     list := make([]string, len(fl.Value))
     for i, v := range fl.Value {
         list[i] = fmt.Sprintf("%f", v)
@@ -81,6 +92,7 @@ func (flt GCListType) String() string {
             list = append(list, fmt.Sprintf("%d", v/1000))
         }
     }
+    gcListTypeCount.Add(1)
     return fmt.Sprintf(`"%s":[%s]`, flt.Key, strings.Join(list, ","))
 }
 
@@ -93,5 +105,6 @@ type ByteType struct {
 
 // String satisfies the Stringer interface
 func (b ByteType) String() string {
+    byteTypeCount.Add(1)
     return fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE)
 }

@@ -26,6 +26,16 @@ docker run -d --restart always --name expvastic -p 9200:9200 --ulimit nofile=983
 docker run -d --restart always --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
 ```
 
+### Kibana
+
+Access http://localhost (or any other ports you have exposed kibana to, notice the "-p:80:5601" above), and enter "expvastic" as "Index name or pattern" in management section. Select "@timestamp" as "Time-field name". In case it doesn't show up, click "Index contains time-based events" twice, it will provice you with the timestamp. Then click on create button. On the next page:
+
+### Import Dashboard
+
+Go to "Saved Objects" section of management, and click on the "import" button. Upload [this](https://github.com/arsham/expvastic/blob/master/bin/kibana.json) file and you're done!
+
+There are two dashboards provided, one shows the expvastic's metrics, and you can use the other one for everything you have setup expvastic for.
+
 ## Usage
 
 ### With Flags

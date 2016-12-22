@@ -6,6 +6,7 @@ package elasticsearch
 
 import (
     "context"
+    "expvar"
     "fmt"
     "time"
 
@@ -14,6 +15,8 @@ import (
     "github.com/arsham/expvastic/recorder"
     "github.com/olivere/elastic"
 )
+
+var elasticsearchRecords = expvar.NewInt("ElasticSearch Records")
 
 // Recorder contains an elasticsearch client and an indexname for recording data
 // It implements DataRecorder interface
@@ -105,6 +108,7 @@ func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.T
     if err != nil {
         return err
     }
+    elasticsearchRecords.Add(1)
     return ctx.Err()
 }
 

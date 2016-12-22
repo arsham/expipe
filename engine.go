@@ -6,6 +6,7 @@ package expvastic
 
 import (
 	"context"
+	"expvar"
 	"fmt"
 	"strings"
 	"sync"
@@ -16,6 +17,14 @@ import (
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
+)
+
+var (
+	expRecorders = expvar.NewInt("Recorders")
+	expReaders   = expvar.NewInt("Readers")
+	readJobs     = expvar.NewInt("Read Jobs")
+	recordJobs   = expvar.NewInt("Record Jobs")
+	erroredJobs  = expvar.NewInt("Errored Jobs")
 )
 
 // Engine represents an engine that receives information from readers and ships them to recorders.
@@ -160,6 +169,7 @@ func (e *Engine) Stop() {
 }
 
 func (e *Engine) issueReaderJob() {
+	readJobs.Add(1)
 	// to make sure the reader is behaving.
 	timeout := e.dataReader.Timeout() + time.Duration(10*time.Second)
 	timer := time.NewTimer(timeout)
@@ -169,8 +179,10 @@ func (e *Engine) issueReaderJob() {
 		timer.Stop()
 		return
 	case <-timer.C:
+		erroredJobs.Add(1)
 		e.logger.Warn("timedout before job was read")
 	case <-e.ctx.Done():
+		erroredJobs.Add(1)
 		e.logger.Warnf("main context closed before job was read: %s", e.ctx.Err().Error())
 	}
 }
@@ -181,7 +193,10 @@ func (e *Engine) redirectToRecorders(r *reader.ReadJobResult) {
 	defer r.Res.Close()
 	payload := datatype.JobResultDataTypes(r.Res)
 	if payload.Error() != nil {
+		erroredJobs.Add(1)
 		e.logger.Warnf("error in payload", payload.Error())
+		return
 	}
+	recordJobs.Add(1)
 	e.observer.send(e.ctx, r.TypeName, r.Time, payload)
 }
