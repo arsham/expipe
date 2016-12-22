@@ -98,7 +98,6 @@ func (e *Engine) Start() chan struct{} {
 		readerDone := e.dataReader.Start(ctx)
 		expReaders.Add(1)
 		for _, rec := range e.recorders {
-			// TODO: keep the done channels
 			e.observer.Add(ctx, rec)
 			expReaders.Add(1)
 		}

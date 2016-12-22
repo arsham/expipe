@@ -149,8 +149,16 @@ func TestEngineMultiRecorder(t *testing.T) {
 		go func(rec *recorder.SimpleRecorder) {
 			job := make(chan *recorder.RecordJob)
 			done := make(chan struct{})
-			rec.StartFunc = func() chan struct{} { return done }
-			rec.PayloadChanFunc = func() chan *recorder.RecordJob { return job }
+			rec.Smu.Lock()
+			rec.StartFunc = func() chan struct{} {
+				return done
+			}
+			rec.Smu.Unlock()
+			rec.Pmu.Lock()
+			rec.PayloadChanFunc = func() chan *recorder.RecordJob {
+				return job
+			}
+			rec.Pmu.Unlock()
 			j := <-job
 			j.Err <- nil
 			results <- struct{}{}

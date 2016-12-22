@@ -7,22 +7,24 @@ package recorder
 import (
     "context"
     "net/http"
+    "sync"
     "time"
 
     "github.com/Sirupsen/logrus"
 )
 
 type SimpleRecorder struct {
-    name      string
-    endpoint  string
-    indexName string
-    jobChan   chan *RecordJob
-    logger    logrus.FieldLogger
-    interval  time.Duration
-    timeout   time.Duration
-
+    name            string
+    endpoint        string
+    indexName       string
+    jobChan         chan *RecordJob
+    logger          logrus.FieldLogger
+    interval        time.Duration
+    timeout         time.Duration
+    Pmu             sync.RWMutex
     PayloadChanFunc func() chan *RecordJob
     ErrorFunc       func() error
+    Smu             sync.RWMutex
     StartFunc       func() chan struct{}
 }
 
@@ -40,6 +42,8 @@ func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, name, end
 }
 
 func (s *SimpleRecorder) PayloadChan() chan *RecordJob {
+    s.Pmu.RLock()
+    defer s.Pmu.RUnlock()
     if s.PayloadChanFunc != nil {
         return s.PayloadChanFunc()
     }
@@ -54,9 +58,12 @@ func (s *SimpleRecorder) Error() error {
 }
 
 func (s *SimpleRecorder) Start(ctx context.Context) chan struct{} {
+    s.Smu.RLock()
     if s.StartFunc != nil {
+        s.Smu.RUnlock()
         return s.StartFunc()
     }
+    s.Smu.RUnlock()
     done := make(chan struct{})
     go func() {
     LOOP:
