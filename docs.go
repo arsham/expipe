@@ -2,22 +2,15 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package expvastic can read from an endpoint which provides expvar data and ship them to elasticsearch. Please refer to golang's [expvar documentation](https://golang.org/pkg/expvar/) for more information.
-// This is an early release and it is private. There will be a lot of changes soon but I'm planning to finalise and make it public  as soon as I can. I hope you enjoy it!
+// Package expvastic can read from any endpoints that provides expvar data and ships them to elasticsearch. You can inspect the metrics with kibana.
 //
+// Dashboard is provided here: https://github.com/arsham/expvastic/blob/master/bin/dashboard.json
+//
+// Please refer to golang's expvar documentation for more information.
 //
 // Here is a couple of screenshots: http://i.imgur.com/6kB88g4.png and  http://i.imgur.com/0ROSWsM.png
 //
-// You need golang 1.7 (I haven't tested it with older versions, but they should be fine) and [glide](https://github.com/Masterminds/glide) installed. Simply do:
-//
-//    go get github.com/arsham/expvastic/...
-//    cd $GOPATH/src/github.com/arsham/expvastic
-//    glide install
-//
-// You also need elasticsearch and kibana, here is a couple of docker images for you:
-//
-//    docker run -it --rm --name expvastic --ulimit nofile=98304:98304 -v "/path/to/somewhere/expvastic":/usr/share/elasticsearch/data elasticsearch
-//    docker run -it --rm --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
+// Installation guides can be found on github page: https://github.com/arsham/expvastic
 //
 // At the heart of this package, there is Engine. It acts like a glue between a Reader and a Recorder. Messages are transfered in a package called DataContainer, which is a list of DataType objects.
 //
@@ -83,9 +76,61 @@
 //
 //    expvasyml -c expvastic.yml
 //
-// Please note that the name of the app will be changed to expvastic.
+// You can mix and match the routes, but the engine will choose the best setup to achive your goal without duplicating the results. For instance assume you set the routes like this:
 //
-// For running tests, do the following:
+//  readers:
+//      app_0:
+//      app_1:
+//      app_2:
+//  recorders:
+//      elastic_0:
+//      elastic_1:
+//      elastic_2:
+//      elastic_3:
+//  routes:
+//      route1:
+//          readers:
+//              - app_0
+//              - app_2
+//          recorders:
+//              - elastic_1
+//      route2:
+//          readers:
+//              - app_0
+//          recorders:
+//              - elastic_1
+//              - elastic_2
+//              - elastic_3
+//      route2:
+//          readers:
+//              - app_1
+//              - app_2
+//          recorders:
+//              - elastic_1
+//              - elastic_0
+//
+// Expvastic creates three engines like so:
+//
+//     Data from app_0 will be shipped to: elastic_1, elastic_2 and elastic_3
+//     Data from app_1 will be shipped to: elastic_1 and, elastic_0
+//     Data from app_2 will be shipped to: elastic_1 and, elastic_0
+//
+// For running tests:
 //   go test $(glide nv)
+//
+// For getting test coverages, use this gist: https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a. Then run:
+//
+//    goverall
+//
+// For getting benchmarks
+//
+//   go test $(glide nv) -run=^$ -bench=.
+//
+// For showing the memory and cpu profiles, on each folder run:
+//   BASENAME=$(basename $(pwd))
+//   go test -run=^$ -bench=. -cpuprofile=cpu.out -benchmem -memprofile=mem.out
+//   go tool pprof -pdf $BASENAME.test cpu.out > cpu.pdf && open cpu.pdf
+//   go tool pprof -pdf $BASENAME.test mem.out > mem.pdf && open mem.pdf
+//
 // Use of this source code is governed by the Apache 2.0 license. License that can be found in the LICENSE file.
 package expvastic

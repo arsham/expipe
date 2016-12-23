@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,7 +20,6 @@ import (
 	"github.com/arsham/expvastic/recorder"
 )
 
-// TODO: test engine closes all recorders
 // TODO: test engine closes recorders when reader goes out of scope
 
 func TestNewWithReadRecorder(t *testing.T) {
@@ -30,10 +28,10 @@ func TestNewWithReadRecorder(t *testing.T) {
 
 	jobChan := make(chan context.Context)
 	resultChan := make(chan *reader.ReadJobResult)
-	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), jobChan, resultChan, "a", "", time.Millisecond, time.Millisecond)
+	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), jobChan, resultChan, "a", "", time.Hour, time.Hour)
 
 	payloadChan := make(chan *recorder.RecordJob)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "", "nowhere", "", time.Millisecond, time.Millisecond)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "", "nowhere", "", time.Hour)
 
 	e, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, rec)
 	if err != expvastic.ErrEmptyRecName {
@@ -43,8 +41,8 @@ func TestNewWithReadRecorder(t *testing.T) {
 		t.Errorf("want (nil), got (%v)", e)
 	}
 
-	rec, _ = recorder.NewSimpleRecorder(ctx, log, payloadChan, "same_name_is_illegal", "nowhere", "", time.Millisecond, time.Millisecond)
-	rec2, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "same_name_is_illegal", "nowhere", "", time.Millisecond, time.Millisecond)
+	rec, _ = recorder.NewSimpleRecorder(ctx, log, payloadChan, "same_name_is_illegal", "nowhere", "", time.Hour)
+	rec2, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "same_name_is_illegal", "nowhere", "", time.Hour)
 
 	e, err = expvastic.NewWithReadRecorder(ctx, log, 0, red, rec, rec2)
 	if err != expvastic.ErrDupRecName {
@@ -75,11 +73,11 @@ func TestEngineSendJob(t *testing.T) {
 	jobChan := make(chan context.Context)
 	resultChan := make(chan *reader.ReadJobResult)
 	ctxReader := reader.NewCtxReader(redTs.URL)
-	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "example_type", time.Millisecond, time.Millisecond)
+	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "example_type", time.Hour, time.Hour)
 	redDone := red.Start(ctx)
 
 	payloadChan := make(chan *recorder.RecordJob)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "recorder_example", recTs.URL, "intexName", time.Millisecond, time.Millisecond)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "recorder_example", recTs.URL, "intexName", time.Hour)
 	recDone := rec.Start(ctx)
 
 	cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, rec)
@@ -129,91 +127,111 @@ func TestEngineSendJob(t *testing.T) {
 }
 
 func TestEngineMultiRecorder(t *testing.T) {
+	var res *reader.ReadJobResult
+	count := 10
 	log := lib.DiscardLogger()
 	ctx, cancel := context.WithCancel(context.Background())
+	desire := `{"the key": "is the value!"}`
+	recorded := make(chan struct{})
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	redTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, desire)
 	}))
-	defer ts.Close()
+	defer redTs.Close()
 
 	jobChan := make(chan context.Context)
 	resultChan := make(chan *reader.ReadJobResult)
-	red, _ := reader.NewSimpleReader(log, &reader.MockCtxReader{}, jobChan, resultChan, "reader_example", "example_type", time.Second, time.Second)
-	red.StartFunc = func() chan struct{} {
-		done := make(chan struct{})
-		go func() {
-			<-red.JobChan()
-			res := &reader.ReadJobResult{
-				Time:     time.Now(),
-				Res:      ioutil.NopCloser(bytes.NewBufferString("")),
-				Err:      nil,
-				TypeName: "example_type",
-			}
-			red.ResultChan() <- res
-			<-ctx.Done()
-			close(done)
-			return
-		}()
-		return done
-	}
+	ctxReader := reader.NewCtxReader(redTs.URL)
+	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "example_type", time.Hour, time.Hour)
+	redDone := red.Start(ctx)
 
-	length := 10
-	recorders := make([]recorder.DataRecorder, length)
-	results := make(chan struct{}, 20)
-	for i := 0; i < length; i++ {
-		name := fmt.Sprintf("rec_%d", i)
+	recs := make([]recorder.DataRecorder, count)
+	recsDone := make([]<-chan struct{}, count)
+	for i := 0; i < count; i++ {
 		payloadChan := make(chan *recorder.RecordJob)
-		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, name, ts.URL, "intexName", time.Second, time.Second)
+		name := fmt.Sprintf("recorder_example_%d", i)
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, name, "does not matter", "intexName", time.Hour)
 
-		go func(rec *recorder.SimpleRecorder) {
-			job := make(chan *recorder.RecordJob)
+		rec.StartFunc = func() chan struct{} {
 			done := make(chan struct{})
+			go func(payloadChan chan *recorder.RecordJob) {
+			LOOP:
+				for {
+					select {
+					case <-payloadChan:
+						recorded <- struct{}{}
+					case <-ctx.Done():
+						break LOOP
+					}
+				}
+				close(done)
+			}(payloadChan)
+			return done
+		}
 
-			rec.Smu.Lock()
-			rec.StartFunc = func() chan struct{} {
-				return done
-			}
-			rec.Smu.Unlock()
-
-			rec.Pmu.Lock()
-			rec.PayloadChanFunc = func() chan *recorder.RecordJob {
-				return job
-			}
-			rec.Pmu.Unlock()
-
-			j := <-job
-			j.Err <- nil
-			results <- struct{}{}
-			close(done)
-		}(rec)
-
-		recorders[i] = rec
+		recs[i] = rec
+		recsDone[i] = rec.Start(ctx)
 	}
 
-	cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, recorders...)
+	cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, recs...)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
 	clDone := cl.Start()
 
-	red.JobChan() <- ctx
-	for i := 0; i < length; i++ {
-		<-results
+	select {
+	case red.JobChan() <- ctx:
+	case <-time.After(time.Second):
+		t.Error("expected the reader to recive the job, but it blocked")
 	}
 
-	if len(results) != 0 {
-		t.Errorf("want (%d) results, got (%d)", length, len(results)+length)
+	select {
+	case res = <-red.ResultChan():
+		if res.Err != nil {
+			t.Fatalf("want (nil), got (%v)", res.Err)
+		}
+	case <-time.After(5 * time.Second): // Should be more than the interval, otherwise the response is not ready yet
+		//TODO: investigate
+		t.Error("expected to recive a data back, nothing recieved")
 	}
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(res.Res)
+	if buf.String() != desire {
+		t.Errorf("want (%s), got (%s)", desire, buf.String())
+	}
+
+	for i := 0; i < count; i++ {
+		select {
+		case <-recorded:
+		case <-time.After(20 * time.Second):
+			t.Errorf("recorder didn't record the request")
+		}
+	}
+
 	cancel()
-	<-clDone
+	if _, ok := <-redDone; ok {
+		t.Error("expected the channel to be closed")
+	}
+	for _, done := range recsDone {
+		select {
+		case <-done:
+		case <-time.After(20 * time.Second):
+			t.Error("expected the recorder to finish")
+		}
+	}
+
+	if v, ok := <-clDone; ok {
+		t.Error("expected the channel to be closed", v)
+	}
 }
 
 func TestEngineNewWithConfig(t *testing.T) {
 	ctx := context.Background()
 	log := lib.DiscardLogger()
 
-	red, _ := reader.NewMockConfig("reader_example", "reader_example", log, "nowhere", "/still/nowhere", time.Millisecond, time.Millisecond, 1)
-	rec, _ := recorder.NewMockConfig("", log, "nowhere", time.Millisecond, time.Millisecond, 1, "index")
+	red, _ := reader.NewMockConfig("reader_example", "reader_example", log, "nowhere", "/still/nowhere", time.Hour, time.Hour, 1)
+	rec, _ := recorder.NewMockConfig("", log, "nowhere", time.Hour, 1, "index")
 
 	e, err := expvastic.NewWithConfig(ctx, log, 0, 0, 0, 0, red, rec)
 	if err != expvastic.ErrEmptyRecName {
@@ -223,8 +241,8 @@ func TestEngineNewWithConfig(t *testing.T) {
 		t.Errorf("want (nil), got (%v)", e)
 	}
 
-	rec, _ = recorder.NewMockConfig("same_name_is_illegal", log, "nowhere", time.Millisecond, time.Millisecond, 1, "index")
-	rec2, _ := recorder.NewMockConfig("same_name_is_illegal", log, "nowhere", time.Millisecond, time.Millisecond, 1, "index")
+	rec, _ = recorder.NewMockConfig("same_name_is_illegal", log, "nowhere", time.Hour, 1, "index")
+	rec2, _ := recorder.NewMockConfig("same_name_is_illegal", log, "nowhere", time.Hour, 1, "index")
 
 	e, err = expvastic.NewWithConfig(ctx, log, 0, 0, 0, 0, red, rec, rec2)
 	if err != expvastic.ErrDupRecName {

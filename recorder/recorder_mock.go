@@ -19,7 +19,6 @@ type SimpleRecorder struct {
     indexName       string
     jobChan         chan *RecordJob
     logger          logrus.FieldLogger
-    interval        time.Duration
     timeout         time.Duration
     Pmu             sync.RWMutex
     PayloadChanFunc func() chan *RecordJob
@@ -28,7 +27,7 @@ type SimpleRecorder struct {
     StartFunc       func() chan struct{}
 }
 
-func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, payloadChan chan *RecordJob, name, endpoint, indexName string, interval, timeout time.Duration) (*SimpleRecorder, error) {
+func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, payloadChan chan *RecordJob, name, endpoint, indexName string, timeout time.Duration) (*SimpleRecorder, error) {
     w := &SimpleRecorder{
         name:      name,
         endpoint:  endpoint,
@@ -36,7 +35,6 @@ func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, payloadCh
         jobChan:   payloadChan,
         logger:    logger,
         timeout:   timeout,
-        interval:  interval,
     }
     return w, nil
 }
@@ -86,7 +84,6 @@ func (s *SimpleRecorder) Start(ctx context.Context) <-chan struct{} {
     return done
 }
 
-func (s *SimpleRecorder) Name() string            { return s.name }
-func (s *SimpleRecorder) IndexName() string       { return s.indexName }
-func (s *SimpleRecorder) Interval() time.Duration { return s.interval }
-func (s *SimpleRecorder) Timeout() time.Duration  { return s.timeout }
+func (s *SimpleRecorder) Name() string           { return s.name }
+func (s *SimpleRecorder) IndexName() string      { return s.indexName }
+func (s *SimpleRecorder) Timeout() time.Duration { return s.timeout }

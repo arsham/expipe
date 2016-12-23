@@ -24,7 +24,7 @@ func ExampleSimpleRecorder() {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     done := rec.Start(ctx)
 
     errChan := make(chan error)
@@ -61,7 +61,7 @@ func ExampleSimpleRecorder() {
     // cReaded has finished
 }
 
-func ExampleSimpleRecorder_start1() {
+func ExampleSimpleRecorder_start() {
     log := lib.DiscardLogger()
     ctx, cancel := context.WithCancel(context.Background())
 
@@ -69,7 +69,7 @@ func ExampleSimpleRecorder_start1() {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     done := rec.Start(ctx)
 
     fmt.Println("Recorder has started its event loop!")

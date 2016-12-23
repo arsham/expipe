@@ -23,12 +23,11 @@ type Config struct {
     Backoff_   int    `mapstructure:"backoff"`
     IndexName_ string `mapstructure:"index_name"`
 
-    logger   logrus.FieldLogger
-    interval time.Duration
-    timeout  time.Duration
+    logger  logrus.FieldLogger
+    timeout time.Duration
 }
 
-func NewConfig(name string, log logrus.FieldLogger, endpoint string, interval, timeout time.Duration, backoff int, indexName string) (*Config, error) {
+func NewConfig(name string, log logrus.FieldLogger, endpoint string, timeout time.Duration, backoff int, indexName string) (*Config, error) {
     if endpoint == "" {
         return nil, fmt.Errorf("endpoint cannot be empty")
     }
@@ -41,7 +40,6 @@ func NewConfig(name string, log logrus.FieldLogger, endpoint string, interval, t
         name:       name,
         Endpoint_:  url,
         timeout:    timeout,
-        interval:   interval,
         logger:     log,
         Backoff_:   backoff,
         IndexName_: indexName,
@@ -51,8 +49,8 @@ func NewConfig(name string, log logrus.FieldLogger, endpoint string, interval, t
 // FromViper constructs the necessary configuration for bootstrapping the elasticsearch reader
 func FromViper(v *viper.Viper, name, key string) (*Config, error) {
     var (
-        c         Config
-        inter, to time.Duration
+        c  Config
+        to time.Duration
     )
     err := v.UnmarshalKey(key, &c)
     if err != nil {
@@ -64,7 +62,7 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
     if c.Backoff_ <= 5 {
         return nil, fmt.Errorf("back off should be at least 5: %d", c.Backoff_)
     }
-    c.interval, c.timeout = inter, to
+    c.timeout = to
 
     c.logger = logrus.StandardLogger()
 
@@ -82,13 +80,12 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 }
 
 func (c *Config) NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob) (recorder.DataRecorder, error) {
-    return NewRecorder(ctx, c.logger, payloadChan, c.name, c.Endpoint(), c.IndexName(), c.interval, c.timeout)
+    return NewRecorder(ctx, c.logger, payloadChan, c.name, c.Endpoint(), c.IndexName(), c.timeout)
 }
 func (c *Config) Name() string               { return c.name }
 func (c *Config) IndexName() string          { return c.IndexName_ }
 func (c *Config) Endpoint() string           { return c.Endpoint_ }
 func (c *Config) RoutePath() string          { return "" }
-func (c *Config) Interval() time.Duration    { return c.interval }
 func (c *Config) Timeout() time.Duration     { return c.timeout }
 func (c *Config) Logger() logrus.FieldLogger { return c.logger }
 func (c *Config) Backoff() int               { return c.Backoff_ }

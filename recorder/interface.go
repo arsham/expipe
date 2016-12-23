@@ -2,6 +2,14 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
+// Package recorder contains logic to record data into a database. Any objects that implements the DataRecorder interface
+// can be used in this system.
+//
+// Recorders should ping their endpoint upon creation to make sure they can access. Otherwise they should return
+// an error indicating they cannot start.
+//
+// When the context is canceled, the recorder should finish its job and return. The Time is used by the Engine for changing
+// the index name. It is useful for cleaning up the old data.
 package recorder
 
 import (
@@ -11,18 +19,14 @@ import (
     "github.com/arsham/expvastic/datatype"
 )
 
-// InterTimer is required by the Engine so it can read the intervals and timeouts.
-type InterTimer interface {
-    Timeout() time.Duration
-    Interval() time.Duration
-}
-
 // DataRecorder in an interface for shipping data to a repository.
 // The repository should have the concept of index/database and type/table abstractions. See ElasticSearch for more information.
 // Recorder should send nil to Err channel of the RecordJob object if no error occurs.
 type DataRecorder interface {
-    InterTimer
+    // Timeout is required by the Engine so it can read the timeouts.
+    Timeout() time.Duration
 
+    // The Engine provides this channel and sends the payload through this channel.
     // Recorder should not block when RecordJob is sent to this channel.
     PayloadChan() chan *RecordJob
 
@@ -31,7 +35,7 @@ type DataRecorder interface {
     // When the context is timedout or canceled, the recorder should return.
     Start(ctx context.Context) <-chan struct{}
 
-    // Name should return the representation string for this recorder. Choose a very simple name.
+    // Name should return the representation string for this recorder. Choose a very simple and unique name.
     Name() string
 
     // IndexName comes from the configuration, but the engine takes over.
@@ -41,7 +45,7 @@ type DataRecorder interface {
 }
 
 // RecordJob is sent with a context and a payload to be recorded.
-// If the TypeName and IndexName are different than the previous one, the recorder should use the ones engine provides
+// If the TypeName and IndexName are different than the previous one, the recorder should use the ones engine provides.
 type RecordJob struct {
     Ctx       context.Context
     Payload   datatype.DataContainer

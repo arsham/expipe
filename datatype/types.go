@@ -2,6 +2,8 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
+// Package datatype contains necessary logic to sanitise a JSON object coming from a reader. This
+// package is subjected to change.
 package datatype
 
 import (

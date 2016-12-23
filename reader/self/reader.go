@@ -2,7 +2,26 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package self contains codes for recording expvars own metrics
+// Package self contains codes for recording expvastic's own metrics.
+// Here is a list of currently collected metrics:
+//
+//      ElasticSearch Var Name    | expvastic var name
+//      ----------------------------------------------
+//      Recorders                 | expRecorders
+//      Readers                   | expReaders
+//      Read Jobs                 | readJobs
+//      Record Jobs               | recordJobs
+//      Errored Jobs              | erroredJobs
+//      Records Distributed       | recordsDistributed
+//      DataType Objects          | datatypeObjs
+//      DataType Objects Errors   | datatypeErrs
+//      Unidentified JSON Count   | unidentifiedJSON
+//      StringType Count          | stringTypeCount
+//      FloatType Count           | floatTypeCount
+//      GCListType Count          | gcListTypeCount
+//      ByteType Count            | byteTypeCount
+//      Expvar Reads              | expvarReads
+//      ElasticSearch Records     | elasticsearchRecords
 package self
 
 import (

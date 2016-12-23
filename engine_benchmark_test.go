@@ -96,7 +96,7 @@ func makeRecorders(ctx context.Context, count int, log logrus.FieldLogger, chanB
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("recorder_%d", i)
 		payloadChan := make(chan *recorder.RecordJob, chanBuff)
-		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, name, url, "intexName", time.Hour, time.Hour)
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, name, url, "intexName", time.Hour)
 		rec.Start(ctx)
 		recs[i] = rec
 	}

@@ -46,10 +46,22 @@ type Engine struct {
 }
 
 // NewWithConfig instantiates reader and recorders from the configurations.
-func NewWithConfig(ctx context.Context, log logrus.FieldLogger, readChanBuff, readResChanBuff, recChanBuff, recResChan int, red config.ReaderConf, recorders ...config.RecorderConf) (*Engine, error) {
+// readChanBuff, readResChanBuff, recChanBuff, recResChan are the channel buffer amount. Please refer to benchmarks how to choose the best values.
+func NewWithConfig(
+	ctx context.Context,
+	log logrus.FieldLogger,
+	readChanBuff,
+	readResChanBuff,
+	recChanBuff,
+	recResChan int,
+	red config.ReaderConf,
+	recorders ...config.RecorderConf,
+) (*Engine, error) {
+
 	recs := make([]recorder.DataRecorder, len(recorders))
 	jobChan := make(chan context.Context, readChanBuff)
 	resultChan := make(chan *reader.ReadJobResult, readResChanBuff)
+
 	for i, recConf := range recorders {
 		payloadChan := make(chan *recorder.RecordJob, recChanBuff)
 		rec, err := recConf.NewInstance(ctx, payloadChan)
@@ -58,6 +70,7 @@ func NewWithConfig(ctx context.Context, log logrus.FieldLogger, readChanBuff, re
 		}
 		recs[i] = rec
 	}
+
 	r, err := red.NewInstance(ctx, jobChan, resultChan)
 	if err != nil {
 		return nil, err
@@ -73,6 +86,7 @@ func NewWithReadRecorder(ctx context.Context, logger logrus.FieldLogger, recResC
 	recNames := make([]string, len(recs))
 	recsMap := make(map[string]recorder.DataRecorder, len(recs))
 	seenNames := make(map[string]struct{}, len(recs))
+
 	for i, rec := range recs {
 		if rec.Name() == "" {
 			return nil, ErrEmptyRecName
@@ -80,6 +94,7 @@ func NewWithReadRecorder(ctx context.Context, logger logrus.FieldLogger, recResC
 		if _, ok := seenNames[rec.Name()]; ok {
 			return nil, ErrDupRecName
 		}
+
 		seenNames[rec.Name()] = struct{}{}
 		recNames[i] = rec.Name()
 		recsMap[rec.Name()] = rec
@@ -104,7 +119,7 @@ func NewWithReadRecorder(ctx context.Context, logger logrus.FieldLogger, recResC
 // When the context is canceled or timed out, the engine closes all job channels, causing the readers and recorders to stop.
 func (e *Engine) Start() <-chan struct{} {
 	done := make(chan struct{})
-	e.logger.Debugf("starting with %d recorders", len(e.recorders))
+	e.logger.Infof("starting with %d recorders", len(e.recorders))
 
 	go e.once.Do(func() {
 		ctx, cancel := context.WithCancel(e.ctx)
@@ -128,7 +143,7 @@ func (e *Engine) Start() <-chan struct{} {
 func (e *Engine) eventLoop(readerDone <-chan struct{}) {
 	resultChan := e.dataReader.ResultChan()
 	ticker := time.NewTicker(e.dataReader.Interval())
-	e.logger.Debug("starting message loop")
+	e.logger.Info("starting eventloop")
 	for {
 		select {
 		case <-ticker.C:
@@ -163,8 +178,9 @@ func (e *Engine) Name() string { return e.name }
 
 // Stop closes the job channels
 func (e *Engine) Stop() {
-	// TODO: wait for the reader/recorders to finish their jobs.
+	// TODO: wait for the recorders to finish their jobs.
 	e.logger.Debug("stopping")
+	// e.observer.stop()
 	e.cancel()
 }
 

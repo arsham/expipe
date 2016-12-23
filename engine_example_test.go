@@ -35,12 +35,14 @@ func ExampleEngine_sendingJobs() {
         recorded <- "Job was recorded"
     }))
     defer recTs.Close()
+
     jobChan := make(chan context.Context)
     resultChan := make(chan *reader.ReadJobResult)
     payloadChan := make(chan *recorder.RecordJob)
+
     ctxReader := reader.NewCtxReader(redTs.URL)
     red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "typeName", 10*time.Millisecond, 10*time.Millisecond)
-    rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "reader_example", recTs.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "reader_example", recTs.URL, "intexName", 10*time.Millisecond)
     redDone := red.Start(ctx)
     recDone := rec.Start(ctx)
 
@@ -55,6 +57,7 @@ func ExampleEngine_sendingJobs() {
         panic("expected the reader to recive the job, but it blocked")
     }
     fmt.Println(<-recorded)
+
     select {
     case res = <-red.ResultChan():
         fmt.Println("Job operation success:", res.Err == nil)
@@ -67,7 +70,6 @@ func ExampleEngine_sendingJobs() {
     fmt.Println("Reader just received payload:", buf.String())
 
     cancel()
-
     _, open := <-redDone
     fmt.Println("Reader closure:", !open)
 

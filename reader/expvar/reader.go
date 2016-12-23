@@ -2,6 +2,9 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
+// Package expvar contains logic to read from an expvar provide. The data comes in JSON format. The GC
+// and memory related information will be changed to better presented to the data recorders.
+// Bytes will be turned into megabyets, gc lists will be truncated to remove zero values.
 package expvar
 
 import (

@@ -33,7 +33,7 @@ func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 	defer ts.Close()
 
 	payloadChan := make(chan *RecordJob, jobBuffC)
-	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
 	rec.Start(ctx)
 
 	errChan := make(chan error, doneBuffC)

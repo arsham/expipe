@@ -17,7 +17,6 @@ import (
 // Conf will return necessary information for setting up an endpoint, for readers or recorders.
 type Conf interface {
 	Endpoint() string
-	Interval() time.Duration
 	Timeout() time.Duration
 	Backoff() int
 	Logger() logrus.FieldLogger
@@ -27,6 +26,7 @@ type Conf interface {
 // ReaderConf defines a behaviour of a reader.
 type ReaderConf interface {
 	Conf
+	Interval() time.Duration
 
 	// NewInstance should return an intialised Reader instance.
 	NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult) (reader.DataReader, error)

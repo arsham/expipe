@@ -2,6 +2,8 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
+// Package elasticsearch contains logic to record data to an elasticsearch index. The data is already sanitised
+// by the data provider.
 package elasticsearch
 
 import (
@@ -26,12 +28,11 @@ type Recorder struct {
     indexName   string
     payloadChan chan *recorder.RecordJob
     logger      logrus.FieldLogger
-    interval    time.Duration
     timeout     time.Duration
 }
 
 // NewRecorder returns an error if it can't create the index
-func NewRecorder(ctx context.Context, log logrus.FieldLogger, payloadChan chan *recorder.RecordJob, name, endpoint, indexName string, interval, timeout time.Duration) (*Recorder, error) {
+func NewRecorder(ctx context.Context, log logrus.FieldLogger, payloadChan chan *recorder.RecordJob, name, endpoint, indexName string, timeout time.Duration) (*Recorder, error) {
     log.Debug("connecting to: ", endpoint)
     addr := elastic.SetURL(endpoint)
     logger := elastic.SetErrorLog(log)
@@ -68,7 +69,6 @@ func NewRecorder(ctx context.Context, log logrus.FieldLogger, payloadChan chan *
         payloadChan: payloadChan,
         logger:      log,
         timeout:     timeout,
-        interval:    interval,
     }, nil
 }
 
@@ -117,9 +117,6 @@ func (r *Recorder) Name() string { return r.name }
 
 // IndexName is the index/database
 func (r *Recorder) IndexName() string { return r.indexName }
-
-// Interval returns the interval
-func (r *Recorder) Interval() time.Duration { return r.interval }
 
 // Timeout returns the timeout
 func (r *Recorder) Timeout() time.Duration { return r.timeout }

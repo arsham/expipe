@@ -56,7 +56,7 @@ func ExampleSimpleReader() {
     // All done!
 }
 
-func ExampleSimpleReader_start1() {
+func ExampleSimpleReader_start() {
     log := lib.DiscardLogger()
     ctx, cancel := context.WithCancel(context.Background())
 

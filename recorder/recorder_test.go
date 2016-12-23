@@ -26,7 +26,7 @@ func TestSimpleRecorderReceivesPayload(t *testing.T) {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     rec.Start(ctx)
 
     errChan := make(chan error)
@@ -53,7 +53,7 @@ func TestSimpleRecorderSendsResult(t *testing.T) {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     rec.Start(ctx)
 
     errChan := make(chan error)
@@ -82,7 +82,7 @@ func TestSimpleRecorderErrorsOnBadURL(t *testing.T) {
     defer cancel()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", "leads nowhere", "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", "leads nowhere", "intexName", 10*time.Millisecond)
     rec.Start(ctx)
 
     errChan := make(chan error)
@@ -113,7 +113,7 @@ func TestSimpleRecorderCloses(t *testing.T) {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     doneChan := rec.Start(ctx)
     select {
     case <-doneChan:

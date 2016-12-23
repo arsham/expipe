@@ -19,18 +19,19 @@ import (
 
 var recordsDistributed = expvar.NewInt("Records Distributed")
 
-// observer contains two maps for traking the recorders.
+// observer distributes record jobs to all recorders. It contains two maps for traking the recorders.
 type observer struct {
     logger      logrus.FieldLogger
     payloadChan chan<- *reader.ReadJobResult
     resultChan  chan<- error
-    removeChan  chan string
+    removeChan  chan string // when receives a name, will remove the recorder
     // TODO: add strike, if a recorder gets 5 strikes, remove them from the list
 
     rmu       sync.RWMutex
-    recorders map[string]recorder.DataRecorder
+    recorders map[string]recorder.DataRecorder // map of recorders name->objects
+
     dmu       sync.RWMutex
-    doneChans map[string]<-chan struct{}
+    doneChans map[string]<-chan struct{} // map of done channels name->done channel
 }
 
 func newobserver(ctx context.Context, logger logrus.FieldLogger, resultChan chan<- error, initialLen int) *observer {
@@ -107,7 +108,6 @@ func (o *observer) send(ctx context.Context, typeName string, t time.Time, paylo
     o.rmu.RLock()
     recorders := o.recorders
     o.rmu.RUnlock()
-
     for name, rec := range recorders {
         // we are sending the payload for each recorder separately.
         go func(name string, rec recorder.DataRecorder) {
@@ -115,6 +115,7 @@ func (o *observer) send(ctx context.Context, typeName string, t time.Time, paylo
             o.dmu.RLock()
             doneChan := o.doneChans[name]
             o.dmu.RUnlock()
+
             timeout := rec.Timeout() + time.Duration(10*time.Second)
             timer := time.NewTimer(timeout)
             payload := &recorder.RecordJob{
@@ -126,6 +127,7 @@ func (o *observer) send(ctx context.Context, typeName string, t time.Time, paylo
                 Err:       o.resultChan,
             }
             recordsDistributed.Add(1)
+
             // sending payload
             select {
             case rec.PayloadChan() <- payload:
@@ -133,13 +135,16 @@ func (o *observer) send(ctx context.Context, typeName string, t time.Time, paylo
                 if !timer.Stop() {
                     <-timer.C
                 }
+
             case <-timer.C:
                 o.logger.Warn("timedout before receiving the error")
+
             case <-ctx.Done():
+                o.logger.Warnf("main context was closed before receiving the error response: %s", ctx.Err().Error())
                 if !timer.Stop() {
                     <-timer.C
                 }
-                o.logger.Warnf("main context was closed before receiving the error response: %s", ctx.Err().Error())
+
             case <-doneChan:
                 o.logger.Warnf("recorder %s just opted out", name)
                 o.removeChan <- name
