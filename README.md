@@ -33,7 +33,7 @@ Screenshots can be found in [this](./SCREENSHOTS.md) document. Here is an exampl
 
 ## Installation
 
-I will provide a docker image soon, but for now it needs to be installed. You need golang 1.7 (I haven't tested it with older versions, but they should be fine) and [glide][glide] installed. Simply do:
+I will provide a docker image soon, but for now it needs to be installed. You need golang 1.7 and [glide][glide] installed. Simply do:
 
 ```bash
 go get github.com/arsham/expvastic
