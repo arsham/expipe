@@ -1,5 +1,7 @@
 # Expvastic
 
+[![Build Status](https://travis-ci.org/arsham/expvastic.svg?branch=master)](https://travis-ci.org/arsham/expvastic)
+
 Expvastic can record your application's `metrics` in [ElasticSearch][elasticsearch] and you can view them with [kibana][kibana]. It can read from any applications (written in any language) that provides metrics in `json` format.
 
 1. [Features](#features)
