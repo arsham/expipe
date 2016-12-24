@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 )
 
@@ -25,24 +26,36 @@ var (
 // It implements DataReader interface.
 type Reader struct {
 	name       string
+	ctxReader  reader.ContextReader
+	logger     logrus.FieldLogger
+	mapper     datatype.Mapper
 	typeName   string
 	jobChan    chan context.Context
 	resultChan chan *reader.ReadJobResult
-	ctxReader  reader.ContextReader
-	logger     logrus.FieldLogger
 	interval   time.Duration
 	timeout    time.Duration
 }
 
 // NewExpvarReader creates the worker and sets up its channels.
 // Because the caller is reading the resp.Body, it is its job to close it.
-func NewExpvarReader(logger logrus.FieldLogger, ctxReader reader.ContextReader, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, name, typeName string, interval, timeout time.Duration) (*Reader, error) {
+func NewExpvarReader(
+	logger logrus.FieldLogger,
+	ctxReader reader.ContextReader,
+	mapper datatype.Mapper,
+	jobChan chan context.Context,
+	resultChan chan *reader.ReadJobResult,
+	name string,
+	typeName string,
+	interval time.Duration,
+	timeout time.Duration,
+) (*Reader, error) {
 	// TODO: ping the reader.
 	// TODO: have the user decide how large the channels can be.
 	logger = logger.WithField("reader", "expvar")
 	w := &Reader{
 		name:       name,
 		typeName:   typeName,
+		mapper:     mapper,
 		jobChan:    jobChan,
 		resultChan: resultChan,
 		ctxReader:  ctxReader,
@@ -79,6 +92,9 @@ func (r *Reader) Name() string { return r.name }
 
 // TypeName shows the typeName the recorder should record as
 func (r *Reader) TypeName() string { return r.typeName }
+
+// Mapper returns the mapper object
+func (r *Reader) Mapper() datatype.Mapper { return r.mapper }
 
 // Interval returns the interval
 func (r *Reader) Interval() time.Duration { return r.interval }

@@ -8,15 +8,17 @@ import (
     "bytes"
     "testing"
 
+    "github.com/arsham/expvastic/lib"
     "github.com/spf13/viper"
 )
 
 func TestParseReader(t *testing.T) {
     v := viper.New()
+    log := lib.DiscardLogger()
     v.SetConfigType("yaml")
 
     v.ReadConfig(bytes.NewBuffer([]byte("")))
-    _, err := parseReader(v, "non_existance_plugin", "readers.reader1")
+    _, err := parseReader(v, log, "non_existance_plugin", "readers.reader1")
     if _, ok := err.(NotSupportedErr); !ok {
         t.Errorf("want NotSupportedErr error, got (%v)", err)
     }
@@ -35,7 +37,7 @@ func TestParseReader(t *testing.T) {
     `))
 
     v.ReadConfig(input)
-    c, err := parseReader(v, "expvar", "reader1")
+    c, err := parseReader(v, log, "expvar", "reader1")
     if err != nil {
         t.Errorf("want no errors, got (%v)", err)
     }

@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
 )
@@ -25,7 +26,8 @@ func TestExpvarReaderErrors(t *testing.T) {
 	jobChan := make(chan context.Context)
 	resultChan := make(chan *reader.ReadJobResult)
 
-	red, _ := NewExpvarReader(log, ctxReader, jobChan, resultChan, "my_reader", "example_type", time.Second, time.Second)
+	mapper := &datatype.MapConvertMock{}
+	red, _ := NewExpvarReader(log, ctxReader, mapper, jobChan, resultChan, "my_reader", "example_type", time.Second, time.Second)
 	red.Start(ctx)
 	defer cancel()
 
@@ -51,7 +53,8 @@ func TestExpvarReaderClosesStream(t *testing.T) {
 	jobChan := make(chan context.Context)
 	resultChan := make(chan *reader.ReadJobResult)
 
-	red, _ := NewExpvarReader(log, ctxReader, jobChan, resultChan, "my_reader", "example_type", time.Second, time.Second)
+	mapper := &datatype.MapConvertMock{}
+	red, _ := NewExpvarReader(log, ctxReader, mapper, jobChan, resultChan, "my_reader", "example_type", time.Second, time.Second)
 	done := red.Start(ctx)
 	jobChan <- ctx
 

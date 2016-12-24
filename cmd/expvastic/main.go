@@ -109,12 +109,12 @@ func fromFlags() *config.ConfMap {
 		Recorders: make(map[string]config.RecorderConf, 1),
 	}
 
-	confMap.Recorders["elasticsearch"], err = elasticsearch.NewConfig("elasticsearch", log, *recorder, *timeout, *backoff, *indexName)
+	confMap.Recorders["elasticsearch"], err = elasticsearch.NewConfig(log, "elasticsearch", *recorder, *timeout, *backoff, *indexName)
 	if err != nil {
 		log.Fatal(err)
 	}
 	r := strings.SplitN(*reader, "/", 2)
-	confMap.Readers["expvar"], err = expvar.NewConfig("expvar", *typeName, log, r[0], r[1], *interval, *timeout, *backoff)
+	confMap.Readers["expvar"], err = expvar.NewConfig(log, "expvar", *typeName, r[0], r[1], *interval, *timeout, *backoff, "")
 	if err != nil {
 		log.Fatal(err)
 	}

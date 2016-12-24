@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 )
 
@@ -16,6 +17,7 @@ import (
 type SimpleReader struct {
 	name       string
 	typeName   string
+	mapper     datatype.Mapper
 	jobChan    chan context.Context
 	resultChan chan *ReadJobResult
 	ctxReader  ContextReader
@@ -29,6 +31,7 @@ func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, jobChan
 	w := &SimpleReader{
 		name:       name,
 		typeName:   typeName,
+		mapper:     &datatype.MapConvertMock{},
 		jobChan:    jobChan,
 		resultChan: resultChan,
 		ctxReader:  ctxReader,
@@ -71,6 +74,7 @@ func (m *SimpleReader) Start(ctx context.Context) <-chan struct{} {
 
 func (m *SimpleReader) Name() string                    { return m.name }
 func (m *SimpleReader) TypeName() string                { return m.typeName }
+func (m *SimpleReader) Mapper() datatype.Mapper         { return m.mapper }
 func (m *SimpleReader) JobChan() chan context.Context   { return m.jobChan }
 func (m *SimpleReader) ResultChan() chan *ReadJobResult { return m.resultChan }
 func (m *SimpleReader) Interval() time.Duration         { return time.Second }

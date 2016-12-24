@@ -40,8 +40,8 @@ type ConfMap struct {
 }
 
 func checkSettingsSect(log *logrus.Logger, v *viper.Viper) error {
-    if v.IsSet("settings.debug_evel") {
-        newLevel, ok := v.Get("settings.debug_evel").(string)
+    if v.IsSet("settings.log_level") {
+        newLevel, ok := v.Get("settings.log_level").(string)
         if !ok {
             return &StructureErr{"debug_level", "should be a string", nil}
         }
@@ -83,7 +83,7 @@ func LoadYAML(log *logrus.Logger, v *viper.Viper) (*ConfMap, error) {
         return nil, err
     }
 
-    return loadConfiguration(v, routes, readerKeys, recorderKeys)
+    return loadConfiguration(v, log, routes, readerKeys, recorderKeys)
 }
 
 // readers is a map of keyName:typeName
@@ -94,7 +94,7 @@ func getReaders(v *viper.Viper) (readers map[string]string, err error) {
     }
     readers = make(map[string]string)
     for reader, settings := range v.GetStringMap("readers") {
-        _ = settings
+        _ = settings // TODO: remove
         switch rType := v.GetString("readers." + reader + ".type"); rType {
         case "self":
             readers[reader] = rType
@@ -105,7 +105,6 @@ func getReaders(v *viper.Viper) (readers map[string]string, err error) {
         default:
             return nil, newNotSpecifiedErr(reader, "type not defined", nil)
         }
-
     }
     return
 }
@@ -119,7 +118,7 @@ func getRecorders(v *viper.Viper) (recorders map[string]string, err error) {
     recorders = make(map[string]string)
 
     for recorder, settings := range v.GetStringMap("recorders") {
-        _ = settings
+        _ = settings // TODO: remove
         switch rType := v.GetString("recorders." + recorder + ".type"); rType {
         case "elasticsearch":
             recorders[recorder] = rType
@@ -178,14 +177,14 @@ func checkAgainstReadRecorders(routes routeMap, readerKeys, recorderKeys map[str
     return nil
 }
 
-func loadConfiguration(v *viper.Viper, routes routeMap, readerKeys, recorderKeys map[string]string) (*ConfMap, error) {
+func loadConfiguration(v *viper.Viper, log logrus.FieldLogger, routes routeMap, readerKeys, recorderKeys map[string]string) (*ConfMap, error) {
     confMap := &ConfMap{
         Readers:   make(map[string]ReaderConf, len(readerKeys)),
         Recorders: make(map[string]RecorderConf, len(recorderKeys)),
     }
 
     for name, reader := range readerKeys {
-        r, err := parseReader(v, reader, name)
+        r, err := parseReader(v, log, reader, name)
         if err != nil {
             return nil, err
         }
@@ -193,7 +192,7 @@ func loadConfiguration(v *viper.Viper, routes routeMap, readerKeys, recorderKeys
     }
 
     for name, recorder := range recorderKeys {
-        r, err := readRecorders(v, recorder, name)
+        r, err := readRecorders(v, log, recorder, name)
         if err != nil {
             return nil, err
         }
@@ -203,20 +202,20 @@ func loadConfiguration(v *viper.Viper, routes routeMap, readerKeys, recorderKeys
     return confMap, nil
 }
 
-func parseReader(v *viper.Viper, readerType, name string) (ReaderConf, error) {
+func parseReader(v *viper.Viper, log logrus.FieldLogger, readerType, name string) (ReaderConf, error) {
     switch readerType {
     case "expvar":
-        return expvar.FromViper(v, name, "readers."+name)
+        return expvar.FromViper(v, log, name, "readers."+name)
     case "self":
-        return self.FromViper(v, name, "readers."+name)
+        return self.FromViper(v, log, name, "readers."+name)
     }
     return nil, notSupportedErr(readerType)
 }
 
-func readRecorders(v *viper.Viper, recorderType, name string) (RecorderConf, error) {
+func readRecorders(v *viper.Viper, log logrus.FieldLogger, recorderType, name string) (RecorderConf, error) {
     switch recorderType {
     case "elasticsearch":
-        return elasticsearch.FromViper(v, name, "recorders."+name)
+        return elasticsearch.FromViper(v, log, name, "recorders."+name)
     }
     return nil, notSupportedErr(recorderType)
 }

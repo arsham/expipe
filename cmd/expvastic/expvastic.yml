@@ -1,5 +1,5 @@
 settings:
-    debug_evel: info
+    log_level: info
 
 readers:
     my_app: # service name
@@ -7,6 +7,7 @@ readers:
         endpoint: localhost:1234
         routepath: /debug/vars
         type_name: my_app
+        map_file: maps.yml
         interval: 500ms
         timeout: 3s
         backoff: 10

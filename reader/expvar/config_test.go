@@ -10,12 +10,14 @@ import (
     "testing"
     "time"
 
+    "github.com/arsham/expvastic/lib"
     "github.com/spf13/viper"
 )
 
 func TestLoadExpvarSuccess(t *testing.T) {
     v := viper.New()
     v.SetConfigType("yaml")
+    log := lib.DiscardLogger()
 
     input := bytes.NewBuffer([]byte(`
     readers:
@@ -30,7 +32,7 @@ func TestLoadExpvarSuccess(t *testing.T) {
     `))
 
     v.ReadConfig(input)
-    c, err := FromViper(v, "reader1", "readers.reader1")
+    c, err := FromViper(v, log, "reader1", "readers.reader1")
     if err != nil {
         t.Fatalf("want no errors, got (%v)", err)
     }
@@ -56,6 +58,7 @@ func TestLoadExpvarSuccess(t *testing.T) {
 
 func TestLoadExpvarErrors(t *testing.T) {
     v := viper.New()
+    log := lib.DiscardLogger()
     v.SetConfigType("yaml")
     tcs := []struct {
         input *bytes.Buffer
@@ -142,7 +145,7 @@ func TestLoadExpvarErrors(t *testing.T) {
         name := fmt.Sprintf("case_%d", i)
         t.Run(name, func(t *testing.T) {
             v.ReadConfig(tc.input)
-            c, err := FromViper(v, "reader1", "readers.reader1")
+            c, err := FromViper(v, log, "reader1", "readers.reader1")
             if err == nil {
                 t.Fatal("want an errors, got nothing")
             }

@@ -1,44 +1,65 @@
-# About
+# Expvastic
 
-This is an early release and it is under heavy development. There will be a lot of changes soon but I'm planning to finalise the API as soon as I can. I hope you enjoy it!
+Expvastic can record your application's `metrics` in [ElasticSearch][elasticsearch] and you can view them with [kibana][kibana]. It can read from any applications (written in any language) that provides metrics in `json` format.
 
-Expvastic can read from any endpoints that provides expvar data and ships them to [elasticsearch](https://github.com/elastic/elasticsearch). You can inspect the metrics with [kibana](https://github.com/elastic/kibana) [dashboard is provided](https://github.com/arsham/expvastic/blob/master/bin/dashboard.json).
+1. [Features](#features)
+2. [Installation](#installation)
+3. [Kibana](#kibana)
+  * [Importing Dashboard](#importing-dashboard)
+4. [Usage](#usage)
+  * [With Flags](#with-flags)
+  * [Advanced](#advanced)
+5. [LICENSE](#license)
 
-Please refer to golang's [expvar documentation](https://golang.org/pkg/expvar/) for more information.
+## Features
 
-Here is a couple of screenshots:
+* Very lightweight and fast.
+* Can read from multiple input.
+* Can ship the metrics to multiple databases.
+* Shows memory usages and GC pauses of the apps.
+* Metrics can be aggregated for different apps (with elasticsearch's type system).
+* A kibana dashboard is also provided [here](./blob/master/bin/dashboard.json).
+* Maps values how you define them. For example you can change bytes to megabytes.
+* Benchmarks are included.
 
-![Colored](http://i.imgur.com/83vbwoM.png)
-![Colored](http://i.imgur.com/0ROSWsM.png)
+There are TODO items in the issue section. Feature requests welcome!
 
-## Installing
 
-You need golang 1.7 (I haven't tested it with older versions, but they should be fine) and [glide](https://github.com/Masterminds/glide) installed. Simply do:
+Please refer to golang's [expvar documentation][expvar] for more information.
+
+Screenshots can be found in [this](./blob/master/SCREENSHOTS.md) document. Here is an example:
+
+![Colored](http://i.imgur.com/34kdQe8.png)
+
+## Installation
+
+I will provide a docker image soon, but for now it needs to be installed. You need golang 1.7 (I haven't tested it with older versions, but they should be fine) and [glide][glide] installed. Simply do:
 
 ```bash
-go get github.com/arsham/expvastic/...
+go get github.com/arsham/expvastic
 cd $GOPATH/src/github.com/arsham/expvastic
 glide install
+go install ./cmd/expvastic
 ```
 
-You also need elasticsearch and kibana, here is a couple of docker images for you:
+You also need elasticsearch and kibana, here is a couple of docker images you can start with:
 
 ```bash
 docker run -d --restart always --name expvastic -p 9200:9200 --ulimit nofile=98304:98304 -v "/path/to/somewhere/expvastic":/usr/share/elasticsearch/data elasticsearch
 docker run -d --restart always --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
 ```
 
-### Kibana
+## Kibana
 
-Access (the dashboard)[http://localhost] (or any other ports you have exposed kibana to, notice the "-p:80:5601" above), and enter "expvastic" as "Index name or pattern" in management section.
+Access [the dashboard](http://localhost) (or any other ports you have exposed kibana to, notice the `-p:80:5601` above), and enter `expvastic` as `Index name or pattern` in `management` section.
 
-Select "@timestamp" as "Time-field name". In case it doesn't show up, click "Index contains time-based events" twice, it will provice you with the timestamp. Then click on create button. On the next page:
+Select `@timestamp` for `Time-field name`. In case it doesn't show up, click `Index contains time-based events` twice, it will provide you with the timestamp. Then click on create button.
 
-### Import Dashboard
+### Importing Dashboard
 
-Go to "Saved Objects" section of management, and click on the "import" button. Upload [this](https://github.com/arsham/expvastic/blob/master/bin/dashboard.json) file and you're done!
+Go to `Saved Objects` section of `management`, and click on the `import` button. Upload [this](./blob/master/bin/dashboard.json) file and you're done!
 
-There are two dashboards provided, one shows the expvastic's metrics, and you can use the other one for everything you have setup expvastic for.
+One of the provided dashboards shows the expvastic's own metrics, and you can use the other one for everything you have defined in the configuration file.
 
 ## Usage
 
@@ -55,141 +76,18 @@ For more flags run:
 expvastic -h
 ```
 
-### With Configuration File
+### Advanced
 
-Here an example configuration, save it somewhere (let's call it expvastic.yml for now):
-
-```yaml
-settings:
-    debug_evel: info
-
-readers:
-    FirstApp: # service name
-        type: expvar
-        type_name: my_app1
-        endpoint: localhost:1234
-        routepath: /debug/vars
-        interval: 500ms
-        timeout: 3s
-        log_level: debug
-        backoff: 10
-    SomeApplication:
-        type: expvar
-        type_name: SomeApplication
-        endpoint: localhost:1235
-        routepath: /debug/vars
-        interval: 500ms
-        timeout: 13s
-        log_level: debug
-        backoff: 10
-
-recorders:
-    main_elasticsearch:
-        type: elasticsearch
-        endpoint: 127.0.0.1:9200
-        index_name: expvastic
-        timeout: 8s
-        backoff: 10
-    the_other_elasticsearch:
-        type: elasticsearch
-        endpoint: 127.0.0.1:9200
-        index_name: expvastic
-        timeout: 18s
-        backoff: 10
-
-routes:
-    route1:
-        readers:
-            - FirstApp
-        recorders:
-            - main_elasticsearch
-    route2:
-        readers:
-            - FirstApp
-            - SomeApplication
-        recorders:
-            - main_elasticsearch
-    route3:
-        readers:
-            - SomeApplication
-        recorders:
-            - main_elasticsearch
-            - the_other_elasticsearch
-```
-
-Then run the application:
-
-```bash
-expvastic -c expvastic.yml
-```
-
-You can mix and match the routes, but the engine will choose the best setup to achive your goal without duplicating the results. For instance assume you set the routes like this:
-
-```yaml
- readers:
-     app_0:
-     app_1:
-     app_2:
- recorders:
-     elastic_0:
-     elastic_1:
-     elastic_2:
-     elastic_3:
- routes:
-     route1:
-         readers:
-             - app_0
-             - app_2
-         recorders:
-             - elastic_1
-     route2:
-         readers:
-             - app_0
-         recorders:
-             - elastic_1
-             - elastic_2
-             - elastic_3
-     route2:
-         readers:
-             - app_1
-             - app_2
-         recorders:
-             - elastic_1
-             - elastic_0
-```
-
-Expvastic creates three engines like so:
-
-```
-    Data from app_0 will be shipped to: elastic_1, elastic_2 and elastic_3
-    Data from app_1 will be shipped to: elastic_1 and, elastic_0
-    Data from app_2 will be shipped to: elastic_1 and, elastic_0
-```
-
-## Tests and Benchmarks
-
-Please refer to this [document](https://github.com/arsham/expvastic/blob/master/TESTING.md).
-
-## TODO
-- [ ] Decide how to show GC information correctly
-- [ ] When reader/recorder are not available, don't check right away
-- [ ] Create UUID for messages in order to log them
-- [X] Read from multiple sources
-- [X] Record expvastic's own metrics
-- [ ] Use dates on index names
-- [ ] Read from other providers; python, JMX etc.
-- [ ] Read from log files
-- [X] Benchmarks
-- [ ] Create a docker image
-- [ ] Make a compose file
-- [=] Gracefully shutdown
-- [ ] Share kibana setups
-- [=] Read from yaml/toml/json configuration files
-- [X] Create different timeouts for each reader/recorder
-- [ ] Read from etcd/consul for configurations
+Please refer to [this](./blob/master/RECIPES.md) document for advanced configuration and mappings.
 
 ## LICENSE
 
-Use of this source code is governed by the Apache 2.0 license. License that can be found in the LICENSE file.
+Use of this source code is governed by the Apache 2.0 license. License that can be found in the [LICENSE](./blob/master/LICENSE) file.
 
-Thanks!
+`Enjoy!`
+
+
+[expvar]: https://golang.org/pkg/expvar/
+[glide]: https://github.com/Masterminds/glide
+[elasticsearch]: https://github.com/elastic/elasticsearch
+[kibana]: https://github.com/elastic/kibana

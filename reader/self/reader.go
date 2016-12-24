@@ -34,6 +34,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 )
 
@@ -42,15 +43,24 @@ import (
 type Reader struct {
 	name       string
 	typeName   string
+	logger     logrus.FieldLogger
+	mapper     datatype.Mapper
 	jobChan    chan context.Context
 	resultChan chan *reader.ReadJobResult
-	logger     logrus.FieldLogger
 	interval   time.Duration
 	url        string
 }
 
 // NewSelfReader exposes expvastic's own metrics.
-func NewSelfReader(logger logrus.FieldLogger, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, name, typeName string, interval time.Duration) (*Reader, error) {
+func NewSelfReader(
+	logger logrus.FieldLogger,
+	mapper datatype.Mapper,
+	jobChan chan context.Context,
+	resultChan chan *reader.ReadJobResult,
+	name,
+	typeName string,
+	interval time.Duration,
+) (*Reader, error) {
 	l, _ := net.Listen("tcp", ":0")
 	l.Close()
 	go http.ListenAndServe(l.Addr().String(), nil)
@@ -60,6 +70,7 @@ func NewSelfReader(logger logrus.FieldLogger, jobChan chan context.Context, resu
 	w := &Reader{
 		name:       name,
 		typeName:   typeName,
+		mapper:     mapper,
 		jobChan:    jobChan,
 		resultChan: resultChan,
 		logger:     logger,
@@ -95,6 +106,9 @@ func (r *Reader) Name() string { return r.name }
 
 // TypeName shows the typeName the recorder should record as
 func (r *Reader) TypeName() string { return r.typeName }
+
+// Mapper returns the mapper object
+func (r *Reader) Mapper() datatype.Mapper { return r.mapper }
 
 // Interval returns the interval
 func (r *Reader) Interval() time.Duration { return r.interval }

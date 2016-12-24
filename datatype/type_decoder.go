@@ -15,12 +15,20 @@ import (
 // TODO: bypass the operation that won't be converted in any way. They are not supposed to be read
 // and converted back.
 // TODO: this operation can happen only once. Lazy load the thing
-func JobResultDataTypes(r io.Reader) DataContainer {
+func JobResultDataTypes(r io.Reader, mapper Mapper) DataContainer {
     obj, err := jason.NewObjectFromReader(r)
     if err != nil {
         return &Container{Err: err}
     }
-    return getJasonValues("", obj.Map())
+    var payload []DataType
+    for d := range mapper.Values("", obj.Map()) {
+        payload = append(payload, d)
+    }
+    if len(payload) == 0 {
+        expUnidentifiedJSON.Add(1)
+        return &Container{Err: ErrUnidentifiedJason}
+    }
+    return NewContainer(payload)
 }
 
 // FromJason returns an instance of DataType from jason value
@@ -68,6 +76,7 @@ func gcListValues(key string, values []*jason.Value) (result []DataType) {
                 res[i] = uint64(r)
             }
         }
+        expGCListTypeCount.Add(1)
         result = []DataType{&GCListType{key, res}}
     }
     return

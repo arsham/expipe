@@ -1,0 +1,24 @@
+gc_types:
+    PauseEnd
+    PauseNs
+    memstats.PauseEnd
+    memstats.PauseNs
+memory_bytes:
+    Alloc: mb
+    TotalAlloc: mb
+    Sys: mb
+    HeapAlloc: mb
+    HeapSys: mb
+    HeapIdle: mb
+    HeapInuse: mb
+    HeapReleased: mb
+    StackInuse: mb
+    memstats.Alloc: mb
+    memstats.TotalAlloc: mb
+    memstats.Sys: mb
+    memstats.HeapAlloc: mb
+    memstats.HeapSys: mb
+    memstats.HeapIdle: mb
+    memstats.HeapInuse: mb
+    memstats.HeapReleased: mb
+    memstats.StackInuse: mb

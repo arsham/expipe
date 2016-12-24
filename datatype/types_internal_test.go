@@ -116,18 +116,21 @@ func testCase() []caseType {
 }
 
 func TestGetJasonValues(t *testing.T) {
-
+    mapper := &MapConvertMock{}
     for i, tc := range testCase() {
         name := fmt.Sprintf("case %d", i)
         t.Run(name, func(t *testing.T) {
-            j, _ := jason.NewValueFromReader(tc.value)
-            m, _ := j.Object()
-            results := getJasonValues(tc.prefix, m.Map())
-            if results.Err != nil {
-                t.Errorf("expected no errors, got (%s)", results.Err)
-                return
+            var payload []DataType
+            obj, _ := jason.NewObjectFromReader(tc.value)
+            for d := range mapper.Values(tc.prefix, obj.Map()) {
+                payload = append(payload, d)
             }
 
+            if len(payload) == 0 {
+                t.Errorf("want (%d), got (%d)", len(tc.expected), len(payload))
+                return
+            }
+            results := NewContainer(payload)
             if !isIn(results.List(), tc.expected) {
                 t.Errorf("expected (%v), got (%v)", tc.expected, results.List())
             }
@@ -136,18 +139,19 @@ func TestGetJasonValues(t *testing.T) {
 }
 
 func TestFromReader(t *testing.T) {
+    mapper := &MapConvertMock{}
     for i, tc := range testCase() {
         if tc.prefix != "" {
             continue
         }
+
         name := fmt.Sprintf("case %d", i)
         t.Run(name, func(t *testing.T) {
 
-            results := JobResultDataTypes(tc.value)
+            results := JobResultDataTypes(tc.value, mapper)
             if results.Error() != nil {
                 t.Errorf("expected no errors, got (%s)", results.Error())
             }
-
             if !isIn(results.List(), tc.expected) {
                 t.Errorf("want (%s) got (%s)", tc.expected, results.List())
             }
@@ -155,7 +159,7 @@ func TestFromReader(t *testing.T) {
     }
 
     value := strings.NewReader(`{"Alloc": "sdsds"}`)
-    results := JobResultDataTypes(value)
+    results := JobResultDataTypes(value, mapper)
     if results.Error() == nil {
         t.Error("expected error, got nothing")
     }

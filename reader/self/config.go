@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 	"github.com/spf13/viper"
 )
@@ -22,13 +23,14 @@ type Config struct {
 	name      string
 	TypeName_ string `mapstructure:"type_name"`
 	Interval_ string `mapstructure:"interval"`
+	mapper    datatype.Mapper
 
 	interval time.Duration
-	logger   logrus.FieldLogger
+	log      logrus.FieldLogger
 }
 
 // FromViper constructs the necessary configuration for bootstrapping the expvar reader
-func FromViper(v *viper.Viper, name, key string) (*Config, error) {
+func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Config, error) {
 	var (
 		c     Config
 		inter time.Duration
@@ -44,15 +46,15 @@ func FromViper(v *viper.Viper, name, key string) (*Config, error) {
 	if c.TypeName_ == "" {
 		return nil, fmt.Errorf("type_name cannot be empty: %s", c.TypeName_)
 	}
-
+	c.mapper = datatype.DefaultMapper()
 	c.interval = inter
-	c.logger = logrus.StandardLogger()
+	c.log = log
 	c.name = name
 	return &c, nil
 }
 
 func (c *Config) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult) (reader.DataReader, error) {
-	return NewSelfReader(c.logger, jobChan, resultChan, c.name, c.TypeName(), c.interval)
+	return NewSelfReader(c.log, c.mapper, jobChan, resultChan, c.name, c.TypeName(), c.interval)
 }
 
 func (c *Config) Name() string               { return c.name }
@@ -61,5 +63,5 @@ func (c *Config) Endpoint() string           { return "" }
 func (c *Config) RoutePath() string          { return "" }
 func (c *Config) Interval() time.Duration    { return c.interval }
 func (c *Config) Timeout() time.Duration     { return 0 }
-func (c *Config) Logger() logrus.FieldLogger { return c.logger }
+func (c *Config) Logger() logrus.FieldLogger { return c.log }
 func (c *Config) Backoff() int               { return 0 }

@@ -27,56 +27,62 @@ type Config struct {
     timeout time.Duration
 }
 
-func NewConfig(name string, log logrus.FieldLogger, endpoint string, timeout time.Duration, backoff int, indexName string) (*Config, error) {
-    if endpoint == "" {
-        return nil, fmt.Errorf("endpoint cannot be empty")
-    }
-    url, err := lib.SanitiseURL(endpoint)
-    if err != nil {
-        return nil, fmt.Errorf("invalid endpoint: %d", endpoint)
-    }
-
-    return &Config{
+func NewConfig(log logrus.FieldLogger, name string, endpoint string, timeout time.Duration, backoff int, indexName string) (*Config, error) {
+    c := &Config{
         name:       name,
-        Endpoint_:  url,
+        Endpoint_:  endpoint,
         timeout:    timeout,
-        logger:     log,
         Backoff_:   backoff,
         IndexName_: indexName,
-    }, nil
+        logger:     log,
+    }
+    return withConfig(c)
 }
 
 // FromViper constructs the necessary configuration for bootstrapping the elasticsearch reader
-func FromViper(v *viper.Viper, name, key string) (*Config, error) {
+func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Config, error) {
     var (
-        c  Config
-        to time.Duration
+        c       Config
+        timeout time.Duration
     )
     err := v.UnmarshalKey(key, &c)
     if err != nil {
         return nil, fmt.Errorf("decodeing config: %s", err)
     }
-    if to, err = time.ParseDuration(c.Timeout_); err != nil {
+
+    c.name = name
+    c.logger = log
+
+    if timeout, err = time.ParseDuration(c.Timeout_); err != nil {
         return nil, fmt.Errorf("parse timeout: %s", err)
     }
-    if c.Backoff_ <= 5 {
-        return nil, fmt.Errorf("back off should be at least 5: %d", c.Backoff_)
-    }
-    c.timeout = to
+    c.timeout = timeout
 
-    c.logger = logrus.StandardLogger()
+    return withConfig(&c)
+}
+
+func withConfig(c *Config) (*Config, error) {
+    if c.name == "" {
+        return nil, fmt.Errorf("name cannot be empty")
+    }
 
     if c.Endpoint_ == "" {
         return nil, fmt.Errorf("endpoint cannot be empty")
     }
-    url, err := lib.SanitiseURL(c.Endpoint_)
+    endpoint, err := lib.SanitiseURL(c.Endpoint_)
     if err != nil {
         return nil, fmt.Errorf("invalid endpoint: %d", c.Endpoint_)
     }
-    c.Endpoint_ = url
+    c.Endpoint_ = endpoint
 
-    c.name = name
-    return &c, nil
+    if c.IndexName_ == "" {
+        return nil, fmt.Errorf("index_name cannot be empty")
+    }
+
+    if c.Backoff_ <= 5 {
+        return nil, fmt.Errorf("back off should be at least 5: %d", c.Backoff_)
+    }
+    return c, nil
 }
 
 func (c *Config) NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob) (recorder.DataRecorder, error) {

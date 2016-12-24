@@ -40,7 +40,7 @@ func TestLoadSettingsErrors(t *testing.T) {
 
     input = bytes.NewBuffer([]byte(`
     settings:
-        debug_evel:
+        log_level:
             - 123
     `))
     v.ReadConfig(input)
@@ -51,7 +51,7 @@ func TestLoadSettingsErrors(t *testing.T) {
 
     input = bytes.NewBuffer([]byte(`
     settings:
-        debug_evel: debug
+        log_level: debug
     `))
     v.ReadConfig(input)
     LoadYAML(log, v)

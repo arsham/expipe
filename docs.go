@@ -4,12 +4,7 @@
 
 // Package expvastic can read from any endpoints that provides expvar data and ships them to elasticsearch. You can inspect the metrics with kibana.
 //
-// Dashboard is provided here: https://github.com/arsham/expvastic/blob/master/bin/dashboard.json
-//
 // Please refer to golang's expvar documentation for more information.
-//
-// Here is a couple of screenshots: http://i.imgur.com/6kB88g4.png and  http://i.imgur.com/0ROSWsM.png
-//
 // Installation guides can be found on github page: https://github.com/arsham/expvastic
 //
 // At the heart of this package, there is Engine. It acts like a glue between a Reader and a Recorder. Messages are transfered in a package called DataContainer, which is a list of DataType objects.
@@ -17,43 +12,41 @@
 // Here an example configuration, save it somewhere (let's call it expvastic.yml for now):
 //
 //    settings:
-//        debug_evel: info
+//        log_level: info
 //
-//    readers:
-//        FirstApp: # service name
+//    readers:                           # You can specify the applications you want to show the metrics
+//        FirstApp:                      # service name
+//            type: expvar               # the type of reader. More to come soon!
+//            type_name: AppVastic       # this will be the _type in elasticsearch
+//            endpoint: localhost:1234   # where the application
+//            routepath: /debug/vars     # the endpoint that app provides the metrics
+//            interval: 500ms            # every half a second, it will collect the metrics.
+//            timeout: 3s                # in 3 seconds it gives in if the application is not responsive
+//            backoff: 10                # after 10 times the application didn't response, it will stop reading from it
+//        AnotherApplication:
 //            type: expvar
-//            type_name: my_app1 # this is the elasticsearch type name
-//            endpoint: localhost:1234
-//            routepath: /debug/vars
-//            interval: 500ms
-//            timeout: 3s
-//            log_level: debug
-//            backoff: 10
-//        SomeApplication:
-//            type: expvar
-//            type_name: SomeApplication
+//            type_name: this_is_awesome
 //            endpoint: localhost:1235
-//            routepath: /debug/vars
+//            routepath: /metrics
 //            interval: 500ms
 //            timeout: 13s
-//            log_level: debug
 //            backoff: 10
 //
-//    recorders:
+//    recorders:                         # This section is where the data will be shipped to
 //        main_elasticsearch:
-//            type: elasticsearch
+//            type: elasticsearch        # the type of recorder. More to come soon!
 //            endpoint: 127.0.0.1:9200
 //            index_name: expvastic
 //            timeout: 8s
 //            backoff: 10
 //        the_other_elasticsearch:
 //            type: elasticsearch
-//            endpoint: 127.0.0.1:9200
+//            endpoint: 127.0.0.1:9201
 //            index_name: expvastic
 //            timeout: 18s
 //            backoff: 10
 //
-//    routes:
+//    routes:                            # You can specify metrics of which application will be recorded in which target
 //        route1:
 //            readers:
 //                - FirstApp
@@ -62,12 +55,12 @@
 //        route2:
 //            readers:
 //                - FirstApp
-//                - SomeApplication
+//                - AnotherApplication
 //            recorders:
 //                - main_elasticsearch
-//        route3:
+//        route3:                      # Yes, you can have multiple!
 //            readers:
-//                - SomeApplication
+//                - AnotherApplication
 //            recorders:
 //                - main_elasticsearch
 //                - the_other_elasticsearch
@@ -115,18 +108,35 @@
 //     Data from app_1 will be shipped to: elastic_1 and, elastic_0
 //     Data from app_2 will be shipped to: elastic_1 and, elastic_0
 //
-// For running tests:
+// You can change the numbers to your liking:
+//
+//     gc_types:                      # These inputs will be collected into one list and zero values will be removed
+//         memstats.PauseEnd
+//         memstats.PauseNs
+//
+//     memory_bytes:                   # These values will be transoformed from bytes
+//         StackInuse: mb              # To MB
+//         memstats.Alloc: gb          # To GB
+//
+// To run the tests for the codes, in the root of the application run:
 //   go test $(glide nv)
 //
-// For getting test coverages, use this gist: https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a. Then run:
+// Or for testing readers:
 //
-//    goverall
+//    go test ./readers
 //
-// For getting benchmarks
+// To show the coverage, se this gist https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a. Then run:
 //
-//   go test $(glide nv) -run=^$ -bench=.
+//   goverall
+//
+// It will open a browser tab and show you the coverage.
+//
+// To run all benchmarks:
+//
+//    go test $(glide nv) -run=^$ -bench=.
 //
 // For showing the memory and cpu profiles, on each folder run:
+//
 //   BASENAME=$(basename $(pwd))
 //   go test -run=^$ -bench=. -cpuprofile=cpu.out -benchmem -memprofile=mem.out
 //   go tool pprof -pdf $BASENAME.test cpu.out > cpu.pdf && open cpu.pdf

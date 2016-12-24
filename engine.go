@@ -207,12 +207,13 @@ func (e *Engine) issueReaderJob() {
 // TODO: test the error
 func (e *Engine) redirectToRecorders(r *reader.ReadJobResult) {
 	defer r.Res.Close()
-	payload := datatype.JobResultDataTypes(r.Res)
+	payload := datatype.JobResultDataTypes(r.Res, e.dataReader.Mapper())
 	if payload.Error() != nil {
 		erroredJobs.Add(1)
 		e.logger.Warnf("error in payload", payload.Error())
 		return
 	}
 	recordJobs.Add(1)
+	// TODO: instead pass the generator to the recorder.
 	e.observer.send(e.ctx, r.TypeName, r.Time, payload)
 }

@@ -20,6 +20,8 @@ import (
 	"context"
 	"io"
 	"time"
+
+	"github.com/arsham/expvastic/datatype"
 )
 
 // InterTimer is required by the Engine so it can read the intervals and timeouts.
@@ -49,6 +51,10 @@ type DataReader interface {
 	// This channel should be closed once its work is finished and the reader wants to quit.
 	// When the context is timedout or canceled, the reader should return.
 	Start(ctx context.Context) <-chan struct{}
+
+	// Mapper should return an instance of the datatype mapper.
+	// Engine uses this object to present the data to recorders.
+	Mapper() datatype.Mapper
 
 	// TypeName is usually the application name and is set by the user in the configuration file.
 	// Recorders should not intercept the engine for its decision, unless they have a
