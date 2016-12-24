@@ -18,7 +18,7 @@ Expvastic can record your application's `metrics` in [ElasticSearch][elasticsear
 * Can ship the metrics to multiple databases.
 * Shows memory usages and GC pauses of the apps.
 * Metrics can be aggregated for different apps (with elasticsearch's type system).
-* A kibana dashboard is also provided [here](./blob/master/bin/dashboard.json).
+* A kibana dashboard is also provided [here](./bin/dashboard.json).
 * Maps values how you define them. For example you can change bytes to megabytes.
 * Benchmarks are included.
 
@@ -27,7 +27,7 @@ There are TODO items in the issue section. Feature requests welcome!
 
 Please refer to golang's [expvar documentation][expvar] for more information.
 
-Screenshots can be found in [this](./blob/master/SCREENSHOTS.md) document. Here is an example:
+Screenshots can be found in [this](./SCREENSHOTS.md) document. Here is an example:
 
 ![Colored](http://i.imgur.com/34kdQe8.png)
 
@@ -57,7 +57,7 @@ Select `@timestamp` for `Time-field name`. In case it doesn't show up, click `In
 
 ### Importing Dashboard
 
-Go to `Saved Objects` section of `management`, and click on the `import` button. Upload [this](./blob/master/bin/dashboard.json) file and you're done!
+Go to `Saved Objects` section of `management`, and click on the `import` button. Upload [this](./bin/dashboard.json) file and you're done!
 
 One of the provided dashboards shows the expvastic's own metrics, and you can use the other one for everything you have defined in the configuration file.
 
@@ -78,11 +78,11 @@ expvastic -h
 
 ### Advanced
 
-Please refer to [this](./blob/master/RECIPES.md) document for advanced configuration and mappings.
+Please refer to [this](./RECIPES.md) document for advanced configuration and mappings.
 
 ## LICENSE
 
-Use of this source code is governed by the Apache 2.0 license. License that can be found in the [LICENSE](./blob/master/LICENSE) file.
+Use of this source code is governed by the Apache 2.0 license. License that can be found in the [LICENSE](./LICENSE) file.
 
 `Enjoy!`
 
