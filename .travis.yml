@@ -1,0 +1,12 @@
+language: go
+go:
+  - 1.5
+  - 1.6
+  - tip
+install:
+  - go get github.com/Masterminds/glide
+before_script:
+script:
+  - glide install
+  - go build .
+  - go test $(glide nv)
