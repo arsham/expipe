@@ -10,6 +10,7 @@ import (
     "time"
 
     "github.com/Sirupsen/logrus"
+    "github.com/arsham/expvastic/communication"
     "github.com/arsham/expvastic/lib"
     "github.com/arsham/expvastic/recorder"
     "github.com/spf13/viper"
@@ -85,8 +86,8 @@ func withConfig(c *Config) (*Config, error) {
     return c, nil
 }
 
-func (c *Config) NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob) (recorder.DataRecorder, error) {
-    return NewRecorder(ctx, c.logger, payloadChan, c.name, c.Endpoint(), c.IndexName(), c.timeout)
+func (c *Config) NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob, errorChan chan<- communication.ErrorMessage) (recorder.DataRecorder, error) {
+    return NewRecorder(ctx, c.logger, payloadChan, errorChan, c.name, c.Endpoint(), c.IndexName(), c.timeout)
 }
 func (c *Config) Name() string               { return c.name }
 func (c *Config) IndexName() string          { return c.IndexName_ }

@@ -16,12 +16,13 @@ import (
     "context"
     "time"
 
+    "github.com/arsham/expvastic/communication"
     "github.com/arsham/expvastic/datatype"
 )
 
 // DataRecorder in an interface for shipping data to a repository.
 // The repository should have the concept of index/database and type/table abstractions. See ElasticSearch for more information.
-// Recorder should send nil to Err channel of the RecordJob object if no error occurs.
+// Recorder should send the error error channel if any error occurs.
 type DataRecorder interface {
     // Timeout is required by the Engine so it can read the timeouts.
     Timeout() time.Duration
@@ -46,11 +47,12 @@ type DataRecorder interface {
 
 // RecordJob is sent with a context and a payload to be recorded.
 // If the TypeName and IndexName are different than the previous one, the recorder should use the ones engine provides.
+// Recorders should provide their errors through the provided errorChan
 type RecordJob struct {
+    ID        communication.JobID
     Ctx       context.Context
     Payload   datatype.DataContainer
     IndexName string
     TypeName  string
     Time      time.Time // Is used for timeseries data
-    Err       chan<- error
 }

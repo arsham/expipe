@@ -13,6 +13,7 @@ import (
     "time"
 
     "github.com/Sirupsen/logrus"
+    "github.com/arsham/expvastic/communication"
     "github.com/arsham/expvastic/datatype"
     "github.com/arsham/expvastic/recorder"
     "github.com/olivere/elastic"
@@ -27,12 +28,22 @@ type Recorder struct {
     client      *elastic.Client // Elasticsearch client
     indexName   string
     payloadChan chan *recorder.RecordJob
+    errorChan   chan<- communication.ErrorMessage
     logger      logrus.FieldLogger
     timeout     time.Duration
 }
 
 // NewRecorder returns an error if it can't create the index
-func NewRecorder(ctx context.Context, log logrus.FieldLogger, payloadChan chan *recorder.RecordJob, name, endpoint, indexName string, timeout time.Duration) (*Recorder, error) {
+func NewRecorder(
+    ctx context.Context,
+    log logrus.FieldLogger,
+    payloadChan chan *recorder.RecordJob,
+    errorChan chan<- communication.ErrorMessage,
+    name,
+    endpoint,
+    indexName string,
+    timeout time.Duration,
+) (*Recorder, error) {
     log.Debug("connecting to: ", endpoint)
     addr := elastic.SetURL(endpoint)
     logger := elastic.SetErrorLog(log)
@@ -67,6 +78,7 @@ func NewRecorder(ctx context.Context, log logrus.FieldLogger, payloadChan chan *
         client:      client,
         indexName:   indexName,
         payloadChan: payloadChan,
+        errorChan:   errorChan,
         logger:      log,
         timeout:     timeout,
     }, nil
@@ -82,7 +94,10 @@ func (r *Recorder) Start(ctx context.Context) <-chan struct{} { //QUESTION: can 
             select {
             case job := <-r.payloadChan:
                 go func(job *recorder.RecordJob) {
-                    job.Err <- r.record(job.Ctx, job.TypeName, job.Time, job.Payload)
+                    err := r.record(job.Ctx, job.TypeName, job.Time, job.Payload)
+                    if err != nil {
+                        r.errorChan <- communication.ErrorMessage{ID: job.ID, Name: r.Name(), Err: err}
+                    }
                 }(job)
             case <-ctx.Done():
                 break LOOP

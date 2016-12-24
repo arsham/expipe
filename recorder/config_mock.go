@@ -9,6 +9,7 @@ import (
     "time"
 
     "github.com/Sirupsen/logrus"
+    "github.com/arsham/expvastic/communication"
 )
 
 // MockConfig holds the necessary configuration for setting up an elasticsearch reader endpoint.
@@ -32,8 +33,8 @@ func NewMockConfig(name string, log logrus.FieldLogger, endpoint string, timeout
     }, nil
 }
 
-func (m *MockConfig) NewInstance(ctx context.Context, payloadChan chan *RecordJob) (DataRecorder, error) {
-    return NewSimpleRecorder(ctx, m.Logger(), payloadChan, m.Name(), m.Endpoint(), m.IndexName(), m.Timeout())
+func (m *MockConfig) NewInstance(ctx context.Context, payloadChan chan *RecordJob, errorChan chan<- communication.ErrorMessage) (DataRecorder, error) {
+    return NewSimpleRecorder(ctx, m.Logger(), payloadChan, errorChan, m.Name(), m.Endpoint(), m.IndexName(), m.Timeout())
 }
 func (m *MockConfig) Name() string               { return m.Name_ }
 func (m *MockConfig) IndexName() string          { return m.IndexName_ }

@@ -12,6 +12,7 @@ import (
     "sync"
 
     "github.com/Sirupsen/logrus"
+    "github.com/arsham/expvastic/communication"
     "github.com/arsham/expvastic/datatype"
     "github.com/arsham/expvastic/reader"
     "github.com/arsham/expvastic/recorder"
@@ -54,7 +55,7 @@ func newobserver(ctx context.Context, logger logrus.FieldLogger, resultChan chan
             o.rmu.RUnlock()
             select {
             case name := <-o.removeChan:
-                o.remove(name)
+                o.unsubscribe(name)
             case <-ctx.Done():
                 return
             }
@@ -63,7 +64,7 @@ func newobserver(ctx context.Context, logger logrus.FieldLogger, resultChan chan
     return o
 }
 
-func (o *observer) add(ctx context.Context, recorder recorder.DataRecorder) {
+func (o *observer) subscribe(ctx context.Context, recorder recorder.DataRecorder) {
     doneChan := recorder.Start(ctx)
 
     o.rmu.Lock()
@@ -91,7 +92,7 @@ func (o *observer) add(ctx context.Context, recorder recorder.DataRecorder) {
     }()
 }
 
-func (o *observer) remove(name string) {
+func (o *observer) unsubscribe(name string) {
     o.rmu.Lock()
     defer o.rmu.Unlock()
     o.dmu.Lock()
@@ -101,10 +102,10 @@ func (o *observer) remove(name string) {
     delete(o.doneChans, name)
 }
 
-// send distributes the payload to the recorders.
+// publish distributes the payload to the recorders.
 // It creates a separate goroutine for each recorde.
 // It will remove them from the map when they close their done channel.
-func (o *observer) send(ctx context.Context, typeName string, t time.Time, payload datatype.DataContainer) {
+func (o *observer) publish(ctx context.Context, id communication.JobID, typeName string, t time.Time, payload datatype.DataContainer) {
     o.rmu.RLock()
     recorders := o.recorders
     o.rmu.RUnlock()
@@ -119,12 +120,12 @@ func (o *observer) send(ctx context.Context, typeName string, t time.Time, paylo
             timeout := rec.Timeout() + time.Duration(10*time.Second)
             timer := time.NewTimer(timeout)
             payload := &recorder.RecordJob{
+                ID:        id,
                 Ctx:       ctx,
                 Payload:   payload,
                 IndexName: rec.IndexName(),
                 TypeName:  typeName,
                 Time:      t,
-                Err:       o.resultChan,
             }
             recordsDistributed.Add(1)
 

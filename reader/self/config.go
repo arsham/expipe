@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 	"github.com/spf13/viper"
@@ -53,8 +54,8 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 	return &c, nil
 }
 
-func (c *Config) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult) (reader.DataReader, error) {
-	return NewSelfReader(c.log, c.mapper, jobChan, resultChan, c.name, c.TypeName(), c.interval)
+func (c *Config) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, errorChan chan<- communication.ErrorMessage) (reader.DataReader, error) {
+	return NewSelfReader(c.log, c.mapper, jobChan, resultChan, errorChan, c.name, c.TypeName(), c.interval)
 }
 
 func (c *Config) Name() string               { return c.name }

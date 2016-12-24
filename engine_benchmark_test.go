@@ -15,6 +15,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic"
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
@@ -62,6 +63,7 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 		name := fmt.Sprintf("Benchmak-%d_%d_%d_%d", bc.readChanBuff, bc.readResChanBuff, bc.recChanBuff, bc.recResChan)
 		log := lib.DiscardLogger()
 		jobChan := make(chan context.Context, bc.readChanBuff)
+		errorChan := make(chan communication.ErrorMessage, bc.readChanBuff)
 		resultChan := make(chan *reader.ReadJobResult, bc.readResChanBuff)
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -72,10 +74,10 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 
 		ctxReader := reader.NewCtxReader(redTs.URL)
 		// Settig the intervals to an hour so the benchmark can issue jobs
-		red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "example_type", time.Hour, time.Hour)
+		red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "example_type", time.Hour, time.Hour)
 		red.Start(ctx)
 		recs := makeRecorders(ctx, 1, log, bc.recChanBuff, recTs.URL)
-		cl, _ := expvastic.NewWithReadRecorder(ctx, log, bc.recResChan, red, recs...)
+		cl, _ := expvastic.NewWithReadRecorder(ctx, log, bc.recResChan, errorChan, red, recs...)
 		done := cl.Start()
 		b.Run(name, func(b *testing.B) {
 			benchmarkEngine(ctx, red, b)
@@ -87,16 +89,17 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 
 func benchmarkEngine(ctx context.Context, red *reader.SimpleReader, b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		red.JobChan() <- ctx
+		red.JobChan() <- communication.NewReadJob(ctx)
 	}
 }
 
 func makeRecorders(ctx context.Context, count int, log logrus.FieldLogger, chanBuff int, url string) []recorder.DataRecorder {
 	recs := make([]recorder.DataRecorder, count)
+	errorChan := make(chan communication.ErrorMessage, chanBuff)
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("recorder_%d", i)
 		payloadChan := make(chan *recorder.RecordJob, chanBuff)
-		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, name, url, "intexName", time.Hour)
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, name, url, "intexName", time.Hour)
 		rec.Start(ctx)
 		recs[i] = rec
 	}

@@ -14,6 +14,7 @@ import (
     "time"
 
     "github.com/arsham/expvastic"
+    "github.com/arsham/expvastic/communication"
     "github.com/arsham/expvastic/lib"
     "github.com/arsham/expvastic/reader"
     "github.com/arsham/expvastic/recorder"
@@ -37,21 +38,22 @@ func ExampleEngine_sendingJobs() {
     defer recTs.Close()
 
     jobChan := make(chan context.Context)
+    errorChan := make(chan communication.ErrorMessage)
     resultChan := make(chan *reader.ReadJobResult)
     payloadChan := make(chan *recorder.RecordJob)
 
     ctxReader := reader.NewCtxReader(redTs.URL)
-    red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "typeName", 10*time.Millisecond, 10*time.Millisecond)
-    rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "reader_example", recTs.URL, "intexName", 10*time.Millisecond)
+    red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "typeName", 10*time.Millisecond, 10*time.Millisecond)
+    rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", recTs.URL, "intexName", 10*time.Millisecond)
     redDone := red.Start(ctx)
     recDone := rec.Start(ctx)
 
-    cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, rec)
+    cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, errorChan, red, rec)
     fmt.Println("Engine creation success:", err == nil)
     clDone := cl.Start()
 
     select {
-    case red.JobChan() <- ctx:
+    case red.JobChan() <- communication.NewReadJob(ctx):
         fmt.Println("Just sent a job request")
     case <-time.After(time.Second):
         panic("expected the reader to recive the job, but it blocked")
@@ -60,9 +62,16 @@ func ExampleEngine_sendingJobs() {
 
     select {
     case res = <-red.ResultChan():
-        fmt.Println("Job operation success:", res.Err == nil)
+        fmt.Println("Job operation success")
     case <-time.After(5 * time.Second): // Should be more than the interval, otherwise the response is not ready yet
         panic("expected to recive a data back, nothing recieved")
+    }
+
+    select {
+    case <-errorChan:
+        panic("expected no errors")
+    case <-time.After(10 * time.Millisecond):
+        fmt.Println("No errors reported!")
     }
 
     buf := new(bytes.Buffer)
@@ -83,7 +92,8 @@ func ExampleEngine_sendingJobs() {
     // Engine creation success: true
     // Just sent a job request
     // Job was recorded
-    // Job operation success: true
+    // Job operation success
+    // No errors reported!
     // Reader just received payload: {"the key": "is the value!"}
     // Reader closure: true
     // Recorder closure: true

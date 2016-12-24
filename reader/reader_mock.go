@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/lib"
 )
 
 // SimpleReader is useful for testing purposes.
@@ -20,6 +20,7 @@ type SimpleReader struct {
 	mapper     datatype.Mapper
 	jobChan    chan context.Context
 	resultChan chan *ReadJobResult
+	errorChan  chan<- communication.ErrorMessage
 	ctxReader  ContextReader
 	logger     logrus.FieldLogger
 	interval   time.Duration
@@ -27,12 +28,23 @@ type SimpleReader struct {
 	StartFunc  func() chan struct{}
 }
 
-func NewSimpleReader(logger logrus.FieldLogger, ctxReader ContextReader, jobChan chan context.Context, resultChan chan *ReadJobResult, name, typeName string, interval, timeout time.Duration) (*SimpleReader, error) {
+func NewSimpleReader(
+	logger logrus.FieldLogger,
+	ctxReader ContextReader,
+	jobChan chan context.Context,
+	resultChan chan *ReadJobResult,
+	errorChan chan<- communication.ErrorMessage,
+	name,
+	typeName string,
+	interval,
+	timeout time.Duration,
+) (*SimpleReader, error) {
 	w := &SimpleReader{
 		name:       name,
 		typeName:   typeName,
 		mapper:     &datatype.MapConvertMock{},
 		jobChan:    jobChan,
+		errorChan:  errorChan,
 		resultChan: resultChan,
 		ctxReader:  ctxReader,
 		logger:     logger,
@@ -52,15 +64,17 @@ func (m *SimpleReader) Start(ctx context.Context) <-chan struct{} {
 		for {
 			select {
 			case job := <-m.jobChan:
+				id := communication.JobValue(job)
 				resp, err := m.ctxReader.Get(job)
-				res := &ReadJobResult{
-					Time:     time.Now(),
-					Res:      &lib.DummyReadCloser{},
-					Err:      err,
-					TypeName: m.TypeName(),
+				if err != nil {
+					m.errorChan <- communication.ErrorMessage{ID: id, Err: err}
+					continue
 				}
-				if err == nil {
-					res.Res = resp.Body
+				res := &ReadJobResult{
+					ID:       id,
+					Time:     time.Now(),
+					Res:      resp.Body,
+					TypeName: m.TypeName(),
 				}
 				m.resultChan <- res
 			case <-ctx.Done():

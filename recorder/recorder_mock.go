@@ -11,6 +11,7 @@ import (
     "time"
 
     "github.com/Sirupsen/logrus"
+    "github.com/arsham/expvastic/communication"
 )
 
 type SimpleRecorder struct {
@@ -18,6 +19,7 @@ type SimpleRecorder struct {
     endpoint        string
     indexName       string
     jobChan         chan *RecordJob
+    errorChan       chan<- communication.ErrorMessage
     logger          logrus.FieldLogger
     timeout         time.Duration
     Pmu             sync.RWMutex
@@ -27,12 +29,13 @@ type SimpleRecorder struct {
     StartFunc       func() chan struct{}
 }
 
-func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, payloadChan chan *RecordJob, name, endpoint, indexName string, timeout time.Duration) (*SimpleRecorder, error) {
+func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, payloadChan chan *RecordJob, errorChan chan<- communication.ErrorMessage, name, endpoint, indexName string, timeout time.Duration) (*SimpleRecorder, error) {
     w := &SimpleRecorder{
         name:      name,
         endpoint:  endpoint,
         indexName: indexName,
         jobChan:   payloadChan,
+        errorChan: errorChan,
         logger:    logger,
         timeout:   timeout,
     }
@@ -70,10 +73,11 @@ func (s *SimpleRecorder) Start(ctx context.Context) <-chan struct{} {
             case job := <-s.jobChan:
                 go func(job *RecordJob) {
                     res, err := http.Get(s.endpoint)
-                    if err == nil {
-                        res.Body.Close()
+                    if err != nil {
+                        s.errorChan <- communication.ErrorMessage{ID: job.ID, Name: s.Name(), Err: err}
+                        return
                     }
-                    job.Err <- err
+                    res.Body.Close()
                 }(job)
             case <-ctx.Done():
                 break LOOP

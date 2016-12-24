@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
@@ -24,20 +25,26 @@ func TestExpvarReaderErrors(t *testing.T) {
 		return nil, fmt.Errorf("Error")
 	}
 	jobChan := make(chan context.Context)
+	errorChan := make(chan communication.ErrorMessage)
 	resultChan := make(chan *reader.ReadJobResult)
 
 	mapper := &datatype.MapConvertMock{}
-	red, _ := NewExpvarReader(log, ctxReader, mapper, jobChan, resultChan, "my_reader", "example_type", time.Second, time.Second)
+	red, _ := NewExpvarReader(log, ctxReader, mapper, jobChan, resultChan, errorChan, "my_reader", "example_type", time.Second, time.Second)
 	red.Start(ctx)
 	defer cancel()
 
-	red.JobChan() <- ctx
+	red.JobChan() <- communication.NewReadJob(ctx)
 	select {
 	case res := <-red.ResultChan():
 		if res.Res != nil {
 			t.Errorf("expecting no results, got(%v)", res.Res)
 		}
-		if res.Err == nil {
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	select {
+	case err := <-errorChan:
+		if err.Error() == "" {
 			t.Error("expecting error, got nothing")
 		}
 	case <-time.After(100 * time.Millisecond):
@@ -52,13 +59,13 @@ func TestExpvarReaderClosesStream(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	jobChan := make(chan context.Context)
 	resultChan := make(chan *reader.ReadJobResult)
+	errorChan := make(chan communication.ErrorMessage)
 
 	mapper := &datatype.MapConvertMock{}
-	red, _ := NewExpvarReader(log, ctxReader, mapper, jobChan, resultChan, "my_reader", "example_type", time.Second, time.Second)
+	red, _ := NewExpvarReader(log, ctxReader, mapper, jobChan, resultChan, errorChan, "my_reader", "example_type", time.Second, time.Second)
 	done := red.Start(ctx)
-	jobChan <- ctx
-
-	<-resultChan
+	jobChan <- communication.NewReadJob(ctx)
+	<-errorChan
 	cancel()
 	select {
 	case <-done:

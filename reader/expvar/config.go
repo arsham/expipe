@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
@@ -133,14 +134,19 @@ func withConfig(c *Config) (*Config, error) {
 	return c, nil
 }
 
-func (c *Config) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult) (reader.DataReader, error) {
+func (c *Config) NewInstance(
+	ctx context.Context,
+	jobChan chan context.Context,
+	resultChan chan *reader.ReadJobResult,
+	errorChan chan<- communication.ErrorMessage,
+) (reader.DataReader, error) {
 	endpoint, err := url.Parse(c.Endpoint())
 	if err != nil {
 		return nil, err
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
 	ctxReader := reader.NewCtxReader(endpoint.String())
-	return NewExpvarReader(c.log, ctxReader, c.mapper, jobChan, resultChan, c.name, c.TypeName_, c.interval, c.timeout)
+	return NewExpvarReader(c.log, ctxReader, c.mapper, jobChan, resultChan, errorChan, c.name, c.TypeName_, c.interval, c.timeout)
 }
 
 func (c *Config) Name() string               { return c.name }

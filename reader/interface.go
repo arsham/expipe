@@ -21,6 +21,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 )
 
@@ -35,11 +36,13 @@ type InterTimer interface {
 type DataReader interface {
 	InterTimer
 
-	// The engine will send a signal to this channel to inform the reader when it is time to read
-	// from the target.
+	// The engine will send a signal to this channel to inform the reader when
+	// it is time to read from the target.
 	// The engine never blocks if the reader is not able to process the requests.
 	// This channel will be provided by the Engine.
 	// The context might be canceled depending how the user sets the timeouts.
+	// The UUID associated with this job is inside the context. Readers are
+	// advised to use this ID and pass them along.
 	JobChan() chan context.Context
 
 	// The engine runs the reading job in another goroutine. The engine will provide this channel, however
@@ -65,20 +68,11 @@ type DataReader interface {
 	Name() string
 }
 
-// ReadJob is sent with a context and a channel to read the errors back.
-type ReadJob struct {
-	Ctx context.Context
-
-	// The reader should always send an error messge back, even if there is no errors otherwise it will
-	// cause goroutine leakage. In case there were no error, just send nil.
-	Err chan error
-}
-
 // ReadJobResult is constructed everytime a new record is fetched.
 // The time is set after the request was successfully read.
 type ReadJobResult struct {
+	ID       communication.JobID
 	Time     time.Time
 	TypeName string
 	Res      io.ReadCloser
-	Err      error
 }

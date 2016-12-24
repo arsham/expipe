@@ -13,6 +13,7 @@ import (
     "net/http/httptest"
     "time"
 
+    "github.com/arsham/expvastic/communication"
     "github.com/arsham/expvastic/lib"
 )
 
@@ -25,19 +26,24 @@ func ExampleSimpleReader() {
     defer ts.Close()
 
     jobChan := make(chan context.Context, 10)
+    errorChan := make(chan communication.ErrorMessage, 10)
     resultChan := make(chan *ReadJobResult, 10)
     ctxReader := NewCtxReader(ts.URL)
-    red, _ := NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     done := red.Start(ctx)
 
-    job, _ := context.WithCancel(ctx)
     // Issueing a job
-    red.JobChan() <- job
+    red.JobChan() <- communication.NewReadJob(ctx)
 
-    // Now waiting for the results
+    // Lets check the errors
+    select {
+    case <-errorChan:
+        panic("Wasn't expecting any errors")
+    default:
+        fmt.Println("No errors reported")
+    }
+
     res := <-red.ResultChan()
-    fmt.Println("Error:", res.Err)
-
     // Let's read what it retreived
     buf := new(bytes.Buffer)
     buf.ReadFrom(res.Res)
@@ -50,7 +56,7 @@ func ExampleSimpleReader() {
     // We need to cancel the job now
     fmt.Println("All done!")
     // Output:
-    // Error: <nil>
+    // No errors reported
     // Result is: {"the key": "is the value!"}
     // Readed has finished
     // All done!
@@ -64,9 +70,10 @@ func ExampleSimpleReader_start() {
     defer ts.Close()
 
     jobChan := make(chan context.Context)
+    errorChan := make(chan communication.ErrorMessage)
     resultChan := make(chan *ReadJobResult)
 
-    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     done := red.Start(ctx)
     fmt.Println("Reader has started its event loop!")
 

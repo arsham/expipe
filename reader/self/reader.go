@@ -29,11 +29,11 @@ import (
 	"net"
 	// to expose the metrics
 	_ "expvar"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 )
@@ -47,6 +47,7 @@ type Reader struct {
 	mapper     datatype.Mapper
 	jobChan    chan context.Context
 	resultChan chan *reader.ReadJobResult
+	errorChan  chan<- communication.ErrorMessage
 	interval   time.Duration
 	url        string
 }
@@ -57,6 +58,7 @@ func NewSelfReader(
 	mapper datatype.Mapper,
 	jobChan chan context.Context,
 	resultChan chan *reader.ReadJobResult,
+	errorChan chan<- communication.ErrorMessage,
 	name,
 	typeName string,
 	interval time.Duration,
@@ -73,6 +75,7 @@ func NewSelfReader(
 		mapper:     mapper,
 		jobChan:    jobChan,
 		resultChan: resultChan,
+		errorChan:  errorChan,
 		logger:     logger,
 		interval:   interval,
 		url:        addr,
@@ -126,18 +129,17 @@ func (r *Reader) ResultChan() chan *reader.ReadJobResult { return r.resultChan }
 func (r *Reader) readMetrics(job context.Context) {
 
 	resp, err := http.Get(r.url)
+	id := communication.JobValue(job)
 	if err != nil {
-		r.logger.WithField("reader", "self").Debugf("%s: error making request: %v", r.name, err)
-		res := &reader.ReadJobResult{
-			Time: time.Now(),
-			Res:  nil,
-			Err:  fmt.Errorf("making request to metrics provider: %s", err),
-		}
-		r.resultChan <- res
+		r.logger.WithField("reader", "self").
+			WithField("ID", id).
+			Debugf("%s: error making request: %v", r.name, err)
+		r.errorChan <- communication.ErrorMessage{ID: id, Name: r.Name(), Err: err}
 		return
 	}
 
 	res := &reader.ReadJobResult{
+		ID:       id,
 		Time:     time.Now(), // It is sensible to record the time now
 		Res:      resp.Body,
 		TypeName: r.TypeName(),

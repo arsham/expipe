@@ -11,6 +11,7 @@ import (
     "testing"
     "time"
 
+    "github.com/arsham/expvastic/communication"
     "github.com/arsham/expvastic/lib"
 )
 
@@ -26,16 +27,16 @@ func TestSimpleRecorderReceivesPayload(t *testing.T) {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
+    errorChan := make(chan communication.ErrorMessage)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     rec.Start(ctx)
 
-    errChan := make(chan error)
     payload := &RecordJob{
+        ID:        communication.NewJobID(),
         Ctx:       ctx,
         Payload:   nil,
         IndexName: "my index",
         Time:      time.Now(),
-        Err:       errChan,
     }
     select {
     case rec.PayloadChan() <- payload:
@@ -53,26 +54,25 @@ func TestSimpleRecorderSendsResult(t *testing.T) {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
+    errorChan := make(chan communication.ErrorMessage)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     rec.Start(ctx)
 
-    errChan := make(chan error)
     payload := &RecordJob{
+        ID:        communication.NewJobID(),
         Ctx:       ctx,
         Payload:   nil,
         IndexName: "my index",
         Time:      time.Now(),
-        Err:       errChan,
     }
     rec.PayloadChan() <- payload
 
     select {
-    case err := <-errChan:
-        if err != nil {
+    case err := <-errorChan:
+        if err.Err != nil {
             t.Errorf("want (nil), got (%v)", err)
         }
-    case <-time.After(5 * time.Second):
-        t.Error("expected to recive a data back, nothing recieved")
+    case <-time.After(20 * time.Millisecond):
     }
 }
 
@@ -82,22 +82,22 @@ func TestSimpleRecorderErrorsOnBadURL(t *testing.T) {
     defer cancel()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", "leads nowhere", "intexName", 10*time.Millisecond)
+    errorChan := make(chan communication.ErrorMessage)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", "leads nowhere", "intexName", 10*time.Millisecond)
     rec.Start(ctx)
 
-    errChan := make(chan error)
     payload := &RecordJob{
+        ID:        communication.NewJobID(),
         Ctx:       ctx,
         Payload:   nil,
         IndexName: "my index",
         Time:      time.Now(),
-        Err:       errChan,
     }
     rec.PayloadChan() <- payload
 
     select {
-    case err := <-errChan:
-        if err == nil {
+    case err := <-errorChan:
+        if err.Err == nil {
             t.Errorf("want (nil), got (%v)", err)
         }
     case <-time.After(5 * time.Second):
@@ -113,7 +113,8 @@ func TestSimpleRecorderCloses(t *testing.T) {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
+    errorChan := make(chan communication.ErrorMessage)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     doneChan := rec.Start(ctx)
     select {
     case <-doneChan:

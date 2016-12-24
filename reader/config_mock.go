@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/communication"
 )
 
 type MockConfig struct {
@@ -35,9 +36,9 @@ func NewMockConfig(name, typeName string, log logrus.FieldLogger, endpoint, rout
 	}, nil
 }
 
-func (c *MockConfig) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *ReadJobResult) (DataReader, error) {
+func (c *MockConfig) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *ReadJobResult, errChan chan<- communication.ErrorMessage) (DataReader, error) {
 	ctxReader := NewCtxReader(c.Endpoint())
-	return NewSimpleReader(c.Logger_, ctxReader, jobChan, resultChan, c.Name_, c.TypeName_, c.Interval_, c.Timeout_)
+	return NewSimpleReader(c.Logger_, ctxReader, jobChan, resultChan, errChan, c.Name_, c.TypeName_, c.Interval_, c.Timeout_)
 }
 
 func (c *MockConfig) Name() string               { return c.Name_ }

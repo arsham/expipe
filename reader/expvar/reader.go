@@ -10,10 +10,10 @@ package expvar
 import (
 	"context"
 	"expvar"
-	"fmt"
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 )
@@ -32,6 +32,7 @@ type Reader struct {
 	typeName   string
 	jobChan    chan context.Context
 	resultChan chan *reader.ReadJobResult
+	errorChan  chan<- communication.ErrorMessage
 	interval   time.Duration
 	timeout    time.Duration
 }
@@ -44,6 +45,7 @@ func NewExpvarReader(
 	mapper datatype.Mapper,
 	jobChan chan context.Context,
 	resultChan chan *reader.ReadJobResult,
+	errorChan chan<- communication.ErrorMessage,
 	name string,
 	typeName string,
 	interval time.Duration,
@@ -58,6 +60,7 @@ func NewExpvarReader(
 		mapper:     mapper,
 		jobChan:    jobChan,
 		resultChan: resultChan,
+		errorChan:  errorChan,
 		ctxReader:  ctxReader,
 		logger:     logger,
 		timeout:    timeout,
@@ -111,18 +114,18 @@ func (r *Reader) ResultChan() chan *reader.ReadJobResult { return r.resultChan }
 // will send an error back to the engine if it can't read from metrics provider
 func (r *Reader) readMetrics(job context.Context) {
 	resp, err := r.ctxReader.Get(job)
+	id := communication.JobValue(job)
 	if err != nil {
-		r.logger.WithField("reader", "expvar_reader").Debugf("%s: error making request: %v", r.name, err)
-		res := &reader.ReadJobResult{
-			Time: time.Now(),
-			Res:  nil,
-			Err:  fmt.Errorf("making request to metrics provider: %s", err),
-		}
-		r.resultChan <- res
+		r.logger.WithField("reader", "expvar_reader").
+			WithField("name", r.Name()).
+			WithField("ID", id).
+			Debugf("%s: error making request: %v", r.name, err)
+		r.errorChan <- communication.ErrorMessage{ID: id, Name: r.Name(), Err: err}
 		return
 	}
 
 	res := &reader.ReadJobResult{
+		ID:       id,
 		Time:     time.Now(), // It is sensible to record the time now
 		Res:      resp.Body,
 		TypeName: r.TypeName(),

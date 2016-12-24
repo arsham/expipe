@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/config"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
@@ -42,6 +43,7 @@ type Engine struct {
 	recorders       map[string]recorder.DataRecorder // Records to ElasticSearch client. The key is the name of the recorder.
 	recorderResChan <-chan error
 	observer        *observer
+	errorChan       <-chan communication.ErrorMessage
 	logger          logrus.FieldLogger
 }
 
@@ -60,28 +62,36 @@ func NewWithConfig(
 
 	recs := make([]recorder.DataRecorder, len(recorders))
 	jobChan := make(chan context.Context, readChanBuff)
+	errorChan := make(chan communication.ErrorMessage, readChanBuff+(len(recorders)*readResChanBuff)) // large enough so both reader and recorders can report
 	resultChan := make(chan *reader.ReadJobResult, readResChanBuff)
 
 	for i, recConf := range recorders {
 		payloadChan := make(chan *recorder.RecordJob, recChanBuff)
-		rec, err := recConf.NewInstance(ctx, payloadChan)
+		rec, err := recConf.NewInstance(ctx, payloadChan, errorChan)
 		if err != nil {
 			return nil, err
 		}
 		recs[i] = rec
 	}
 
-	r, err := red.NewInstance(ctx, jobChan, resultChan)
+	r, err := red.NewInstance(ctx, jobChan, resultChan, errorChan)
 	if err != nil {
 		return nil, err
 	}
-	return NewWithReadRecorder(ctx, log, recResChan, r, recs...)
+	return NewWithReadRecorder(ctx, log, recResChan, errorChan, r, recs...)
 }
 
 // NewWithReadRecorder creates an instance with already made reader and recorders.
 // It spawns one reader and streams its payload to all recorders.
 // Returns an error if there are recorders with the same name, or any of them have no name.
-func NewWithReadRecorder(ctx context.Context, logger logrus.FieldLogger, recResChan int, red reader.DataReader, recs ...recorder.DataRecorder) (*Engine, error) {
+func NewWithReadRecorder(
+	ctx context.Context,
+	logger logrus.FieldLogger,
+	recResChan int,
+	errorChan <-chan communication.ErrorMessage,
+	red reader.DataReader,
+	recs ...recorder.DataRecorder,
+) (*Engine, error) {
 	recorderResChan := make(chan error, recResChan)
 	recNames := make([]string, len(recs))
 	recsMap := make(map[string]recorder.DataRecorder, len(recs))
@@ -106,6 +116,7 @@ func NewWithReadRecorder(ctx context.Context, logger logrus.FieldLogger, recResC
 	cl := &Engine{
 		name:            engineName,
 		ctx:             ctx,
+		errorChan:       errorChan,
 		recorders:       recsMap,
 		dataReader:      red,
 		logger:          logger,
@@ -127,7 +138,7 @@ func (e *Engine) Start() <-chan struct{} {
 		readerDone := e.dataReader.Start(ctx)
 		expReaders.Add(1)
 		for _, rec := range e.recorders {
-			e.observer.add(ctx, rec)
+			e.observer.subscribe(ctx, rec)
 			expReaders.Add(1)
 		}
 
@@ -151,11 +162,11 @@ func (e *Engine) eventLoop(readerDone <-chan struct{}) {
 			go e.issueReaderJob()
 		case r := <-resultChan:
 			// ...then the result from the job's outcome arrives here.
-			if r.Err != nil {
-				e.logger.Errorf(r.Err.Error())
-				continue
-			}
 			go e.redirectToRecorders(r)
+		case err := <-e.errorChan:
+			e.logger.WithField("ID", err.ID).
+				WithField("name", err.Name).
+				Errorf("job result err: %s", err.Error())
 		case <-readerDone:
 			e.logger.Debug("reader is gone now")
 			e.Stop()
@@ -189,8 +200,9 @@ func (e *Engine) issueReaderJob() {
 	// to make sure the reader is behaving.
 	timeout := e.dataReader.Timeout() + time.Duration(10*time.Second)
 	timer := time.NewTimer(timeout)
+
 	select {
-	case e.dataReader.JobChan() <- e.ctx:
+	case e.dataReader.JobChan() <- communication.NewReadJob(e.ctx):
 		// job was sent, we are done here.
 		timer.Stop()
 		return
@@ -215,5 +227,5 @@ func (e *Engine) redirectToRecorders(r *reader.ReadJobResult) {
 	}
 	recordJobs.Add(1)
 	// TODO: instead pass the generator to the recorder.
-	e.observer.send(e.ctx, r.TypeName, r.Time, payload)
+	e.observer.publish(e.ctx, r.ID, r.TypeName, r.Time, payload)
 }

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/arsham/expvastic"
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
@@ -27,13 +28,14 @@ func TestNewWithReadRecorder(t *testing.T) {
 	ctx := context.Background()
 
 	jobChan := make(chan context.Context)
+	errorChan := make(chan communication.ErrorMessage)
 	resultChan := make(chan *reader.ReadJobResult)
-	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), jobChan, resultChan, "a", "", time.Hour, time.Hour)
+	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), jobChan, resultChan, errorChan, "a", "", time.Hour, time.Hour)
 
 	payloadChan := make(chan *recorder.RecordJob)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "", "nowhere", "", time.Hour)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "", "nowhere", "", time.Hour)
 
-	e, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, rec)
+	e, err := expvastic.NewWithReadRecorder(ctx, log, 0, errorChan, red, rec)
 	if err != expvastic.ErrEmptyRecName {
 		t.Error("want ErrEmptyRecName, got nil")
 	}
@@ -41,10 +43,10 @@ func TestNewWithReadRecorder(t *testing.T) {
 		t.Errorf("want (nil), got (%v)", e)
 	}
 
-	rec, _ = recorder.NewSimpleRecorder(ctx, log, payloadChan, "same_name_is_illegal", "nowhere", "", time.Hour)
-	rec2, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "same_name_is_illegal", "nowhere", "", time.Hour)
+	rec, _ = recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "same_name_is_illegal", "nowhere", "", time.Hour)
+	rec2, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "same_name_is_illegal", "nowhere", "", time.Hour)
 
-	e, err = expvastic.NewWithReadRecorder(ctx, log, 0, red, rec, rec2)
+	e, err = expvastic.NewWithReadRecorder(ctx, log, 0, errorChan, red, rec, rec2)
 	if err != expvastic.ErrDupRecName {
 		t.Error("want error, got nil")
 	}
@@ -72,33 +74,35 @@ func TestEngineSendJob(t *testing.T) {
 
 	jobChan := make(chan context.Context)
 	resultChan := make(chan *reader.ReadJobResult)
+	errorChan := make(chan communication.ErrorMessage)
 	ctxReader := reader.NewCtxReader(redTs.URL)
-	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "example_type", time.Hour, time.Hour)
+	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "example_type", time.Hour, time.Hour)
 	redDone := red.Start(ctx)
 
 	payloadChan := make(chan *recorder.RecordJob)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, "recorder_example", recTs.URL, "intexName", time.Hour)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "recorder_example", recTs.URL, "intexName", time.Hour)
 	recDone := rec.Start(ctx)
 
-	cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, rec)
+	cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, errorChan, red, rec)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
 	clDone := cl.Start()
-
 	select {
-	case red.JobChan() <- ctx:
+	case red.JobChan() <- communication.NewReadJob(ctx):
 	case <-time.After(time.Second):
 		t.Error("expected the reader to recive the job, but it blocked")
 	}
 
 	select {
+	case err := <-errorChan:
+		t.Fatalf("didn't expect errors, got (%v)", err)
+	case <-time.After(5 * time.Millisecond): // Should be more than the interval, otherwise the response is not ready yet
+	}
+
+	select {
 	case res = <-red.ResultChan():
-		if res.Err != nil {
-			t.Fatalf("want (nil), got (%v)", res.Err)
-		}
 	case <-time.After(5 * time.Second): // Should be more than the interval, otherwise the response is not ready yet
-		//TODO: investigate
 		t.Error("expected to recive a data back, nothing recieved")
 	}
 
@@ -126,7 +130,7 @@ func TestEngineSendJob(t *testing.T) {
 	}
 }
 
-func TestEngineMultiRecorder(t *testing.T) {
+func testEngineMultiRecorder(t *testing.T) {
 	var res *reader.ReadJobResult
 	count := 10
 	log := lib.DiscardLogger()
@@ -141,8 +145,9 @@ func TestEngineMultiRecorder(t *testing.T) {
 
 	jobChan := make(chan context.Context)
 	resultChan := make(chan *reader.ReadJobResult)
+	errorChan := make(chan communication.ErrorMessage)
 	ctxReader := reader.NewCtxReader(redTs.URL)
-	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "example_type", time.Hour, time.Hour)
+	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "example_type", time.Hour, time.Hour)
 	redDone := red.Start(ctx)
 
 	recs := make([]recorder.DataRecorder, count)
@@ -150,7 +155,7 @@ func TestEngineMultiRecorder(t *testing.T) {
 	for i := 0; i < count; i++ {
 		payloadChan := make(chan *recorder.RecordJob)
 		name := fmt.Sprintf("recorder_example_%d", i)
-		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, name, "does not matter", "intexName", time.Hour)
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, name, "does not matter", "intexName", time.Hour)
 
 		rec.StartFunc = func() chan struct{} {
 			done := make(chan struct{})
@@ -173,25 +178,27 @@ func TestEngineMultiRecorder(t *testing.T) {
 		recsDone[i] = rec.Start(ctx)
 	}
 
-	cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, red, recs...)
+	cl, err := expvastic.NewWithReadRecorder(ctx, log, 0, errorChan, red, recs...)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
 	clDone := cl.Start()
 
 	select {
-	case red.JobChan() <- ctx:
+	case red.JobChan() <- communication.NewReadJob(ctx):
 	case <-time.After(time.Second):
 		t.Error("expected the reader to recive the job, but it blocked")
 	}
 
 	select {
+	case err := <-errorChan:
+		t.Fatalf("didn't expect errors, got (%v)", err)
+	case <-time.After(5 * time.Millisecond): // Should be more than the interval, otherwise the response is not ready yet
+	}
+
+	select {
 	case res = <-red.ResultChan():
-		if res.Err != nil {
-			t.Fatalf("want (nil), got (%v)", res.Err)
-		}
 	case <-time.After(5 * time.Second): // Should be more than the interval, otherwise the response is not ready yet
-		//TODO: investigate
 		t.Error("expected to recive a data back, nothing recieved")
 	}
 

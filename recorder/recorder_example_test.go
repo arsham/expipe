@@ -12,6 +12,7 @@ import (
     "net/http/httptest"
     "time"
 
+    "github.com/arsham/expvastic/communication"
     "github.com/arsham/expvastic/lib"
 )
 
@@ -24,27 +25,29 @@ func ExampleSimpleRecorder() {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
+    errorChan := make(chan communication.ErrorMessage)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     done := rec.Start(ctx)
 
-    errChan := make(chan error)
     job := &RecordJob{
         Ctx:       ctx,
         Payload:   nil,
         IndexName: "my index",
         Time:      time.Now(),
-        Err:       errChan,
     }
     // Issueing a job
     rec.PayloadChan() <- job
 
-    // Now waiting for the results
-    res := <-errChan
-    fmt.Println("Error:", res)
+    // Lets check the errors
+    select {
+    case <-errorChan:
+        panic("Wasn't expecting any errors")
+    default:
+        fmt.Println("No errors reported")
+    }
+
     // Issueing another job
     rec.PayloadChan() <- job
-    // Make sure you drain the errors
-    <-errChan
 
     // The recorder should finish gracefully
     cancel()
@@ -56,7 +59,7 @@ func ExampleSimpleRecorder() {
     // close(rec.PayloadChan())
     // Output:
     // I have received the payload!
-    // Error: <nil>
+    // No errors reported
     // Finished sending!
     // cReaded has finished
 }
@@ -69,7 +72,8 @@ func ExampleSimpleRecorder_start() {
     defer ts.Close()
 
     payloadChan := make(chan *RecordJob)
-    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
+    errorChan := make(chan communication.ErrorMessage)
+    rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
     done := rec.Start(ctx)
 
     fmt.Println("Recorder has started its event loop!")

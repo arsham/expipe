@@ -13,6 +13,7 @@ import (
     "testing"
     "time"
 
+    "github.com/arsham/expvastic/communication"
     "github.com/arsham/expvastic/lib"
 )
 
@@ -29,13 +30,13 @@ func TestSimpleReaderReceivesJob(t *testing.T) {
     defer ts.Close()
 
     jobChan := make(chan context.Context)
+    errorChan := make(chan communication.ErrorMessage)
     resultChan := make(chan *ReadJobResult, 1)
-    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     red.Start(ctx)
 
-    job, _ := context.WithCancel(ctx)
     select {
-    case red.JobChan() <- job:
+    case red.JobChan() <- communication.NewReadJob(ctx):
     case <-time.After(5 * time.Second):
         t.Error("expected the reader to recive the job, but it blocked")
     }
@@ -54,18 +55,21 @@ func TestSimpleReaderSendsResult(t *testing.T) {
     defer ts.Close()
 
     jobChan := make(chan context.Context)
+    errorChan := make(chan communication.ErrorMessage)
     resultChan := make(chan *ReadJobResult)
-    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     red.Start(ctx)
 
-    job, _ := context.WithCancel(ctx)
-    red.JobChan() <- job
+    red.JobChan() <- communication.NewReadJob(ctx)
+
+    select {
+    case err := <-errorChan:
+        t.Errorf("didn't expect errors, got (%v)", err.Error())
+    case <-time.After(20 * time.Millisecond):
+    }
 
     select {
     case res = <-resultChan:
-        if res.Err != nil {
-            t.Errorf("want (nil), got (%v)", res.Err)
-        }
     case <-time.After(5 * time.Second):
         t.Error("expected to recive a data back, nothing recieved")
     }
@@ -90,19 +94,22 @@ func TestSimpleReaderReadsOnBufferedChan(t *testing.T) {
     defer ts.Close()
 
     jobChan := make(chan context.Context, 10)
+    errorChan := make(chan communication.ErrorMessage, 10)
     resultChan := make(chan *ReadJobResult)
 
-    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     red.Start(ctx)
 
-    job, _ := context.WithCancel(ctx)
-    red.JobChan() <- job
+    red.JobChan() <- communication.NewReadJob(ctx)
+
+    select {
+    case err := <-errorChan:
+        t.Errorf("didn't expect errors, got (%v)", err.Error())
+    case <-time.After(20 * time.Millisecond):
+    }
 
     select {
     case res = <-resultChan:
-        if res.Err != nil {
-            t.Errorf("want (nil), got (%v)", res.Err)
-        }
     case <-time.After(5 * time.Second):
         t.Error("expected to recive a data back, nothing recieved")
     }
@@ -140,22 +147,26 @@ func TestSimpleReaderDrainsAfterClosingContext(t *testing.T) {
     defer ts.Close()
 
     jobChan := make(chan context.Context, 10)
+    errorChan := make(chan communication.ErrorMessage, 10)
     resultChan := make(chan *ReadJobResult)
 
-    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     red.Start(ctx)
 
-    job, _ := context.WithCancel(ctx)
-    red.JobChan() <- job
+    red.JobChan() <- communication.NewReadJob(ctx)
+
+    select {
+    case err := <-errorChan:
+        t.Errorf("didn't expect errors, got (%v)", err.Error())
+    case <-time.After(20 * time.Millisecond):
+    }
 
     select {
     case res = <-resultChan:
-        if res.Err != nil {
-            t.Errorf("want (nil), got (%v)", res.Err)
-        }
     case <-time.After(5 * time.Second):
         t.Error("expected to recive a data back, nothing recieved")
     }
+
     cancel()
     drained := false
     // Go is fast!
@@ -190,12 +201,12 @@ func TestSimpleReaderCloses(t *testing.T) {
     defer ts.Close()
 
     jobChan := make(chan context.Context)
+    errorChan := make(chan communication.ErrorMessage)
     resultChan := make(chan *ReadJobResult)
-    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     done := red.Start(ctx)
 
-    job, _ := context.WithCancel(ctx)
-    red.JobChan() <- job
+    red.JobChan() <- communication.NewReadJob(ctx)
     res = <-resultChan
     defer res.Res.Close()
     cancel()
@@ -219,12 +230,12 @@ func TestSimpleReaderClosesWithBufferedChans(t *testing.T) {
     defer ts.Close()
 
     jobChan := make(chan context.Context, 1000)
+    errorChan := make(chan communication.ErrorMessage, 1000)
     resultChan := make(chan *ReadJobResult, 1000)
-    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+    red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
     done := red.Start(ctx)
 
-    job, _ := context.WithCancel(ctx)
-    red.JobChan() <- job
+    red.JobChan() <- communication.NewReadJob(ctx)
     res = <-resultChan
     defer res.Res.Close()
 

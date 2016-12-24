@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 )
 
@@ -39,14 +40,14 @@ func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
 	defer ts.Close()
 
 	jobChan := make(chan context.Context, jobBuffC)
+	errorChan := make(chan communication.ErrorMessage, jobBuffC)
 	resultChan := make(chan *ReadJobResult, resBuffC)
 	ctxReader := NewCtxReader(ts.URL)
-	red, _ := NewSimpleReader(log, ctxReader, jobChan, resultChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+	red, _ := NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
 	red.Start(ctx)
 
 	for n := 0; n < b.N; n++ {
-		job, _ := context.WithCancel(ctx)
-		red.JobChan() <- job
+		red.JobChan() <- communication.NewReadJob(ctx)
 		<-red.ResultChan()
 	}
 }

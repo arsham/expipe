@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
 )
@@ -29,7 +30,7 @@ type ReaderConf interface {
 	Interval() time.Duration
 
 	// NewInstance should return an intialised Reader instance.
-	NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult) (reader.DataReader, error)
+	NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, errorChan chan<- communication.ErrorMessage) (reader.DataReader, error)
 
 	// TypeName is usually the application name.
 	// Recorders should not intercept the engine for its decision, unless they have a
@@ -43,7 +44,7 @@ type RecorderConf interface {
 	Conf
 
 	// NewInstance should return an intialised Recorder instance.
-	NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob) (recorder.DataRecorder, error)
+	NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob, errorChan chan<- communication.ErrorMessage) (recorder.DataRecorder, error)
 
 	// IndexName comes from the configuration, but the engine takes over.
 	// Recorders should not intercept the engine for its decision, unless they have a

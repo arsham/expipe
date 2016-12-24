@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 )
 
@@ -33,10 +34,9 @@ func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 	defer ts.Close()
 
 	payloadChan := make(chan *RecordJob, jobBuffC)
-	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
+	errorChan := make(chan communication.ErrorMessage, doneBuffC)
+	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
 	rec.Start(ctx)
-
-	errChan := make(chan error, doneBuffC)
 
 	for n := 0; n < b.N; n++ {
 		job := &RecordJob{
@@ -44,9 +44,8 @@ func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 			Payload:   nil,
 			IndexName: "my index",
 			Time:      time.Now(),
-			Err:       errChan,
 		}
 		rec.PayloadChan() <- job
-		<-errChan
+		<-errorChan
 	}
 }
