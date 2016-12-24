@@ -8,5 +8,4 @@ install:
 before_script:
 script:
   - glide install
-  - go build .
   - go test $(glide nv)
