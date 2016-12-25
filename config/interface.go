@@ -2,7 +2,9 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package config reads the configurations from a yaml file and produces necessary configuration for instantiating readers and recorders.
+// Package config reads the configurations from a yaml file and produces necessary
+// configuration for instantiating readers and recorders.
+// TODO: Add TLS to the endpoints.
 package config
 
 import (
@@ -21,15 +23,17 @@ type Conf interface {
 	Timeout() time.Duration
 	Backoff() int
 	Logger() logrus.FieldLogger
-	//TODO: Add TLS stuff
 }
 
 // ReaderConf defines a behaviour of a reader.
 type ReaderConf interface {
 	Conf
+
+	// Interval used to signal the reader when to do their job.
 	Interval() time.Duration
 
-	// NewInstance should return an intialised Reader instance.
+	// NewInstance should return an initialised Reader instance.
+	// You should return an error if the endpoint is not responding to a ping request.
 	NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, errorChan chan<- communication.ErrorMessage) (reader.DataReader, error)
 
 	// TypeName is usually the application name.
@@ -38,15 +42,16 @@ type ReaderConf interface {
 	TypeName() string
 }
 
-// RecorderConf defines a behaviour that requies the recorders to have the concept
+// RecorderConf defines a behaviour that requires the recorders to have the concept
 // of Index and Type. If any of these are not applicable, just return an empty string.
 type RecorderConf interface {
 	Conf
 
-	// NewInstance should return an intialised Recorder instance.
+	// NewInstance should return an initialised Recorder instance.
+	// You should return an error if the endpoint is not responding to a ping request.
 	NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob, errorChan chan<- communication.ErrorMessage) (recorder.DataRecorder, error)
 
-	// IndexName comes from the configuration, but the engine takes over.
+	// IndexName comes from the configuration, but the engine might take over.
 	// Recorders should not intercept the engine for its decision, unless they have a
 	// valid reason.
 	IndexName() string

@@ -26,14 +26,14 @@ import (
 // Config holds the necessary configuration for setting up an expvar reader endpoint.
 // If MapFile is provided, the data will be mapped, otherwise it uses the defaults.
 type Config struct {
-	name       string
-	TypeName_  string `mapstructure:"type_name"`
-	Endpoint_  string `mapstructure:"endpoint"`
-	RoutePath_ string `mapstructure:"routepath"`
-	Interval_  string `mapstructure:"interval"`
-	Timeout_   string `mapstructure:"timeout"`
-	Backoff_   int    `mapstructure:"backoff"`
-	MapFile    string `mapstructure:"map_file"`
+	name         string
+	EXPTypeName  string `mapstructure:"type_name"`
+	EXPEndpoint  string `mapstructure:"endpoint"`
+	EXPRoutePath string `mapstructure:"routepath"`
+	EXPInterval  string `mapstructure:"interval"`
+	EXPTimeout   string `mapstructure:"timeout"`
+	EXPBackoff   int    `mapstructure:"backoff"`
+	MapFile      string `mapstructure:"map_file"`
 
 	log      logrus.FieldLogger
 	interval time.Duration
@@ -41,6 +41,7 @@ type Config struct {
 	mapper   datatype.Mapper
 }
 
+// NewConfig returns an instance of the expvar reader
 func NewConfig(
 	log logrus.FieldLogger,
 	name, typeName string,
@@ -50,15 +51,15 @@ func NewConfig(
 	mapFile string,
 ) (*Config, error) {
 	c := &Config{
-		name:       name,
-		TypeName_:  typeName,
-		Endpoint_:  endpoint,
-		RoutePath_: routepath,
-		timeout:    timeout,
-		interval:   interval,
-		log:        log,
-		Backoff_:   backoff,
-		MapFile:    mapFile,
+		name:         name,
+		EXPTypeName:  typeName,
+		EXPEndpoint:  endpoint,
+		EXPRoutePath: routepath,
+		timeout:      timeout,
+		interval:     interval,
+		log:          log,
+		EXPBackoff:   backoff,
+		MapFile:      mapFile,
 	}
 	return withConfig(c)
 }
@@ -71,17 +72,17 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 	)
 	err := v.UnmarshalKey(key, &c)
 	if err != nil {
-		return nil, fmt.Errorf("decodeing config: %s", err)
+		return nil, fmt.Errorf("decoding config: %s", err)
 	}
 	c.name = name
 	c.log = log
 
-	if interval, err = time.ParseDuration(c.Interval_); err != nil {
-		return nil, fmt.Errorf("parse interval (%v): %s", c.Interval_, err)
+	if interval, err = time.ParseDuration(c.EXPInterval); err != nil {
+		return nil, fmt.Errorf("parse interval (%v): %s", c.EXPInterval, err)
 	}
 	c.interval = interval
 
-	if timeout, err = time.ParseDuration(c.Timeout_); err != nil {
+	if timeout, err = time.ParseDuration(c.EXPTimeout); err != nil {
 		return nil, fmt.Errorf("parse timeout: %s", err)
 	}
 	c.timeout = timeout
@@ -94,21 +95,21 @@ func withConfig(c *Config) (*Config, error) {
 		return nil, fmt.Errorf("name cannot be empty")
 	}
 
-	if c.Endpoint_ == "" {
+	if c.EXPEndpoint == "" {
 		return nil, fmt.Errorf("endpoint cannot be empty")
 	}
 
-	url, err := lib.SanitiseURL(c.Endpoint_)
+	url, err := lib.SanitiseURL(c.EXPEndpoint)
 	if err != nil {
-		return nil, fmt.Errorf("invalid endpoint: %d", c.Endpoint_)
+		return nil, fmt.Errorf("invalid endpoint: %s", c.EXPEndpoint)
 	}
-	c.Endpoint_ = url
+	c.EXPEndpoint = url
 
-	if c.Backoff_ <= 5 {
-		return nil, fmt.Errorf("back off should be at least 5: %d", c.Backoff_)
+	if c.EXPBackoff <= 5 {
+		return nil, fmt.Errorf("back off should be at least 5: %d", c.EXPBackoff)
 	}
 
-	if c.TypeName_ == "" {
+	if c.EXPTypeName == "" {
 		return nil, fmt.Errorf("type_name cannot be empty")
 	}
 
@@ -134,6 +135,7 @@ func withConfig(c *Config) (*Config, error) {
 	return c, nil
 }
 
+// NewInstance returns an instance of the expvar reader
 func (c *Config) NewInstance(
 	ctx context.Context,
 	jobChan chan context.Context,
@@ -146,14 +148,29 @@ func (c *Config) NewInstance(
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
 	ctxReader := reader.NewCtxReader(endpoint.String())
-	return NewExpvarReader(c.log, ctxReader, c.mapper, jobChan, resultChan, errorChan, c.name, c.TypeName_, c.interval, c.timeout)
+	return NewExpvarReader(c.log, ctxReader, c.mapper, jobChan, resultChan, errorChan, c.name, c.EXPTypeName, c.interval, c.timeout)
 }
 
-func (c *Config) Name() string               { return c.name }
-func (c *Config) TypeName() string           { return c.TypeName_ }
-func (c *Config) Endpoint() string           { return c.Endpoint_ }
-func (c *Config) RoutePath() string          { return c.RoutePath_ }
-func (c *Config) Interval() time.Duration    { return c.interval }
-func (c *Config) Timeout() time.Duration     { return c.timeout }
+// Name returns name
+func (c *Config) Name() string { return c.name }
+
+// TypeName returns type name
+func (c *Config) TypeName() string { return c.EXPTypeName }
+
+// Endpoint returns endpoint
+func (c *Config) Endpoint() string { return c.EXPEndpoint }
+
+// RoutePath returns routepath
+func (c *Config) RoutePath() string { return c.EXPRoutePath }
+
+// Interval returns interval
+func (c *Config) Interval() time.Duration { return c.interval }
+
+// Timeout returns timeout
+func (c *Config) Timeout() time.Duration { return c.timeout }
+
+// Logger returns logger
 func (c *Config) Logger() logrus.FieldLogger { return c.log }
-func (c *Config) Backoff() int               { return c.Backoff_ }
+
+// Backoff returns backoff
+func (c *Config) Backoff() int { return c.EXPBackoff }

@@ -5,89 +5,98 @@
 package recorder
 
 import (
-    "context"
-    "net/http"
-    "sync"
-    "time"
+	"context"
+	"net/http"
+	"sync"
+	"time"
 
-    "github.com/Sirupsen/logrus"
-    "github.com/arsham/expvastic/communication"
+	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/communication"
 )
 
+// SimpleRecorder is designed to be used in tests
 type SimpleRecorder struct {
-    name            string
-    endpoint        string
-    indexName       string
-    jobChan         chan *RecordJob
-    errorChan       chan<- communication.ErrorMessage
-    logger          logrus.FieldLogger
-    timeout         time.Duration
-    Pmu             sync.RWMutex
-    PayloadChanFunc func() chan *RecordJob
-    ErrorFunc       func() error
-    Smu             sync.RWMutex
-    StartFunc       func() chan struct{}
+	name            string
+	endpoint        string
+	indexName       string
+	payloadChan     chan *RecordJob
+	errorChan       chan<- communication.ErrorMessage
+	log             logrus.FieldLogger
+	timeout         time.Duration
+	Pmu             sync.RWMutex
+	PayloadChanFunc func() chan *RecordJob
+	ErrorFunc       func() error
+	Smu             sync.RWMutex
+	StartFunc       func(communication.StopChannel)
 }
 
-func NewSimpleRecorder(ctx context.Context, logger logrus.FieldLogger, payloadChan chan *RecordJob, errorChan chan<- communication.ErrorMessage, name, endpoint, indexName string, timeout time.Duration) (*SimpleRecorder, error) {
-    w := &SimpleRecorder{
-        name:      name,
-        endpoint:  endpoint,
-        indexName: indexName,
-        jobChan:   payloadChan,
-        errorChan: errorChan,
-        logger:    logger,
-        timeout:   timeout,
-    }
-    return w, nil
+// NewSimpleRecorder returns a SimpleRecorder instance
+func NewSimpleRecorder(ctx context.Context, log logrus.FieldLogger, payloadChan chan *RecordJob, errorChan chan<- communication.ErrorMessage, name, endpoint, indexName string, timeout time.Duration) (*SimpleRecorder, error) {
+	w := &SimpleRecorder{
+		name:        name,
+		endpoint:    endpoint,
+		indexName:   indexName,
+		payloadChan: payloadChan,
+		errorChan:   errorChan,
+		log:         log,
+		timeout:     timeout,
+	}
+	return w, nil
 }
 
+// PayloadChan returns the payload channel
 func (s *SimpleRecorder) PayloadChan() chan *RecordJob {
-    s.Pmu.RLock()
-    defer s.Pmu.RUnlock()
-    if s.PayloadChanFunc != nil {
-        return s.PayloadChanFunc()
-    }
-    return s.jobChan
+	s.Pmu.RLock()
+	defer s.Pmu.RUnlock()
+	if s.PayloadChanFunc != nil {
+		return s.PayloadChanFunc()
+	}
+	return s.payloadChan
 }
 
 func (s *SimpleRecorder) Error() error {
-    if s.ErrorFunc != nil {
-        return s.ErrorFunc()
-    }
-    return nil
+	if s.ErrorFunc != nil {
+		return s.ErrorFunc()
+	}
+	return nil
 }
 
-func (s *SimpleRecorder) Start(ctx context.Context) <-chan struct{} {
-    s.Smu.RLock()
-    if s.StartFunc != nil {
-        s.Smu.RUnlock()
-        return s.StartFunc()
-    }
-    s.Smu.RUnlock()
-    done := make(chan struct{})
-    go func() {
-    LOOP:
-        for {
-            select {
-            case job := <-s.jobChan:
-                go func(job *RecordJob) {
-                    res, err := http.Get(s.endpoint)
-                    if err != nil {
-                        s.errorChan <- communication.ErrorMessage{ID: job.ID, Name: s.Name(), Err: err}
-                        return
-                    }
-                    res.Body.Close()
-                }(job)
-            case <-ctx.Done():
-                break LOOP
-            }
-        }
-        close(done)
-    }()
-    return done
+// Start calls the StartFunc if exists, otherwise continues as normal
+func (s *SimpleRecorder) Start(ctx context.Context, stop communication.StopChannel) {
+	s.Smu.RLock()
+	if s.StartFunc != nil {
+		s.Smu.RUnlock()
+		s.StartFunc(stop)
+		return
+	}
+	s.Smu.RUnlock()
+	go func() {
+		for {
+			select {
+			case job := <-s.payloadChan:
+				go func(job *RecordJob) {
+					res, err := http.Get(s.endpoint)
+					if err != nil {
+						s.errorChan <- communication.ErrorMessage{ID: job.ID, Name: s.Name(), Err: err}
+						return
+					}
+					res.Body.Close()
+				}(job)
+			case s := <-stop:
+				s <- struct{}{}
+				return
+			}
+		}
+
+	}()
+
 }
 
-func (s *SimpleRecorder) Name() string           { return s.name }
-func (s *SimpleRecorder) IndexName() string      { return s.indexName }
+// Name returns the name
+func (s *SimpleRecorder) Name() string { return s.name }
+
+// IndexName returns the indexname
+func (s *SimpleRecorder) IndexName() string { return s.indexName }
+
+// Timeout returns the timeout
 func (s *SimpleRecorder) Timeout() time.Duration { return s.timeout }

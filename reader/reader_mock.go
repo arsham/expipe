@@ -22,14 +22,15 @@ type SimpleReader struct {
 	resultChan chan *ReadJobResult
 	errorChan  chan<- communication.ErrorMessage
 	ctxReader  ContextReader
-	logger     logrus.FieldLogger
+	log        logrus.FieldLogger
 	interval   time.Duration
 	timeout    time.Duration
-	StartFunc  func() chan struct{}
+	StartFunc  func(communication.StopChannel)
 }
 
+// NewSimpleReader is a reader for using in tests
 func NewSimpleReader(
-	logger logrus.FieldLogger,
+	log logrus.FieldLogger,
 	ctxReader ContextReader,
 	jobChan chan context.Context,
 	resultChan chan *ReadJobResult,
@@ -47,23 +48,23 @@ func NewSimpleReader(
 		errorChan:  errorChan,
 		resultChan: resultChan,
 		ctxReader:  ctxReader,
-		logger:     logger,
+		log:        log,
 		timeout:    timeout,
 		interval:   interval,
 	}
 	return w, nil
 }
 
-func (m *SimpleReader) Start(ctx context.Context) <-chan struct{} {
+// Start executes the StartFunc if defined, otherwise continues normally
+func (m *SimpleReader) Start(ctx context.Context, stop communication.StopChannel) {
 	if m.StartFunc != nil {
-		return m.StartFunc()
+		m.StartFunc(stop)
+		return
 	}
-	done := make(chan struct{})
 	go func() {
-	LOOP:
 		for {
 			select {
-			case job := <-m.jobChan:
+			case job := <-m.JobChan():
 				id := communication.JobValue(job)
 				resp, err := m.ctxReader.Get(job)
 				if err != nil {
@@ -75,21 +76,38 @@ func (m *SimpleReader) Start(ctx context.Context) <-chan struct{} {
 					Time:     time.Now(),
 					Res:      resp.Body,
 					TypeName: m.TypeName(),
+					Mapper:   m.Mapper(),
 				}
+
 				m.resultChan <- res
-			case <-ctx.Done():
-				break LOOP
+			case s := <-stop:
+				s <- struct{}{}
+				return
 			}
 		}
-		close(done)
 	}()
-	return done
 }
 
-func (m *SimpleReader) Name() string                    { return m.name }
-func (m *SimpleReader) TypeName() string                { return m.typeName }
-func (m *SimpleReader) Mapper() datatype.Mapper         { return m.mapper }
-func (m *SimpleReader) JobChan() chan context.Context   { return m.jobChan }
+// Name returns the name
+func (m *SimpleReader) Name() string { return m.name }
+
+// TypeName returns the typename
+func (m *SimpleReader) TypeName() string { return m.typeName }
+
+// Mapper returns the mapper
+func (m *SimpleReader) Mapper() datatype.Mapper { return m.mapper }
+
+// JobChan returns the jobchan
+func (m *SimpleReader) JobChan() chan context.Context { return m.jobChan }
+
+// ResultChan returns the resultchan
 func (m *SimpleReader) ResultChan() chan *ReadJobResult { return m.resultChan }
-func (m *SimpleReader) Interval() time.Duration         { return time.Second }
-func (m *SimpleReader) Timeout() time.Duration          { return time.Second }
+
+// Interval returns the interval
+func (m *SimpleReader) Interval() time.Duration { return m.interval }
+
+// Timeout returns the timeout
+func (m *SimpleReader) Timeout() time.Duration { return m.timeout }
+
+// ErrorChan returns the errorchan
+func (m *SimpleReader) ErrorChan() chan<- communication.ErrorMessage { return m.errorChan }

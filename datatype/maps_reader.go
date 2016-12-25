@@ -28,7 +28,7 @@ var (
 // Mapper generates DataTypes based on the given name/value inputs.
 type Mapper interface {
 	// Values closes the channel once all input has been exhausted.
-	Values(prefix string, values map[string]*jason.Value) chan DataType
+	Values(prefix string, values map[string]*jason.Value) []DataType
 }
 
 // MapConvert can produce output from the defined types.
@@ -72,75 +72,82 @@ func DefaultMapper() *MapConvert {
 	return m
 }
 
-// Values generates DataTypes based on the given name/value inputs.
+func (m *MapConvert) getMemoryTypes(prefix, name string, value *jason.Value) (DataType, bool) {
+	v, err := value.Float64()
+	if err != nil {
+		expDataTypeErrs.Add(1)
+		return nil, false
+	}
+	b := m.memoryTypes[strings.ToLower(name)]
+	if b.IsByte() {
+		return &ByteType{prefix + name, v}, true
+	} else if b.IsKiloByte() {
+		return &KiloByteType{prefix + name, v}, true
+	} else if b.IsMegaByte() {
+		return &MegaByteType{prefix + name, v}, true
+	}
+	return nil, false
+}
+
+func (m *MapConvert) getArrayValue(prefix, name string, arr []*jason.Value) DataType {
+	if len(arr) == 0 {
+		return &FloatListType{prefix + name, []float64{}}
+	} else if _, err := arr[0].Float64(); err == nil {
+		if lib.StringInSlice(name, m.gcTypes) {
+			return getGCList(prefix+name, arr)
+		}
+		return getFloatListValues(prefix+name, arr)
+	} else {
+		// TODO: decide what to do in this situation
+	}
+	return nil
+}
+
+// Values returns a slice of DataTypes based on the given name/value inputs.
 // It flattens the float list values, therefore you will get multiple values per input.
 // If the name is found in memory_bytes map, it will return one of those, otherwise it
 // will return a FloatType or StringType if can convert.
 // It will return nil if the value is not one of above.
-func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) chan DataType {
-	resultChan := make(chan DataType)
+func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []DataType {
+	var results []DataType
 
-	go func() {
-		for name, value := range values {
-			var result DataType
+	for name, value := range values {
+		var result DataType
+		if stringInMapKeys(name, m.memoryTypes) {
 			if stringInMapKeys(name, m.memoryTypes) {
-				if stringInMapKeys(name, m.memoryTypes) {
-					v, err := value.Float64()
-					if err != nil {
-						expDataTypeErrs.Add(1)
-						continue
-					}
-					b := m.memoryTypes[strings.ToLower(name)]
-					if b.IsByte() {
-						result = &ByteType{prefix + name, v}
-					} else if b.IsKiloByte() {
-						result = &KiloByteType{prefix + name, v}
-					} else if b.IsMegaByte() {
-						result = &MegaByteType{prefix + name, v}
-					}
-					expByteTypeCount.Add(1)
+				var ok bool
+				result, ok = m.getMemoryTypes(prefix, name, value)
+				if !ok {
+					continue
 				}
-
-			} else if obj, err := value.Object(); err == nil {
-				// we are dealing with nested objects
-				for v := range m.Values(prefix+name+".", obj.Map()) {
-					resultChan <- v
-				}
-				continue
-
-			} else if s, err := value.String(); err == nil {
-				expStringTypeCount.Add(1)
-				result = &StringType{prefix + name, s}
-			} else if f, err := value.Float64(); err == nil {
-				expFloatTypeCount.Add(1)
-				result = &FloatType{prefix + name, f}
-			} else if arr, err := value.Array(); err == nil {
-				// we are dealing with an array object
-				if len(arr) == 0 {
-					result = &FloatListType{prefix + name, []float64{}}
-				} else if _, err := arr[0].Float64(); err == nil {
-					if lib.StringInSlice(name, m.gcTypes) {
-						result = getGCList(prefix+name, arr)
-					} else {
-						result = getFloatListValues(prefix+name, arr)
-					}
-				} else {
-					// TODO: decide what to do in this situation
-				}
-
-			} else {
-				expDataTypeErrs.Add(1)
-				continue
+				expByteTypeCount.Add(1)
 			}
-			expDataTypeObjs.Add(1)
-			if result != nil { // TODO: test
-				resultChan <- result
-			}
+
+		} else if obj, err := value.Object(); err == nil {
+			// we are dealing with nested objects
+			results = append(results, m.Values(prefix+name+".", obj.Map())...)
+			continue
+
+		} else if s, err := value.String(); err == nil {
+			expStringTypeCount.Add(1)
+			result = &StringType{prefix + name, s}
+		} else if f, err := value.Float64(); err == nil {
+			expFloatTypeCount.Add(1)
+			result = &FloatType{prefix + name, f}
+		} else if arr, err := value.Array(); err == nil {
+			// we are dealing with an array object
+			result = m.getArrayValue(prefix, name, arr)
+		} else {
+			expDataTypeErrs.Add(1)
+			continue
 		}
-		close(resultChan)
-	}()
+		expDataTypeObjs.Add(1)
+		if result != nil { // TODO: test
+			results = append(results, result)
+		}
+	}
 
-	return resultChan
+	return results
 }
 
 func getGCList(name string, arr []*jason.Value) *GCListType {

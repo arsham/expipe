@@ -3,6 +3,7 @@
 [![GoDoc](https://godoc.org/github.com/arsham/expvastic?status.svg)](http://godoc.org/github.com/arsham/expvastic)
 [![Build Status](https://travis-ci.org/arsham/expvastic.svg?branch=master)](https://travis-ci.org/arsham/expvastic)
 [![Coverage Status](https://coveralls.io/repos/github/arsham/expvastic/badge.svg?branch=master)](https://coveralls.io/github/arsham/expvastic?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/arsham/expvastic)](https://goreportcard.com/report/github.com/arsham/expvastic)
 
 Expvastic can record your application's `metrics` in [ElasticSearch][elasticsearch] and you can view them with [kibana][kibana]. It can read from any applications (written in any language) that provides metrics in `json` format.
 

@@ -88,44 +88,49 @@ expvastic -c expvastic.yml
 You can mix and match the routes, but the engine will choose the best setup to achive your goal without duplicating the results. For instance assume you set the routes like this:
 
 ```yaml
- readers:
-     app_0:
-     app_1:
-     app_2:
- recorders:
-     elastic_0:
-     elastic_1:
-     elastic_2:
-     elastic_3:
- routes:
-     route1:
-         readers:
-             - app_0
-             - app_2
-         recorders:
-             - elastic_1
-     route2:
-         readers:
-             - app_0
-         recorders:
-             - elastic_1
-             - elastic_2
-             - elastic_3
-     route2:
-         readers:
-             - app_1
-             - app_2
-         recorders:
-             - elastic_1
-             - elastic_0
-```
+readers:
+    app_0: type: expvar
+    app_1: type: expvar
+    app_2: type: expvar
+    app_3: type: expvar
+    app_4: type: expvar
+    app_5: type: expvar
+    not_used_app: type: expvar # note that this one is not specified in the routes, therefore it is ignored
+recorders:
+    elastic_0: type: elasticsearch
+    elastic_1: type: elasticsearch
+    elastic_2: type: elasticsearch
+    elastic_3: type: elasticsearch
+routes:
+    route1:
+        readers:
+            - app_0
+            - app_2
+            - app_4
+        recorders:
+            - elastic_1
+    route2:
+        readers:
+            - app_0
+            - app_5
+        recorders:
+            - elastic_2
+            - elastic_3
+    route3:
+        readers:
+            - app_1
+            - app_2
+        recorders:
+            - elastic_0
+            - elastic_1
 
 Expvastic creates three engines like so:
 
 ```
-    Data from app_0 will be shipped to: elastic_1, elastic_2 and elastic_3
-    Data from app_1 will be shipped to: elastic_1 and, elastic_0
-    Data from app_2 will be shipped to: elastic_1 and, elastic_0
+    elastic_0 records data from app_0, app_1
+    elastic_1 records data from app_0, app_1, app_2, app_4
+    elastic_2 records data from app_0, app_5
+    elastic_3 records data from app_0, app_5
 ```
 
 ### Mappings

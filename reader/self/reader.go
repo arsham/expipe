@@ -43,7 +43,7 @@ import (
 type Reader struct {
 	name       string
 	typeName   string
-	logger     logrus.FieldLogger
+	log        logrus.FieldLogger
 	mapper     datatype.Mapper
 	jobChan    chan context.Context
 	resultChan chan *reader.ReadJobResult
@@ -54,7 +54,7 @@ type Reader struct {
 
 // NewSelfReader exposes expvastic's own metrics.
 func NewSelfReader(
-	logger logrus.FieldLogger,
+	log logrus.FieldLogger,
 	mapper datatype.Mapper,
 	jobChan chan context.Context,
 	resultChan chan *reader.ReadJobResult,
@@ -67,8 +67,8 @@ func NewSelfReader(
 	l.Close()
 	go http.ListenAndServe(l.Addr().String(), nil)
 	addr := "http://" + l.Addr().String() + "/debug/vars"
-	logger.Debugf("running self expvar on %s", addr)
-	logger = logger.WithField("engine", "expvastic")
+	log.Debugf("running self expvar on %s", addr)
+	log = log.WithField("engine", "expvastic")
 	w := &Reader{
 		name:       name,
 		typeName:   typeName,
@@ -76,7 +76,7 @@ func NewSelfReader(
 		jobChan:    jobChan,
 		resultChan: resultChan,
 		errorChan:  errorChan,
-		logger:     logger,
+		log:        log,
 		interval:   interval,
 		url:        addr,
 	}
@@ -86,22 +86,19 @@ func NewSelfReader(
 // Start begins reading from the target in its own goroutine.
 // It will issue a goroutine on each job request.
 // It will close the done channel when the job channel is closed.
-func (r *Reader) Start(ctx context.Context) <-chan struct{} {
-	done := make(chan struct{})
-	r.logger.Debug("starting")
+func (r *Reader) Start(ctx context.Context, stop communication.StopChannel) {
+	r.log.Debug("starting")
 	go func() {
-	LOOP:
 		for {
 			select {
 			case job := <-r.jobChan:
 				go r.readMetrics(job)
-			case <-ctx.Done():
-				break LOOP
+			case s := <-stop:
+				s <- struct{}{}
+				return
 			}
 		}
-		close(done)
 	}()
-	return done
 }
 
 // Name shows the name identifier for this reader
@@ -131,9 +128,9 @@ func (r *Reader) readMetrics(job context.Context) {
 	resp, err := http.Get(r.url)
 	id := communication.JobValue(job)
 	if err != nil {
-		r.logger.WithField("reader", "self").
+		r.log.WithField("reader", "self").
 			WithField("ID", id).
-			Debugf("%s: error making request: %v", r.name, err)
+			Errorf("%s: error making request: %v", r.name, err) // Error because it is a local dependency.
 		r.errorChan <- communication.ErrorMessage{ID: id, Name: r.Name(), Err: err}
 		return
 	}
@@ -143,6 +140,7 @@ func (r *Reader) readMetrics(job context.Context) {
 		Time:     time.Now(), // It is sensible to record the time now
 		Res:      resp.Body,
 		TypeName: r.TypeName(),
+		Mapper:   r.Mapper(),
 	}
 	r.resultChan <- res
 }

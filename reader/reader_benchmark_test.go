@@ -32,8 +32,8 @@ func BenchmarkReader100000_100000(b *testing.B) { benchmarkReader(100000, 100000
 
 func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
 	log := lib.DiscardLogger()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `{"the key": "is the value!"}`)
 	}))
@@ -44,10 +44,15 @@ func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
 	resultChan := make(chan *ReadJobResult, resBuffC)
 	ctxReader := NewCtxReader(ts.URL)
 	red, _ := NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-	red.Start(ctx)
+	stop := make(communication.StopChannel)
+	red.Start(ctx, stop)
 
 	for n := 0; n < b.N; n++ {
 		red.JobChan() <- communication.NewReadJob(ctx)
 		<-red.ResultChan()
 	}
+	done := make(chan struct{})
+	stop <- done
+	<-done
+
 }

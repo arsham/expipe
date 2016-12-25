@@ -12,40 +12,58 @@ import (
 	"github.com/arsham/expvastic/communication"
 )
 
+// MockConfig is used for instantiating a mock reader
 type MockConfig struct {
-	Name_      string
-	TypeName_  string
-	Endpoint_  string
-	RoutePath_ string
-	Timeout_   time.Duration
-	Interval_  time.Duration
-	Backoff_   int
-	Logger_    logrus.FieldLogger
+	MockName      string
+	MockTypeName  string
+	MockEndpoint  string
+	MockRoutePath string
+	MockTimeout   time.Duration
+	MockInterval  time.Duration
+	MockBackoff   int
+	MockLogger    logrus.FieldLogger
 }
 
+// NewMockConfig returns a mocked version of the config
 func NewMockConfig(name, typeName string, log logrus.FieldLogger, endpoint, routepath string, interval, timeout time.Duration, backoff int) (*MockConfig, error) {
 	return &MockConfig{
-		Name_:      name,
-		TypeName_:  typeName,
-		Endpoint_:  endpoint,
-		RoutePath_: routepath,
-		Timeout_:   timeout,
-		Interval_:  interval,
-		Logger_:    log,
-		Backoff_:   backoff,
+		MockName:      name,
+		MockTypeName:  typeName,
+		MockEndpoint:  endpoint,
+		MockRoutePath: routepath,
+		MockTimeout:   timeout,
+		MockInterval:  interval,
+		MockLogger:    log,
+		MockBackoff:   backoff,
 	}, nil
 }
 
+// NewInstance  returns a mocked version of the config
 func (c *MockConfig) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *ReadJobResult, errChan chan<- communication.ErrorMessage) (DataReader, error) {
 	ctxReader := NewCtxReader(c.Endpoint())
-	return NewSimpleReader(c.Logger_, ctxReader, jobChan, resultChan, errChan, c.Name_, c.TypeName_, c.Interval_, c.Timeout_)
+	return NewSimpleReader(c.MockLogger, ctxReader, jobChan, resultChan, errChan, c.MockName, c.MockTypeName, c.MockInterval, c.MockTimeout)
 }
 
-func (c *MockConfig) Name() string               { return c.Name_ }
-func (c *MockConfig) TypeName() string           { return c.TypeName_ }
-func (c *MockConfig) Endpoint() string           { return c.Endpoint_ }
-func (c *MockConfig) RoutePath() string          { return c.RoutePath_ }
-func (c *MockConfig) Interval() time.Duration    { return c.Interval_ }
-func (c *MockConfig) Timeout() time.Duration     { return c.Timeout_ }
-func (c *MockConfig) Logger() logrus.FieldLogger { return c.Logger_ }
-func (c *MockConfig) Backoff() int               { return c.Backoff_ }
+// Name returns the name
+func (c *MockConfig) Name() string { return c.MockName }
+
+// TypeName returns the typename
+func (c *MockConfig) TypeName() string { return c.MockTypeName }
+
+// Endpoint returns the endpoint
+func (c *MockConfig) Endpoint() string { return c.MockEndpoint }
+
+// RoutePath returns the routepath
+func (c *MockConfig) RoutePath() string { return c.MockRoutePath }
+
+// Interval returns the interval
+func (c *MockConfig) Interval() time.Duration { return c.MockInterval }
+
+// Timeout returns the timeout
+func (c *MockConfig) Timeout() time.Duration { return c.MockTimeout }
+
+// Logger returns the logger
+func (c *MockConfig) Logger() logrus.FieldLogger { return c.MockLogger }
+
+// Backoff returns the backoff
+func (c *MockConfig) Backoff() int { return c.MockBackoff }

@@ -5,11 +5,10 @@
 package expvastic_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -43,65 +42,89 @@ func BenchmarkEngineMulti100(b *testing.B) {
 
 func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 	bcs := []struct {
-		readChanBuff, readResChanBuff, recChanBuff, recResChan int
+		readChanBuff, readResChanBuff, recChanBuff, recResChan, readers int
 	}{
-		{0, 0, 0, 0},
-		{0, 0, 0, 10},
-		{0, 0, 10, 0},
-		{0, 10, 0, 0},
-		{10, 0, 0, 0},
-		{0, 0, 10, 10},
-		{0, 10, 0, 10},
-		{10, 0, 0, 10},
-		{0, 10, 10, 10},
-		{10, 0, 10, 10},
-		{10, 10, 10, 10},
-		{100, 100, 100, 100},
-		{1000, 1000, 1000, 1000},
+		{0, 0, 0, 0, 1},
+		{0, 0, 0, 10, 10},
+		{0, 0, 10, 0, 10},
+		{0, 10, 0, 0, 10},
+		{10, 0, 0, 0, 10},
+		{0, 0, 10, 10, 10},
+		{0, 10, 0, 10, 10},
+		{10, 0, 0, 10, 10},
+		{0, 10, 10, 10, 10},
+		{10, 0, 10, 10, 100},
+		{10, 10, 10, 10, 1000},
+		{100, 100, 100, 100, 1000},
+		{1000, 1000, 1000, 1000, 1000},
 	}
+	log := lib.DiscardLogger()
+	log.Level = logrus.ErrorLevel
 	for _, bc := range bcs {
-		name := fmt.Sprintf("Benchmak-%d_%d_%d_%d", bc.readChanBuff, bc.readResChanBuff, bc.recChanBuff, bc.recResChan)
-		log := lib.DiscardLogger()
-		jobChan := make(chan context.Context, bc.readChanBuff)
-		errorChan := make(chan communication.ErrorMessage, bc.readChanBuff)
+		ctx, cancel := context.WithCancel(context.Background())
+		name := fmt.Sprintf("Benchmark-%d_%d_%d_%d_(r:%d)", bc.readChanBuff, bc.readResChanBuff, bc.recChanBuff, bc.recResChan, bc.readers)
+		errorChan := make(chan communication.ErrorMessage, bc.recChanBuff+(bc.readers*bc.readChanBuff))
+		payloadChan := make(chan *recorder.RecordJob, bc.recChanBuff)
 		resultChan := make(chan *reader.ReadJobResult, bc.readResChanBuff)
 
-		ctx, cancel := context.WithCancel(context.Background())
-		redTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, `{"the key": "is the value!"}`) }))
-		recTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-		defer redTs.Close()
-		defer recTs.Close()
+		// Setting the intervals to an hour so the benchmark can issue jobs
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reacorder_example", "nowhere, it doesn't matter", "intexName", time.Hour)
+		reds := makeReaders(ctx, bc.readers, log, resultChan, errorChan, bc.recChanBuff, "nowhere, it doesn't matter")
+		e, _ := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, reds...)
 
-		ctxReader := reader.NewCtxReader(redTs.URL)
-		// Settig the intervals to an hour so the benchmark can issue jobs
-		red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "example_type", time.Hour, time.Hour)
-		red.Start(ctx)
-		recs := makeRecorders(ctx, 1, log, bc.recChanBuff, recTs.URL)
-		cl, _ := expvastic.NewWithReadRecorder(ctx, log, bc.recResChan, errorChan, red, recs...)
-		done := cl.Start()
+		done := make(chan struct{})
+		go func(done chan struct{}) {
+			e.Start()
+			done <- struct{}{}
+		}(done)
+
 		b.Run(name, func(b *testing.B) {
-			benchmarkEngine(ctx, red, b)
+			benchmarkEngine(ctx, reds, b)
 		})
 		cancel()
 		<-done
 	}
 }
 
-func benchmarkEngine(ctx context.Context, red *reader.SimpleReader, b *testing.B) {
+func benchmarkEngine(ctx context.Context, reds []reader.DataReader, b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		red.JobChan() <- communication.NewReadJob(ctx)
+		for _, red := range reds {
+			red.JobChan() <- communication.NewReadJob(ctx)
+		}
 	}
 }
 
-func makeRecorders(ctx context.Context, count int, log logrus.FieldLogger, chanBuff int, url string) []recorder.DataRecorder {
-	recs := make([]recorder.DataRecorder, count)
-	errorChan := make(chan communication.ErrorMessage, chanBuff)
-	for i := 0; i < count; i++ {
-		name := fmt.Sprintf("recorder_%d", i)
-		payloadChan := make(chan *recorder.RecordJob, chanBuff)
-		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, name, url, "intexName", time.Hour)
-		rec.Start(ctx)
-		recs[i] = rec
+func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, resultChan chan *reader.ReadJobResult, errorChan chan communication.ErrorMessage, chanBuff int, url string) []reader.DataReader {
+	reds := make([]reader.DataReader, count)
+	startFunc := func(m *reader.SimpleReader) func(communication.StopChannel) {
+		return func(stop communication.StopChannel) {
+			go func() {
+				for {
+					select {
+					case job := <-m.JobChan():
+						id := communication.JobValue(job)
+						res := &reader.ReadJobResult{
+							ID:       id,
+							Time:     time.Now(),
+							Res:      ioutil.NopCloser(bytes.NewBuffer([]byte(``))),
+							TypeName: m.TypeName(),
+							Mapper:   m.Mapper(),
+						}
+						m.ResultChan() <- res
+					case s := <-stop:
+						s <- struct{}{}
+						return
+					}
+				}
+			}()
+		}
 	}
-	return recs
+	for i := 0; i < count; i++ {
+		jobChan := make(chan context.Context, chanBuff)
+		name := fmt.Sprintf("reader_%d", i)
+		red, _ := reader.NewSimpleReader(log, reader.NewCtxReader(url), jobChan, resultChan, errorChan, name, "example_type", time.Hour, time.Hour)
+		red.StartFunc = startFunc(red)
+		reds[i] = red
+	}
+	return reds
 }

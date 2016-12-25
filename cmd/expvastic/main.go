@@ -129,6 +129,10 @@ func captureSignals(cancel context.CancelFunc) {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
+		go func() {
+			<-time.After(10 * time.Second)
+			os.Exit(1)
+		}()
 		cancel()
 	}()
 }

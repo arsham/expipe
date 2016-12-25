@@ -8,22 +8,22 @@ import "github.com/antonholmquist/jason"
 
 // MapConvertMock is the mocked version of MapConvert
 type MapConvertMock struct {
-    GCTypes         []string
-    MemoryTypes     map[string]MemTypeMock
-    ValuesFunc      func(prefix string, values map[string]*jason.Value) chan DataType
-    DefaultCovertor Mapper
+	GCTypes         []string
+	MemoryTypes     map[string]MemTypeMock
+	ValuesFunc      func(prefix string, values map[string]*jason.Value) []DataType
+	DefaultCovertor Mapper
 }
 
 // MemTypeMock is the mocked version of memType
 type MemTypeMock struct {
-    memType
+	memType
 }
 
 // Values calls the ValuesFunc if exists, otherwise returns nil
-func (m *MapConvertMock) Values(prefix string, values map[string]*jason.Value) chan DataType {
-    if m.ValuesFunc != nil {
-        return m.ValuesFunc(prefix, values)
-    }
-    m.DefaultCovertor = DefaultMapper()
-    return m.DefaultCovertor.Values(prefix, values)
+func (m *MapConvertMock) Values(prefix string, values map[string]*jason.Value) []DataType {
+	if m.ValuesFunc != nil {
+		return m.ValuesFunc(prefix, values)
+	}
+	m.DefaultCovertor = DefaultMapper()
+	return m.DefaultCovertor.Values(prefix, values)
 }

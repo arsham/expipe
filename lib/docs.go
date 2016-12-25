@@ -3,4 +3,5 @@
 // License that can be found in the LICENSE file.
 
 // Package lib contains some functionalities needed for expvastic.
+// There are numeric and string searches, logging setup, etc.
 package lib

@@ -5,20 +5,21 @@
 package config
 
 import (
-    "bytes"
-    "fmt"
-    "testing"
+	"bytes"
+	"fmt"
+	"testing"
 
-    "github.com/arsham/expvastic/lib"
-    "github.com/spf13/viper"
+	"github.com/arsham/expvastic/lib"
+	"github.com/spf13/viper"
 )
 
 func TestTypeCheckErrors(t *testing.T) {
-    v := viper.New()
-    v.SetConfigType("yaml")
-    log := lib.DiscardLogger()
+	t.Parallel()
+	v := viper.New()
+	v.SetConfigType("yaml")
+	log := lib.DiscardLogger()
 
-    input := bytes.NewBuffer([]byte(`
+	input := bytes.NewBuffer([]byte(`
     readers:
         reader1:
             no_type: true
@@ -26,22 +27,22 @@ func TestTypeCheckErrors(t *testing.T) {
         recorder1:
             type: elasticsearch
     `))
-    v.ReadConfig(input)
-    _, err := LoadYAML(log, v)
+	v.ReadConfig(input)
+	_, err := LoadYAML(log, v)
 
-    var (
-        val *notSpecifiedErr
-        ok  bool
-    )
-    if val, ok = err.(*notSpecifiedErr); !ok {
-        t.Fatalf("want notSpecifiedErr, got (%v)", err)
-    }
+	var (
+		val *notSpecifiedErr
+		ok  bool
+	)
+	if val, ok = err.(*notSpecifiedErr); !ok {
+		t.Fatalf("want notSpecifiedErr, got (%v)", err)
+	}
 
-    if val.Section != "reader1" {
-        t.Errorf("want error for (reader1) section, got for (%s)", val.Section)
-    }
+	if val.Section != "reader1" {
+		t.Errorf("want error for (reader1) section, got for (%s)", val.Section)
+	}
 
-    input = bytes.NewBuffer([]byte(`
+	input = bytes.NewBuffer([]byte(`
     readers:
         reader1:
             type: expvar
@@ -49,134 +50,139 @@ func TestTypeCheckErrors(t *testing.T) {
         recorder1:
             no_type: true
     `))
-    v.ReadConfig(input)
-    _, err = LoadYAML(log, v)
+	v.ReadConfig(input)
+	_, err = LoadYAML(log, v)
 
-    if val, ok = err.(*notSpecifiedErr); !ok {
-        t.Fatalf("want StructureErr, got (%v)", err)
-    }
+	if val, ok = err.(*notSpecifiedErr); !ok {
+		t.Fatalf("want StructureErr, got (%v)", err)
+	}
 
-    if val.Section != "recorder1" {
-        t.Errorf("want error for (recorder1) section, got for (%s)", val.Section)
-    }
+	if val.Section != "recorder1" {
+		t.Errorf("want error for (recorder1) section, got for (%s)", val.Section)
+	}
 }
 
 func TestGetReaderKeys(t *testing.T) {
-    v := viper.New()
-    v.SetConfigType("yaml")
+	t.Parallel()
+	v := viper.New()
+	v.SetConfigType("yaml")
 
-    input := bytes.NewBuffer([]byte(`
+	input := bytes.NewBuffer([]byte(`
     readers:
         reader1:
             type: expvar
         reader2:
             type: expvar
     `))
-    v.ReadConfig(input)
-    keys, _ := getReaders(v)
-    if len(keys) != 2 {
-        t.Errorf("expected 2 keys, got (%d)", len(keys))
-    }
+	v.ReadConfig(input)
+	keys, _ := getReaders(v)
+	if len(keys) != 2 {
+		t.Errorf("expected 2 keys, got (%d)", len(keys))
+	}
 
-    target := []string{"reader1", "reader2"}
-    for rKey := range keys {
-        if !isIn(rKey, target) {
-            t.Errorf("expected (%s) be in %v", rKey, target)
-        }
-    }
+	target := []string{"reader1", "reader2"}
+	for rKey := range keys {
+		if !lib.StringInSlice(rKey, target) {
+			t.Errorf("expected (%s) be in %v", rKey, target)
+		}
+	}
 }
 
 func TestGetKnownReaderKeyTypes(t *testing.T) {
-    v := viper.New()
-    v.SetConfigType("yaml")
+	t.Parallel()
+	v := viper.New()
+	v.SetConfigType("yaml")
 
-    tcs := []struct {
-        input *bytes.Buffer
-        value string
-    }{
-        {
-            input: bytes.NewBuffer([]byte(`
+	tcs := []struct {
+		input *bytes.Buffer
+		value string
+	}{
+		{
+			input: bytes.NewBuffer([]byte(`
     readers:
         reader1:
             type: expvar
     `)),
-            value: "expvar",
-        },
-    }
+			value: "expvar",
+		},
+	}
 
-    for i, tc := range tcs {
-        name := fmt.Sprintf("case_%d", i)
-        t.Run(name, func(t *testing.T) {
-            v.ReadConfig(tc.input)
-            keys, _ := getReaders(v)
-            if len(keys) == 0 {
-                t.Fatalf("unexpected return value (%v)", keys)
-            }
-            for _, v := range keys {
-                if v != tc.value {
-                    t.Errorf("want (%s), got (%s)", tc.value, v)
-                }
-            }
-        })
-    }
+	for i, tc := range tcs {
+		name := fmt.Sprintf("case_%d", i)
+		t.Run(name, func(t *testing.T) {
+			v.ReadConfig(tc.input)
+			keys, _ := getReaders(v)
+			if len(keys) == 0 {
+				t.Fatalf("unexpected return value (%v)", keys)
+			}
+			for _, v := range keys {
+				if v != tc.value {
+					t.Errorf("want (%s), got (%s)", tc.value, v)
+				}
+			}
+		})
+	}
 }
 
 func TestGetRecorderKeys(t *testing.T) {
-    v := viper.New()
-    v.SetConfigType("yaml")
+	t.Parallel()
+	v := viper.New()
+	v.SetConfigType("yaml")
 
-    input := bytes.NewBuffer([]byte(`
+	input := bytes.NewBuffer([]byte(`
     recorders:
         recorder1:
             type: elasticsearch
         recorder2:
             type: elasticsearch
     `))
-    v.ReadConfig(input)
-    keys, _ := getRecorders(v)
-    if len(keys) != 2 {
-        t.Errorf("expected 2 keys, got (%d)", len(keys))
-    }
+	v.ReadConfig(input)
+	keys, _ := getRecorders(v)
+	if len(keys) != 2 {
+		t.Errorf("expected 2 keys, got (%d)", len(keys))
+	}
 
-    target := []string{"recorder1", "recorder2"}
-    for rKey := range keys {
-        if !isIn(rKey, target) {
-            t.Errorf("expected (%s) be in %v", rKey, target)
-        }
-    }
+	target := []string{"recorder1", "recorder2"}
+	for rKey := range keys {
+		if !lib.StringInSlice(rKey, target) {
+			t.Errorf("expected (%s) be in %v", rKey, target)
+		}
+	}
 }
 
 func TestGetKnownRecorderKeyTypes(t *testing.T) {
-    v := viper.New()
-    v.SetConfigType("yaml")
+	t.Parallel()
+	v := viper.New()
+	v.SetConfigType("yaml")
 
-    tcs := []struct {
-        input *bytes.Buffer
-        value string
-    }{
-        {
-            input: bytes.NewBuffer([]byte(`
+	tcs := []struct {
+		input *bytes.Buffer
+		value string
+	}{
+		{
+			input: bytes.NewBuffer([]byte(`
     recorders:
         recorder1:
             type: elasticsearch
     `)),
-            value: "elasticsearch",
-        },
-    }
+			value: "elasticsearch",
+		},
+	}
 
-    for i, tc := range tcs {
-        name := fmt.Sprintf("case_%d", i)
-        t.Run(name, func(t *testing.T) {
-            v.ReadConfig(tc.input)
-            keys, _ := getRecorders(v)
-            if len(keys) == 0 {
-                t.Fatalf("unexpected return value (%v)", keys)
-            }
-            for _, v := range keys {
-                if v != tc.value {
-                    t.Errorf("want (%s), got (%s)", tc.value, v)
-                }
-            }
-        })
-    }
+	for i, tc := range tcs {
+		name := fmt.Sprintf("case_%d", i)
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			v.ReadConfig(tc.input)
+			keys, _ := getRecorders(v)
+			if len(keys) == 0 {
+				t.Fatalf("unexpected return value (%v)", keys)
+			}
+			for _, v := range keys {
+				if v != tc.value {
+					t.Errorf("want (%s), got (%s)", tc.value, v)
+				}
+			}
+		})
+	}
 }

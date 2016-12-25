@@ -7,7 +7,7 @@ package datatype
 import "bytes"
 
 func defaultMappings() *bytes.Buffer {
-    return bytes.NewBuffer([]byte(`
+	return bytes.NewBuffer([]byte(`
 gc_types:
     PauseEnd
     PauseNs

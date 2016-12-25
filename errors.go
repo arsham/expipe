@@ -7,9 +7,9 @@ package expvastic
 import "fmt"
 
 var (
-    // ErrEmptyRecName is for when the recorder's name is an empty string.
-    ErrEmptyRecName = fmt.Errorf("recorder name empty")
+	// ErrEmptyRedName is for when the reader's name is an empty string.
+	ErrEmptyRedName = fmt.Errorf("reader name empty")
 
-    // ErrDupRecName is for when there are two recorders with the same name.
-    ErrDupRecName = fmt.Errorf("recorder name empty")
+	// ErrDupRecName is for when there are two recorders with the same name.
+	ErrDupRecName = fmt.Errorf("recorder name empty")
 )

@@ -13,31 +13,31 @@ import (
 )
 
 // StartEngines creates some Engines and returns a channel that closes it when it's done its work.
-// For each routes, we need one engine that has one reader and writes to multiple recorders.
-// This is because:
-//    1 - Readers should not intercept each other by engaging the recorders.
-//    2 - When a reader goes out of scope, we can safely stop the recorders.
-// When a recorder goes out of scope, the Engine stops sending to that recorder.
+// For each routes, we need one engine that has multiple readers and writes to one recorder.
+// When all recorders of one reader go out of scope, the Engine stops that reader because there
+// is no destination.
 func StartEngines(ctx context.Context, log logrus.FieldLogger, confMap *config.ConfMap) (chan struct{}, error) {
 	var wg sync.WaitGroup
 	done := make(chan struct{})
-	readChanBuff := 1000
+
+	readChanBuff := 1000 // TODO: adjust
 	readResChanBuff := 1000
 	recChanBuff := 1000
-	recResChanBuff := 1000
-	for reader, recorders := range confMap.Routes {
-		for _, recorder := range recorders {
-			wg.Add(1)
+
+	for recorder, readers := range confMap.Routes {
+		for _, reader := range readers {
 			red := confMap.Readers[reader]
 			rec := confMap.Recorders[recorder]
-			en, err := NewWithConfig(ctx, log, readChanBuff, readResChanBuff, recChanBuff, recResChanBuff, red, rec)
+			en, err := NewWithConfig(ctx, log, readChanBuff, readResChanBuff, recChanBuff, rec, red)
 			if err != nil {
 				return nil, err
 			}
-			go func(done <-chan struct{}) {
-				<-done
+			go func() {
+				wg.Add(1)
+				en.Start()
+				log.Infof("Engine %s has finished", en.name)
 				wg.Done()
-			}(en.Start())
+			}()
 		}
 	}
 	go func() {

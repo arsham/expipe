@@ -4,7 +4,7 @@
 
 // Package expvar contains logic to read from an expvar provide. The data comes in JSON format. The GC
 // and memory related information will be changed to better presented to the data recorders.
-// Bytes will be turned into megabyets, gc lists will be truncated to remove zero values.
+// Bytes will be turned into megabytes, gc lists will be truncated to remove zero values.
 package expvar
 
 import (
@@ -27,7 +27,7 @@ var (
 type Reader struct {
 	name       string
 	ctxReader  reader.ContextReader
-	logger     logrus.FieldLogger
+	log        logrus.FieldLogger
 	mapper     datatype.Mapper
 	typeName   string
 	jobChan    chan context.Context
@@ -40,7 +40,7 @@ type Reader struct {
 // NewExpvarReader creates the worker and sets up its channels.
 // Because the caller is reading the resp.Body, it is its job to close it.
 func NewExpvarReader(
-	logger logrus.FieldLogger,
+	log logrus.FieldLogger,
 	ctxReader reader.ContextReader,
 	mapper datatype.Mapper,
 	jobChan chan context.Context,
@@ -52,8 +52,7 @@ func NewExpvarReader(
 	timeout time.Duration,
 ) (*Reader, error) {
 	// TODO: ping the reader.
-	// TODO: have the user decide how large the channels can be.
-	logger = logger.WithField("reader", "expvar")
+	log = log.WithField("reader", "expvar").WithField("name", name)
 	w := &Reader{
 		name:       name,
 		typeName:   typeName,
@@ -62,7 +61,7 @@ func NewExpvarReader(
 		resultChan: resultChan,
 		errorChan:  errorChan,
 		ctxReader:  ctxReader,
-		logger:     logger,
+		log:        log,
 		timeout:    timeout,
 		interval:   interval,
 	}
@@ -72,22 +71,20 @@ func NewExpvarReader(
 // Start begins reading from the target in its own goroutine.
 // It will issue a goroutine on each job request.
 // It will close the done channel when the job channel is closed.
-func (r *Reader) Start(ctx context.Context) <-chan struct{} {
-	done := make(chan struct{})
-	r.logger.Debug("starting")
+func (r *Reader) Start(ctx context.Context, stop communication.StopChannel) {
+	r.log.Debug("starting")
 	go func() {
-	LOOP:
 		for {
 			select {
 			case job := <-r.jobChan:
 				go r.readMetrics(job)
-			case <-ctx.Done():
-				break LOOP
+			case s := <-stop:
+				// TODO: condition this exit. There might be work happening and we don't want to lose them.
+				s <- struct{}{}
+				return
 			}
 		}
-		close(done)
 	}()
-	return done
 }
 
 // Name shows the name identifier for this reader
@@ -102,7 +99,7 @@ func (r *Reader) Mapper() datatype.Mapper { return r.mapper }
 // Interval returns the interval
 func (r *Reader) Interval() time.Duration { return r.interval }
 
-// Timeout returns the timeout
+// Timeout returns the time-out
 func (r *Reader) Timeout() time.Duration { return r.timeout }
 
 // JobChan returns the job channel.
@@ -116,7 +113,7 @@ func (r *Reader) readMetrics(job context.Context) {
 	resp, err := r.ctxReader.Get(job)
 	id := communication.JobValue(job)
 	if err != nil {
-		r.logger.WithField("reader", "expvar_reader").
+		r.log.WithField("reader", "expvar_reader").
 			WithField("name", r.Name()).
 			WithField("ID", id).
 			Debugf("%s: error making request: %v", r.name, err)
@@ -129,6 +126,7 @@ func (r *Reader) readMetrics(job context.Context) {
 		Time:     time.Now(), // It is sensible to record the time now
 		Res:      resp.Body,
 		TypeName: r.TypeName(),
+		Mapper:   r.Mapper(),
 	}
 	expvarReads.Add(1)
 	r.resultChan <- res

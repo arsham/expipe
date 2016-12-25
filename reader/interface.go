@@ -3,7 +3,7 @@
 // License that can be found in the LICENSE file.
 
 // Package reader contains logic for reading from a provider. Any objects that implements the DataReader interface
-// can be used in this system. The job should provide an io.ReadCloser and should produce a JSON object, othewise
+// can be used in this system. The job should provide an io.ReadCloser and should produce a JSON object, otherwise
 // the data will be rejected.
 //
 // The data stream SHOULD not be closed. The engine WILL close it upon reading its contents.
@@ -11,7 +11,7 @@
 // Readers should ping their endpoint upon creation to make sure they can read from. Otherwise they should return
 // an error indicating they cannot start.
 //
-// When the context is canceled, the reader should finish its job and return. The Time should be set when the data is
+// When the context is cancelled, the reader should finish its job and return. The Time should be set when the data is
 // read from the endpoint, otherwise it will lose its meaning. The engine will issue jobs based on the Interval, which
 // is set in the configuration file.
 package reader
@@ -25,13 +25,13 @@ import (
 	"github.com/arsham/expvastic/datatype"
 )
 
-// InterTimer is required by the Engine so it can read the intervals and timeouts.
+// InterTimer is required by the Engine so it can read the intervals and time-outs.
 type InterTimer interface {
 	Timeout() time.Duration  // is used for timing out reading from the endpoint.
 	Interval() time.Duration // the engine will issue jobs based on this interval.
 }
 
-// DataReader recieves job requests to read from the target, and sends its success
+// DataReader receives job requests to read from the target, and sends its success
 // through the ResultChan channel.
 type DataReader interface {
 	InterTimer
@@ -40,7 +40,7 @@ type DataReader interface {
 	// it is time to read from the target.
 	// The engine never blocks if the reader is not able to process the requests.
 	// This channel will be provided by the Engine.
-	// The context might be canceled depending how the user sets the timeouts.
+	// The context might be cancelled depending how the user sets the time-outs.
 	// The UUID associated with this job is inside the context. Readers are
 	// advised to use this ID and pass them along.
 	JobChan() chan context.Context
@@ -50,10 +50,12 @@ type DataReader interface {
 	// on readers and the application itself.
 	ResultChan() chan *ReadJobResult
 
-	// The reader's loop should be inside a goroutine, and return a done channel.
-	// This channel should be closed once its work is finished and the reader wants to quit.
-	// When the context is timedout or canceled, the reader should return.
-	Start(ctx context.Context) <-chan struct{}
+	// The reader's loop should be inside a goroutine.
+	// This channel should be closed once the worker receives a stop signal
+	// and its work is finished. The response to the stop signal should happen
+	// otherwise it will hang the Engine around.
+	// When the context is timed-out or cancelled, the reader should return.
+	Start(ctx context.Context, stop communication.StopChannel)
 
 	// Mapper should return an instance of the datatype mapper.
 	// Engine uses this object to present the data to recorders.
@@ -68,11 +70,12 @@ type DataReader interface {
 	Name() string
 }
 
-// ReadJobResult is constructed everytime a new record is fetched.
+// ReadJobResult is constructed every time a new record is fetched.
 // The time is set after the request was successfully read.
 type ReadJobResult struct {
 	ID       communication.JobID
 	Time     time.Time
 	TypeName string
 	Res      io.ReadCloser
+	Mapper   datatype.Mapper //TODO: refactor this out
 }

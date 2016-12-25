@@ -28,15 +28,16 @@ func BenchmarkRecorder0_1000(b *testing.B)    { benchmarkRecorder(0, 1000, b) }
 
 func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 	log := lib.DiscardLogger()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer ts.Close()
 
 	payloadChan := make(chan *RecordJob, jobBuffC)
 	errorChan := make(chan communication.ErrorMessage, doneBuffC)
 	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
-	rec.Start(ctx)
+	stop := make(communication.StopChannel)
+	rec.Start(ctx, stop)
 
 	for n := 0; n < b.N; n++ {
 		job := &RecordJob{
@@ -46,6 +47,8 @@ func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 			Time:      time.Now(),
 		}
 		rec.PayloadChan() <- job
-		<-errorChan
 	}
+	done := make(chan struct{})
+	stop <- done
+	<-done
 }

@@ -18,8 +18,9 @@ import (
 )
 
 func TestExpvarReaderErrors(t *testing.T) {
+	t.Parallel()
 	log := lib.DiscardLogger()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 	ctxReader := reader.NewMockCtxReader("nowhere")
 	ctxReader.ContextReadFunc = func(ctx context.Context) (*http.Response, error) {
 		return nil, fmt.Errorf("Error")
@@ -30,8 +31,8 @@ func TestExpvarReaderErrors(t *testing.T) {
 
 	mapper := &datatype.MapConvertMock{}
 	red, _ := NewExpvarReader(log, ctxReader, mapper, jobChan, resultChan, errorChan, "my_reader", "example_type", time.Second, time.Second)
-	red.Start(ctx)
-	defer cancel()
+	stop := make(communication.StopChannel)
+	red.Start(ctx, stop)
 
 	red.JobChan() <- communication.NewReadJob(ctx)
 	select {
@@ -50,23 +51,30 @@ func TestExpvarReaderErrors(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		t.Error("expecting an error result back, got nothing")
 	}
-	cancel()
+	done := make(chan struct{})
+	stop <- done
+	<-done
 }
 
 func TestExpvarReaderClosesStream(t *testing.T) {
+	t.Parallel()
 	log := lib.DiscardLogger()
 	ctxReader := reader.NewMockCtxReader("nowhere")
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 	jobChan := make(chan context.Context)
 	resultChan := make(chan *reader.ReadJobResult)
 	errorChan := make(chan communication.ErrorMessage)
 
 	mapper := &datatype.MapConvertMock{}
 	red, _ := NewExpvarReader(log, ctxReader, mapper, jobChan, resultChan, errorChan, "my_reader", "example_type", time.Second, time.Second)
-	done := red.Start(ctx)
+	stop := make(communication.StopChannel)
+	red.Start(ctx, stop)
 	jobChan <- communication.NewReadJob(ctx)
 	<-errorChan
-	cancel()
+
+	done := make(chan struct{})
+	stop <- done
+
 	select {
 	case <-done:
 	case <-time.After(1 * time.Second):

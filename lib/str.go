@@ -6,20 +6,20 @@ package lib
 
 // StringInSlice returns true if niddle is in the haystack
 func StringInSlice(niddle string, haystack []string) bool {
-    for _, b := range haystack {
-        if b == niddle {
-            return true
-        }
-    }
-    return false
+	for _, b := range haystack {
+		if b == niddle {
+			return true
+		}
+	}
+	return false
 }
 
 // StringInMapKeys returns true if niddle is in the haystack's keys
 func StringInMapKeys(niddle string, haystack map[string]string) bool {
-    for b := range haystack {
-        if b == niddle {
-            return true
-        }
-    }
-    return false
+	for b := range haystack {
+		if b == niddle {
+			return true
+		}
+	}
+	return false
 }

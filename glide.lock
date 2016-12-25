@@ -1,5 +1,5 @@
 hash: 2518c6092e56e242db7c07b0efe2c6e974b84920ee0483d710c07999c3adfa7f
-updated: 2016-12-24T13:33:00.385970864Z
+updated: 2016-12-27T00:14:23.812853591Z
 imports:
 - name: github.com/antonholmquist/jason
   version: c23cef7eaa75a6a5b8810120e167bd590d8fd2ab
@@ -26,8 +26,6 @@ imports:
   version: 71ceffbeb0ba60fccc853971bb3ed4d7d90bfd04
 - name: github.com/olivere/elastic
   version: b272fab42387a42585235d56f8c6b53b13ddfb7d
-- name: github.com/pborman/uuid
-  version: 5007efa264d92316c43112bc573e754bc889b7b1
 - name: github.com/pelletier/go-buffruneio
   version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
 - name: github.com/pelletier/go-toml
@@ -36,12 +34,14 @@ imports:
   version: b061729afc07e77a8aa4fad0a2fd840958f1942a
 - name: github.com/Sirupsen/logrus
   version: 881bee4e20a5d11a6a88a5667c6f292072ac1963
+  subpackages:
+  - hooks/test
 - name: github.com/spf13/afero
-  version: 2f30b2a92c0e5700bcfe4715891adb1f2a7a406d
+  version: 90dd71edc4d0a8b3511dc12ea15d617d03be09e0
   subpackages:
   - mem
 - name: github.com/spf13/cast
-  version: 24b6558033ffe202bf42f0f3b870dcc798dd2ba8
+  version: 56a7ecbeb18dde53c6db4bd96b541fd9741b8d44
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag

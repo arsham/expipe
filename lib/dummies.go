@@ -7,5 +7,6 @@ package lib
 // DummyReadCloser implements io.ReadCloser that does nothing
 type DummyReadCloser struct{}
 
+// Close is a noop
 func (DummyReadCloser) Close() error                     { return nil }
 func (DummyReadCloser) Read(p []byte) (n int, err error) { return 0, nil }

@@ -10,222 +10,111 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/config"
-	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
 )
 
 var (
-	expRecorders = expvar.NewInt("Recorders")
-	expReaders   = expvar.NewInt("Readers")
-	readJobs     = expvar.NewInt("Read Jobs")
-	recordJobs   = expvar.NewInt("Record Jobs")
-	erroredJobs  = expvar.NewInt("Errored Jobs")
+	numGoroutines   = expvar.NewInt("Number Of Goroutines")
+	expRecorders    = expvar.NewInt("Recorders")
+	expReaders      = expvar.NewInt("Readers")
+	readJobs        = expvar.NewInt("Read Jobs")
+	recordJobs      = expvar.NewInt("Record Jobs")
+	erroredJobs     = expvar.NewInt("Error Jobs")
+	recorderGone    = "recorder is gone now"
+	contextCanceled = "context has been cancelled"
 )
 
-// Engine represents an engine that receives information from readers and ships them to recorders.
+// Engine represents an engine that receives information from readers and ships them to a recorder.
 // The Engine is allowed to change the index and type names at will.
-// When the context times out or canceled, the engine will close the the job channels by calling the Stop method.
+// When the context times out or cancelled, the engine will close the the job channels by calling its
+// stop method. It will send a stop signal to readers and recorders asking them to finish their jobs.
+// It will timeout the stop signals if it doesn't receive a response.
 // Note that we could create a channel and distribute the recorders payload, but we didn't because there
 // is no way to find out which recorder errors right after the payload has been sent.
-// IMPORTANT: the readers should not close their streams, I am closing them here.
+// IMPORTANT: the readers should not close their streams, the Engine closes them.
 type Engine struct {
-	once            sync.Once                        // For guarding the Start method
-	name            string                           // Name identifier for this engine.
-	ctx             context.Context                  // Will call Stop() when this context is canceled/timedout. This is a new context from the parent.
-	cancel          context.CancelFunc               // Based on the new context.
-	dataReader      reader.DataReader                // Reads from an expvar provider.
-	recorders       map[string]recorder.DataRecorder // Records to ElasticSearch client. The key is the name of the recorder.
-	recorderResChan <-chan error
-	observer        *observer
-	errorChan       <-chan communication.ErrorMessage
-	logger          logrus.FieldLogger
+	log           logrus.FieldLogger
+	ctx           context.Context                   // Will call stop() when this context is cancelled/timed-out. This is a new context from the parent.
+	name          string                            // Name identifier for this engine.
+	shutdown      sync.Once                         // The Engine signals itself to shut-down.
+	recorder      recorder.DataRecorder             // Records to ElasticSearch client.
+	errorChan     <-chan communication.ErrorMessage // Recorder and all Readers will send their errors through this channel
+	readerResChan <-chan *reader.ReadJobResult      // Readers report their results through this channel.
+
+	redmu   sync.RWMutex
+	readers map[reader.DataReader]communication.StopChannel // Map of active readers to their stop signals
 }
 
-// NewWithConfig instantiates reader and recorders from the configurations.
-// readChanBuff, readResChanBuff, recChanBuff, recResChan are the channel buffer amount. Please refer to benchmarks how to choose the best values.
-func NewWithConfig(
-	ctx context.Context,
-	log logrus.FieldLogger,
-	readChanBuff,
-	readResChanBuff,
-	recChanBuff,
-	recResChan int,
-	red config.ReaderConf,
-	recorders ...config.RecorderConf,
-) (*Engine, error) {
+// NewWithConfig instantiates reader and recorders from the configurations and sends them
+// to the NewWithReadRecorder. The engine's work starts from there.
+// readChanBuff, readResChanBuff, recChanBuff are the channel buffer amount.
+// Please refer to the benchmarks how to choose the best values.
+func NewWithConfig(ctx context.Context, log logrus.FieldLogger,
+	readChanBuff, readResChanBuff, recChanBuff int,
+	recorderConf config.RecorderConf, readers ...config.ReaderConf) (*Engine, error) {
 
-	recs := make([]recorder.DataRecorder, len(recorders))
-	jobChan := make(chan context.Context, readChanBuff)
-	errorChan := make(chan communication.ErrorMessage, readChanBuff+(len(recorders)*readResChanBuff)) // large enough so both reader and recorders can report
-	resultChan := make(chan *reader.ReadJobResult, readResChanBuff)
+	reds := make([]reader.DataReader, len(readers))
+	errorChan := make(chan communication.ErrorMessage, recChanBuff+(len(readers)*readChanBuff)) // large enough so both reader and red can report
+	readerResChan := make(chan *reader.ReadJobResult, len(readers)*readResChanBuff)
 
-	for i, recConf := range recorders {
-		payloadChan := make(chan *recorder.RecordJob, recChanBuff)
-		rec, err := recConf.NewInstance(ctx, payloadChan, errorChan)
+	for i, redConf := range readers {
+		jobChan := make(chan context.Context, readChanBuff)
+		red, err := redConf.NewInstance(ctx, jobChan, readerResChan, errorChan)
 		if err != nil {
 			return nil, err
 		}
-		recs[i] = rec
+		reds[i] = red
 	}
 
-	r, err := red.NewInstance(ctx, jobChan, resultChan, errorChan)
+	recorderPayloadChan := make(chan *recorder.RecordJob, recChanBuff)
+	rec, err := recorderConf.NewInstance(ctx, recorderPayloadChan, errorChan)
 	if err != nil {
 		return nil, err
 	}
-	return NewWithReadRecorder(ctx, log, recResChan, errorChan, r, recs...)
+	return NewWithReadRecorder(ctx, log, errorChan, readerResChan, rec, reds...)
 }
 
-// NewWithReadRecorder creates an instance with already made reader and recorders.
-// It spawns one reader and streams its payload to all recorders.
+// NewWithReadRecorder creates an instance an Engine with already made reader and recorders.
+// It streams all readers payloads to the recorder.
 // Returns an error if there are recorders with the same name, or any of them have no name.
-func NewWithReadRecorder(
-	ctx context.Context,
-	logger logrus.FieldLogger,
-	recResChan int,
-	errorChan <-chan communication.ErrorMessage,
-	red reader.DataReader,
-	recs ...recorder.DataRecorder,
-) (*Engine, error) {
-	recorderResChan := make(chan error, recResChan)
-	recNames := make([]string, len(recs))
-	recsMap := make(map[string]recorder.DataRecorder, len(recs))
-	seenNames := make(map[string]struct{}, len(recs))
+func NewWithReadRecorder(ctx context.Context, log logrus.FieldLogger, errorChan <-chan communication.ErrorMessage,
+	readerResChan <-chan *reader.ReadJobResult, rec recorder.DataRecorder, reds ...reader.DataReader) (*Engine, error) {
 
-	for i, rec := range recs {
-		if rec.Name() == "" {
-			return nil, ErrEmptyRecName
+	readerNames := make([]string, len(reds))
+	readerMap := make(map[reader.DataReader]communication.StopChannel, len(reds))
+	seenNames := make(map[string]struct{}, len(reds))
+
+	for i, red := range reds {
+		if red.Name() == "" {
+			return nil, ErrEmptyRedName
 		}
-		if _, ok := seenNames[rec.Name()]; ok {
+
+		if _, ok := seenNames[red.Name()]; ok {
 			return nil, ErrDupRecName
 		}
 
-		seenNames[rec.Name()] = struct{}{}
-		recNames[i] = rec.Name()
-		recsMap[rec.Name()] = rec
+		seenNames[red.Name()] = struct{}{}
+		readerNames[i] = red.Name()
+		readerMap[red] = make(communication.StopChannel)
 	}
 
 	// just to be cute
-	engineName := fmt.Sprintf("( %s >-x-< %s )", red.Name(), strings.Join(recNames, ","))
-	logger = logger.WithField("engine", engineName)
+	engineName := fmt.Sprintf("( %s >-x-<< %s )", rec.Name(), strings.Join(readerNames, ","))
+	log = log.WithField("engine", engineName)
 	cl := &Engine{
-		name:            engineName,
-		ctx:             ctx,
-		errorChan:       errorChan,
-		recorders:       recsMap,
-		dataReader:      red,
-		logger:          logger,
-		observer:        newobserver(ctx, logger, recorderResChan, len(recs)),
-		recorderResChan: recorderResChan,
+		name:          engineName,
+		ctx:           ctx,
+		errorChan:     errorChan,
+		recorder:      rec,
+		readers:       readerMap,
+		readerResChan: readerResChan,
+		log:           log,
 	}
+	log.Debug("started the engine")
 	return cl, nil
-}
-
-// Start begins pulling the data from DataReader and chips them to DataRecorder.
-// When the context is canceled or timed out, the engine closes all job channels, causing the readers and recorders to stop.
-func (e *Engine) Start() <-chan struct{} {
-	done := make(chan struct{})
-	e.logger.Infof("starting with %d recorders", len(e.recorders))
-
-	go e.once.Do(func() {
-		ctx, cancel := context.WithCancel(e.ctx)
-		e.cancel = cancel
-		readerDone := e.dataReader.Start(ctx)
-		expReaders.Add(1)
-		for _, rec := range e.recorders {
-			e.observer.subscribe(ctx, rec)
-			expReaders.Add(1)
-		}
-
-		e.eventLoop(readerDone)
-		close(done)
-	})
-
-	return done
-}
-
-// TODO: test
-// reads from DataReader and issues jobs to DataRecorders.
-func (e *Engine) eventLoop(readerDone <-chan struct{}) {
-	resultChan := e.dataReader.ResultChan()
-	ticker := time.NewTicker(e.dataReader.Interval())
-	e.logger.Info("starting eventloop")
-	for {
-		select {
-		case <-ticker.C:
-			// job's life cycle starts here...
-			go e.issueReaderJob()
-		case r := <-resultChan:
-			// ...then the result from the job's outcome arrives here.
-			go e.redirectToRecorders(r)
-		case err := <-e.errorChan:
-			e.logger.WithField("ID", err.ID).
-				WithField("name", err.Name).
-				Errorf("job result err: %s", err.Error())
-		case <-readerDone:
-			e.logger.Debug("reader is gone now")
-			e.Stop()
-			return
-		case err := <-e.recorderResChan:
-			// ... recorder should inform us with the results
-			if err != nil {
-				e.logger.Errorf("%s", err)
-			}
-		case <-e.ctx.Done():
-			e.logger.Debug("context has been canceled")
-			e.Stop()
-			return
-		}
-	}
-}
-
-// Name shows the name identifier for this engine
-func (e *Engine) Name() string { return e.name }
-
-// Stop closes the job channels
-func (e *Engine) Stop() {
-	// TODO: wait for the recorders to finish their jobs.
-	e.logger.Debug("stopping")
-	// e.observer.stop()
-	e.cancel()
-}
-
-func (e *Engine) issueReaderJob() {
-	readJobs.Add(1)
-	// to make sure the reader is behaving.
-	timeout := e.dataReader.Timeout() + time.Duration(10*time.Second)
-	timer := time.NewTimer(timeout)
-
-	select {
-	case e.dataReader.JobChan() <- communication.NewReadJob(e.ctx):
-		// job was sent, we are done here.
-		timer.Stop()
-		return
-	case <-timer.C:
-		erroredJobs.Add(1)
-		e.logger.Warn("timedout before job was read")
-	case <-e.ctx.Done():
-		erroredJobs.Add(1)
-		e.logger.Warnf("main context closed before job was read: %s", e.ctx.Err().Error())
-	}
-}
-
-// Be aware that I am closing the stream.
-// TODO: test the error
-func (e *Engine) redirectToRecorders(r *reader.ReadJobResult) {
-	defer r.Res.Close()
-	payload := datatype.JobResultDataTypes(r.Res, e.dataReader.Mapper())
-	if payload.Error() != nil {
-		erroredJobs.Add(1)
-		e.logger.Warnf("error in payload", payload.Error())
-		return
-	}
-	recordJobs.Add(1)
-	// TODO: instead pass the generator to the recorder.
-	e.observer.publish(e.ctx, r.ID, r.TypeName, r.Time, payload)
 }

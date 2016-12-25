@@ -5,78 +5,78 @@
 package datatype
 
 import (
-    "fmt"
-    "strings"
-    "sync"
-    "time"
+	"fmt"
+	"strings"
+	"sync"
+	"time"
 )
 
 // DataContainer is an interface for holding a list of DataType.
 // I'm aware of the container/list package, which is awesome, but I needed to guard this with a mutex.
-// To iterate over this contaner:
+// To iterate over this container:
 //  for i := 0; i < d.Len(); i++ {
 //      item := d.Get(i)
 //  }
 type DataContainer interface {
-    // Returns the list. You should not update this list as it is a shared list and anyone can read from it.
-    // If you append to this list, there is a chance you are not refering to the same underlying array in memory.
-    List() []DataType
-    Len() int
+	// Returns the list. You should not update this list as it is a shared list and anyone can read from it.
+	// If you append to this list, there is a chance you are not referring to the same underlying array in memory.
+	List() []DataType
+	Len() int
 
-    String(timestamp time.Time) string
-    // Returns the Err value
-    Error() error
+	String(timestamp time.Time) string
+	// Returns the Err value
+	Error() error
 }
 
 // Container satisfies the DataContainer and error interfaces
 type Container struct {
-    mu   sync.RWMutex
-    list []DataType
-    Err  error
+	mu   sync.RWMutex
+	list []DataType
+	Err  error
 }
 
 // NewContainer returns a new container
 func NewContainer(list []DataType) *Container {
-    return &Container{list: list}
+	return &Container{list: list}
 }
 
 // List returns the data
 // The error is not provided here, please check the Err value
 func (c *Container) List() []DataType {
-    c.mu.RLock()
-    defer c.mu.RUnlock()
-    return c.list
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.list
 }
 
 // Len returns the length of the data
 func (c *Container) Len() int {
-    c.mu.RLock()
-    defer c.mu.RUnlock()
-    return len(c.list)
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return len(c.list)
 }
 
 // Add adds to the list
 func (c *Container) Add(d ...DataType) {
-    c.mu.Lock()
-    defer c.mu.Unlock()
-    c.list = append(c.list, d...)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.list = append(c.list, d...)
 }
 
 // Error returns the error
 func (c *Container) Error() error {
-    return c.Err
+	return c.Err
 }
 
-// String prepends the timestamp to the list, and gererates a json objest suitable for recording into
-// a donument store.
+// String prepends the timestamp to the list, and generates a json object suitable for recording into
+// a document store.
 // TODO: also provide JSONDeocder encoder
 // TODO: a lot of data doesn't require processing, use them as they are
 func (c *Container) String(timestamp time.Time) string {
-    ts := fmt.Sprintf(`"@timestamp":"%s"`, timestamp.Format("2006-01-02T15:04:05.999999-07:00"))
-    l := make([]string, c.Len()+1)
-    l[0] = ts
-    for i, v := range c.List() {
-        l[i+1] = v.String()
-    }
-    return fmt.Sprintf("{%s}", strings.Join(l, ","))
+	ts := fmt.Sprintf(`"@timestamp":"%s"`, timestamp.Format("2006-01-02T15:04:05.999999-07:00"))
+	l := make([]string, c.Len()+1)
+	l[0] = ts
+	for i, v := range c.List() {
+		l[i+1] = v.String()
+	}
+	return fmt.Sprintf("{%s}", strings.Join(l, ","))
 }
