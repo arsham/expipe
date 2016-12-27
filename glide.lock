@@ -1,10 +1,10 @@
 hash: 2518c6092e56e242db7c07b0efe2c6e974b84920ee0483d710c07999c3adfa7f
-updated: 2016-12-27T00:14:23.812853591Z
+updated: 2016-12-27T19:12:59.930277006Z
 imports:
 - name: github.com/antonholmquist/jason
   version: c23cef7eaa75a6a5b8810120e167bd590d8fd2ab
 - name: github.com/asaskevich/govalidator
-  version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
+  version: 3b2665001c4c24e3b076d1ca8c428049ecbb925b
 - name: github.com/fsnotify/fsnotify
   version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
 - name: github.com/hashicorp/hcl

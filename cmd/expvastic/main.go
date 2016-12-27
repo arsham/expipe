@@ -29,18 +29,19 @@ import (
 var (
 	log               *logrus.Logger
 	shallStartEngines = true // for testing purposes
-	confFile          = flag.String("c", "", "Confuration file. Should be in yaml format without the extension.")
+	confFile          = flag.String("c", "", "Configuration file. Should be in yaml format without the extension.")
 	reader            = flag.String("reader", "localhost:1234/debug/vars", "Target address and port")
 	recorder          = flag.String("recorder", "localhost:9200", "Elasticsearch URL and port")
 	debugLevel        = flag.String("loglevel", "info", "Log level")
 	indexName         = flag.String("index", "expvastic", "Elasticsearch index name")
 	typeName          = flag.String("app", "expvastic", "App name, which will be the Elasticsearch type name")
 	interval          = flag.Duration("int", time.Second, "Interval between pulls from the target")
-	timeout           = flag.Duration("timeout", 30*time.Second, "Communication timeouts to both reader and recorder")
+	timeout           = flag.Duration("timeout", 30*time.Second, "Communication time-outs to both reader and recorder")
 	backoff           = flag.Int("backoff", 15, "After this amount, it will give up accessing unresponsive endpoints") // TODO: implement!
 	cpuprofile        = flag.String("cpuprof", "", "./expvastic -c expvastic -cpuprof=cpu.out")
 	memprofile        = flag.String("memprof", "", "./expvastic -c expvastic -memprof=mem.out")
-	ExitCommand       = func(msg string) {
+	// ExitCommand is used for replacing during tests.
+	ExitCommand = func(msg string) {
 		log.Fatalf(msg)
 	}
 )
@@ -80,8 +81,8 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	if shallStartEngines {
-		fmt.Println(shallStartEngines)
 		captureSignals(cancel)
 		done, err = expvastic.StartEngines(ctx, log, confSlice)
 		if err != nil {
