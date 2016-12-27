@@ -172,7 +172,6 @@ func TestGetKnownRecorderKeyTypes(t *testing.T) {
 	for i, tc := range tcs {
 		name := fmt.Sprintf("case_%d", i)
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			v.ReadConfig(tc.input)
 			keys, _ := getRecorders(v)
 			if len(keys) == 0 {

@@ -11,6 +11,14 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
+type errInvalidURL string
+
+// InvalidURL is the behaviour of an errInvalidURL error
+func (errInvalidURL) InvalidURL() {}
+
+// Error returns the string representation of the error
+func (i errInvalidURL) Error() string { return fmt.Sprintf("invalid url: %s", string(i)) }
+
 // SanitiseURL prepends a protocol to the url if not defined, and checks if it's a valid url
 func SanitiseURL(url string) (string, error) {
 	if govalidator.IsURL(url) {
@@ -19,5 +27,6 @@ func SanitiseURL(url string) (string, error) {
 		}
 		return url, nil
 	}
-	return "", fmt.Errorf("Invalid url: %s", url)
+
+	return "", errInvalidURL(url)
 }

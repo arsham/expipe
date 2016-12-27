@@ -9,7 +9,6 @@ import (
 	"testing"
 )
 
-// StringInSlice returns true if niddle is in the haystack
 func TestStringInSlice(t *testing.T) {
 	t.Parallel()
 	tcs := []struct {
@@ -27,7 +26,6 @@ func TestStringInSlice(t *testing.T) {
 	for i, tc := range tcs {
 		name := fmt.Sprintf("case_%d", i)
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			if ok := StringInSlice(tc.niddle, tc.haystack); ok != tc.result {
 				t.Errorf("want (%t), got (%t)", tc.result, ok)
 			}
@@ -35,7 +33,6 @@ func TestStringInSlice(t *testing.T) {
 	}
 }
 
-// StringInSlice returns true if niddle is in the haystack
 func TestStringInMapKeys(t *testing.T) {
 	t.Parallel()
 	tcs := []struct {
@@ -52,7 +49,6 @@ func TestStringInMapKeys(t *testing.T) {
 	for i, tc := range tcs {
 		name := fmt.Sprintf("case_%d", i)
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			if ok := StringInMapKeys(tc.niddle, tc.haystack); ok != tc.result {
 				t.Errorf("want (%t), got (%t)", tc.result, ok)
 			}

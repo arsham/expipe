@@ -2,6 +2,7 @@ package lib
 
 import (
 	"io/ioutil"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 )
@@ -13,7 +14,7 @@ func GetLogger(level string) *logrus.Logger {
 	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
 	logrus.SetFormatter(customFormatter)
 	customFormatter.FullTimestamp = true
-	switch level {
+	switch strings.ToLower(level) {
 	case "debug":
 		logrus.SetLevel(logrus.DebugLevel)
 	case "info":

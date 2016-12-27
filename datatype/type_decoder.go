@@ -8,7 +8,6 @@ import (
 	"io"
 
 	"github.com/antonholmquist/jason"
-	"github.com/arsham/expvastic/lib"
 )
 
 // JobResultDataTypes generates a list of DataType and puts them inside the DataContainer
@@ -42,40 +41,4 @@ func FromJason(key string, value jason.Value) (DataType, error) {
 		return &FloatType{key, f}, nil
 	}
 	return nil, ErrUnidentifiedJason
-}
-
-func floatListValues(key string, values []*jason.Value) []DataType {
-	if len(values) == 0 {
-		// empty list
-		return []DataType{&FloatListType{key, []float64{}}}
-	}
-
-	if lib.IsGCType(key) {
-		return gcListValues(key, values)
-	}
-
-	if _, err := values[0].Float64(); err == nil {
-		res := make([]float64, len(values))
-		for i, val := range values {
-			if r, err := val.Float64(); err == nil {
-				res[i] = r
-			}
-		}
-		return []DataType{&FloatListType{key, res}}
-	}
-	return nil
-}
-
-func gcListValues(key string, values []*jason.Value) (result []DataType) {
-	if _, err := values[0].Float64(); err == nil {
-		res := make([]uint64, len(values))
-		for i, val := range values {
-			if r, err := val.Float64(); err == nil {
-				res[i] = uint64(r)
-			}
-		}
-		expGCListTypeCount.Add(1)
-		result = []DataType{&GCListType{key, res}}
-	}
-	return
 }

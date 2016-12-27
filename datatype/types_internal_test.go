@@ -137,6 +137,25 @@ func TestGetJasonValues(t *testing.T) {
 	}
 }
 
+func TestGetJasonValuesAddToContainer(t *testing.T) {
+	t.Parallel()
+	mapper := &MapConvertMock{}
+	for i, tc := range testCase() {
+		name := fmt.Sprintf("case %d", i)
+		var container Container
+		t.Run(name, func(t *testing.T) {
+			obj, _ := jason.NewObjectFromReader(tc.value)
+			for _, value := range mapper.Values(tc.prefix, obj.Map()) {
+				container.Add(value)
+			}
+
+			if !isIn(container.List(), tc.expected) {
+				t.Errorf("expected (%v), got (%v)", tc.expected, container.List())
+			}
+		})
+	}
+}
+
 func TestFromReader(t *testing.T) {
 	t.Parallel()
 	mapper := &MapConvertMock{}
@@ -157,9 +176,23 @@ func TestFromReader(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestJobResultDataTypesErrors(t *testing.T) {
+	t.Parallel()
+	mapper := &MapConvertMock{}
 
 	value := strings.NewReader(`{"Alloc": "sdsds"}`)
 	results := JobResultDataTypes(value, mapper)
+	if results.Error() == nil {
+		t.Error("expected error, got nothing")
+	}
+	if results.Len() != 0 {
+		t.Errorf("expected empty results, got (%s)", results.List())
+	}
+
+	value = strings.NewReader(`{"Alloc": "sdsds}`)
+	results = JobResultDataTypes(value, mapper)
 	if results.Error() == nil {
 		t.Error("expected error, got nothing")
 	}

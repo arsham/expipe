@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/Sirupsen/logrus"
@@ -41,6 +42,10 @@ func TestLoadSettingsErrors(t *testing.T) {
 		t.Errorf("want (%v), got (%v)", EmptyConfigErr, err)
 	}
 
+	if !strings.Contains(err.Error(), "log_level") {
+		t.Errorf("expecting mention of log_level, got (%v)", err)
+	}
+
 	input = bytes.NewBuffer([]byte(`
     settings:
         log_level: debug
@@ -68,7 +73,9 @@ func TestLoadSections(t *testing.T) {
 		if sec.Section != section {
 			t.Errorf("want (%s) section, got (%v)", section, sec.Section)
 		}
-
+		if !strings.Contains(err.Error(), sec.Section) {
+			t.Errorf("expected (%s) in error message, got (%v)", sec.Section, err.Error())
+		}
 	}
 
 	tcs := []struct {

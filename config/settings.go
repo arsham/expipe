@@ -45,7 +45,7 @@ func checkSettingsSect(log *logrus.Logger, v *viper.Viper) error {
 	if v.IsSet("settings.log_level") {
 		newLevel, ok := v.Get("settings.log_level").(string)
 		if !ok {
-			return &StructureErr{"debug_level", "should be a string", nil}
+			return &StructureErr{"log_level", "should be a string", nil}
 		}
 		*log = *lib.GetLogger(newLevel)
 	}
@@ -107,7 +107,7 @@ func getReaders(v *viper.Viper) (readers map[string]string, err error) {
 		case "":
 			fallthrough
 		default:
-			return nil, newNotSpecifiedErr(reader, "type not defined", nil)
+			return nil, newNotSpecifiedErr(reader, "type", nil)
 		}
 	}
 	return
@@ -128,7 +128,7 @@ func getRecorders(v *viper.Viper) (recorders map[string]string, err error) {
 		case "":
 			fallthrough
 		default:
-			return nil, newNotSpecifiedErr(recorder, "type not defined", nil)
+			return nil, newNotSpecifiedErr(recorder, "type", nil)
 		}
 	}
 	return
