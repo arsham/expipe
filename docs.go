@@ -1,13 +1,13 @@
 // Copyright 2016 Arsham Shirvani <arshamshirvani@gmail.com>. All rights reserved.
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
-
+//
 // Package expvastic can read from any endpoints that provides expvar data and ships them to elasticsearch. You can inspect the metrics with kibana.
 //
 // Please refer to golang's expvar documentation for more information.
 // Installation guides can be found on github page: https://github.com/arsham/expvastic
 //
-// At the heart of this package, there is Engine. It acts like a glue between a Reader and a Recorder. Messages are transfered in a package called DataContainer, which is a list of DataType objects.
+// At the heart of this package, there is Engine. It acts like a glue between a Reader and a Recorder. Messages are transferred in a package called DataContainer, which is a list of DataType objects.
 //
 // Here an example configuration, save it somewhere (let's call it expvastic.yml for now):
 //
@@ -69,7 +69,7 @@
 //
 //    expvasyml -c expvastic.yml
 //
-// You can mix and match the routes, but the engine will choose the best setup to achive your goal without duplicating the results. For instance assume you set the routes like this:
+// You can mix and match the routes, but the engine will choose the best setup to achieve your goal without duplicating the results. For instance assume you set the routes like this:
 //
 //     readers:
 //         app_0: type: expvar
@@ -149,4 +149,5 @@
 //   go tool pprof -pdf $BASENAME.test mem.out > mem.pdf && open mem.pdf
 //
 // Use of this source code is governed by the Apache 2.0 license. License that can be found in the LICENSE file.
+
 package expvastic

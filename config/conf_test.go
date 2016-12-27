@@ -19,7 +19,7 @@ func TestParseReader(t *testing.T) {
 	v.SetConfigType("yaml")
 
 	v.ReadConfig(bytes.NewBuffer([]byte("")))
-	_, err := parseReader(v, log, "non_existance_plugin", "readers.reader1")
+	_, err := parseReader(v, log, "non_existence_plugin", "readers.reader1")
 	if _, ok := err.(NotSupportedErr); !ok {
 		t.Errorf("want NotSupportedErr error, got (%v)", err)
 	}
