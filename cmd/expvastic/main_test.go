@@ -58,7 +58,7 @@ func errTestCases() [][]byte {
         recorders:
             elastic1: # service name
                 type: elasticsearch
-                endpoint: 127.0.0.1:9200
+                endpoint: http://127.0.0.1:9200
                 index_name: expvastic
                 timeout: 8s
                 backoff: 10
@@ -82,7 +82,7 @@ func errTestCases() [][]byte {
         recorders:
             elastic1: # service name
                 type: elasticsearch
-                endpoint: 127.0.0.1:9200
+                endpoint: http://127.0.0.1:9200
                 index_name: expvastic
                 timeout: 8s
                 backoff: 10
@@ -110,7 +110,7 @@ func passingInput() []byte {
 recorders:
     elastic1: # service name
         type: elasticsearch
-        endpoint: 127.0.0.1:9200
+        endpoint: http://127.0.0.1:9200
         index_name: expvastic
         timeout: 8s
         backoff: 10
