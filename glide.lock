@@ -1,10 +1,10 @@
-hash: 2518c6092e56e242db7c07b0efe2c6e974b84920ee0483d710c07999c3adfa7f
-updated: 2016-12-27T19:12:59.930277006Z
+hash: d28d459a699389d23ef4c165af079808f19c923c0931b9bf86bb2da192535ea7
+updated: 2016-12-27T19:22:08.356692127Z
 imports:
 - name: github.com/antonholmquist/jason
   version: c23cef7eaa75a6a5b8810120e167bd590d8fd2ab
 - name: github.com/asaskevich/govalidator
-  version: 3b2665001c4c24e3b076d1ca8c428049ecbb925b
+  version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
 - name: github.com/fsnotify/fsnotify
   version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
 - name: github.com/hashicorp/hcl
@@ -31,9 +31,9 @@ imports:
 - name: github.com/pelletier/go-toml
   version: 017119f7a78a0b5fc0ea39ef6be09f03acf3345d
 - name: github.com/satori/go.uuid
-  version: b061729afc07e77a8aa4fad0a2fd840958f1942a
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Sirupsen/logrus
-  version: 881bee4e20a5d11a6a88a5667c6f292072ac1963
+  version: d26492970760ca5d33129d2d799e34be5c4782eb
   subpackages:
   - hooks/test
 - name: github.com/spf13/afero
