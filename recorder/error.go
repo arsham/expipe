@@ -22,7 +22,7 @@ type ErrInvalidEndpoint string
 
 // InvalidEndpoint defines the behaviour of the error
 func (ErrInvalidEndpoint) InvalidEndpoint() {}
-func (e ErrInvalidEndpoint) Error() string  { return fmt.Sprintf("invalid endpoint: %s", e) }
+func (e ErrInvalidEndpoint) Error() string  { return fmt.Sprintf("invalid endpoint: %s", string(e)) }
 
 // ErrLowBackoffValue is the error when the endpoint is not a valid url
 type ErrLowBackoffValue int64
