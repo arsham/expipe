@@ -144,7 +144,7 @@ func TestLoadConfiguration(t *testing.T) {
 
 	readers := map[string]string{"reader_1": "not_exists"}
 	recorders := map[string]string{"recorder_1": "elasticsearch"}
-	routeMap := map[string]route{"routes": route{
+	routeMap := map[string]route{"routes": {
 		readers:   []string{"reader_1"},
 		recorders: []string{"recorder_1"},
 	}}
