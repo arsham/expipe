@@ -48,11 +48,8 @@ func (f FloatType) String() string {
 }
 
 // Equal compares both keys and values and returns true if they are equal
+// Not implemented
 func (f FloatType) Equal(other DataType) bool {
-	switch o := other.(type) {
-	case *FloatType:
-		return f.Key == o.Key && f.Value == o.Value
-	}
 	return false
 }
 

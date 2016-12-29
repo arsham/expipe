@@ -26,7 +26,6 @@ package self
 
 import (
 	"context"
-	"net"
 	// to expose the metrics
 	_ "expvar"
 	"net/http"
@@ -35,6 +34,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
 )
 
@@ -49,12 +49,14 @@ type Reader struct {
 	resultChan chan *reader.ReadJobResult
 	errorChan  chan<- communication.ErrorMessage
 	interval   time.Duration
+	timeout    time.Duration
 	url        string
 }
 
 // NewSelfReader exposes expvastic's own metrics.
 func NewSelfReader(
 	log logrus.FieldLogger,
+	endpoint string,
 	mapper datatype.Mapper,
 	jobChan chan context.Context,
 	resultChan chan *reader.ReadJobResult,
@@ -62,12 +64,29 @@ func NewSelfReader(
 	name,
 	typeName string,
 	interval time.Duration,
+	timeout time.Duration,
 ) (*Reader, error) {
-	l, _ := net.Listen("tcp", ":0")
-	l.Close()
-	go http.ListenAndServe(l.Addr().String(), nil)
-	addr := "http://" + l.Addr().String() + "/debug/vars"
-	log.Debugf("running self expvar on %s", addr)
+	if name == "" {
+		return nil, reader.ErrEmptyName
+	}
+
+	if endpoint == "" {
+		return nil, reader.ErrEmptyEndpoint
+	}
+
+	url, err := lib.SanitiseURL(endpoint)
+	if err != nil {
+		return nil, reader.ErrInvalidEndpoint(endpoint)
+	}
+	_, err = http.Head(url)
+	if err != nil {
+		return nil, reader.ErrEndpointNotAvailable{Endpoint: url, Err: err}
+	}
+
+	if typeName == "" {
+		return nil, reader.ErrEmptyTypeName
+	}
+
 	log = log.WithField("engine", "expvastic")
 	w := &Reader{
 		name:       name,
@@ -78,7 +97,8 @@ func NewSelfReader(
 		errorChan:  errorChan,
 		log:        log,
 		interval:   interval,
-		url:        addr,
+		timeout:    timeout,
+		url:        url,
 	}
 	return w, nil
 }
@@ -114,7 +134,7 @@ func (r *Reader) Mapper() datatype.Mapper { return r.mapper }
 func (r *Reader) Interval() time.Duration { return r.interval }
 
 // Timeout returns the timeout
-func (r *Reader) Timeout() time.Duration { return 0 }
+func (r *Reader) Timeout() time.Duration { return r.timeout }
 
 // JobChan returns the job channel.
 func (r *Reader) JobChan() chan context.Context { return r.jobChan }
@@ -124,9 +144,8 @@ func (r *Reader) ResultChan() chan *reader.ReadJobResult { return r.resultChan }
 
 // will send an error back to the engine if it can't read from metrics provider
 func (r *Reader) readMetrics(job context.Context) {
-
-	resp, err := http.Get(r.url)
 	id := communication.JobValue(job)
+	resp, err := http.Get(r.url)
 	if err != nil {
 		r.log.WithField("reader", "self").
 			WithField("ID", id).

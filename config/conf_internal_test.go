@@ -6,6 +6,7 @@ package config
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/arsham/expvastic/lib"
@@ -20,8 +21,13 @@ func TestParseReader(t *testing.T) {
 
 	v.ReadConfig(bytes.NewBuffer([]byte("")))
 	_, err := parseReader(v, log, "non_existence_plugin", "readers.reader1")
-	if _, ok := err.(NotSupportedErr); !ok {
+	if _, ok := err.(interface {
+		NotSupported()
+	}); !ok {
 		t.Errorf("want NotSupportedErr error, got (%v)", err)
+	}
+	if !strings.Contains(err.Error(), "non_existence_plugin") {
+		t.Errorf("expected non_existence_plugin in error message, got (%s)", err)
 	}
 
 	input := bytes.NewBuffer([]byte(`

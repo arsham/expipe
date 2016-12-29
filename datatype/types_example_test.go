@@ -2,21 +2,22 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package datatype
+package datatype_test
 
 import (
 	"fmt"
 	"reflect"
 
 	"github.com/antonholmquist/jason"
+	"github.com/arsham/expvastic/datatype"
 )
 
 func ExampleFromJason_floatType() {
 	j, _ := jason.NewValueFromBytes([]byte("666.6"))
-	result, err := FromJason("some float", *j)
+	result, err := datatype.FromJason("some float", *j)
 	fmt.Printf("error: %v\n", err)
 	fmt.Printf("Type: %v\n", reflect.TypeOf(result))
-	r := result.(*FloatType)
+	r := result.(*datatype.FloatType)
 	fmt.Printf("Result key: %s\n", r.Key)
 	fmt.Printf("Result value: %f\n", r.Value)
 	fmt.Printf("String representation: %s\n", result.String())
@@ -31,10 +32,10 @@ func ExampleFromJason_floatType() {
 
 func ExampleFromJason_stringType() {
 	j, _ := jason.NewValueFromBytes([]byte(`"some string"`))
-	result, err := FromJason("string key", *j)
+	result, err := datatype.FromJason("string key", *j)
 	fmt.Printf("error: %v\n", err)
 	fmt.Printf("Type: %v\n", reflect.TypeOf(result))
-	r := result.(*StringType)
+	r := result.(*datatype.StringType)
 	fmt.Printf("Result key: %s\n", r.Key)
 	fmt.Printf("Result value: %s\n", r.Value)
 	fmt.Printf("String representation: %s\n", result.String())
@@ -48,7 +49,7 @@ func ExampleFromJason_stringType() {
 
 func ExampleFromJason_malformedInput() {
 	j, _ := jason.NewValueFromBytes([]byte(`{malformed object}`))
-	result, err := FromJason("ignored", *j)
+	result, err := datatype.FromJason("ignored", *j)
 	fmt.Printf("error: %v\n", err)
 	fmt.Printf("Type: %v\n", reflect.TypeOf(result))
 	// Output:

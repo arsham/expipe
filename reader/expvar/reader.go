@@ -10,12 +10,15 @@ package expvar
 import (
 	"context"
 	"expvar"
+	"net/http"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 var (
@@ -26,7 +29,7 @@ var (
 // It implements DataReader interface.
 type Reader struct {
 	name       string
-	ctxReader  reader.ContextReader
+	endpoint   string
 	log        logrus.FieldLogger
 	mapper     datatype.Mapper
 	typeName   string
@@ -41,7 +44,7 @@ type Reader struct {
 // Because the caller is reading the resp.Body, it is its job to close it.
 func NewExpvarReader(
 	log logrus.FieldLogger,
-	ctxReader reader.ContextReader,
+	endpoint string,
 	mapper datatype.Mapper,
 	jobChan chan context.Context,
 	resultChan chan *reader.ReadJobResult,
@@ -51,7 +54,27 @@ func NewExpvarReader(
 	interval time.Duration,
 	timeout time.Duration,
 ) (*Reader, error) {
-	// TODO: ping the reader.
+	if name == "" {
+		return nil, reader.ErrEmptyName
+	}
+
+	if endpoint == "" {
+		return nil, reader.ErrEmptyEndpoint
+	}
+
+	url, err := lib.SanitiseURL(endpoint)
+	if err != nil {
+		return nil, reader.ErrInvalidEndpoint(endpoint)
+	}
+	_, err = http.Head(url)
+	if err != nil {
+		return nil, reader.ErrEndpointNotAvailable{Endpoint: url, Err: err}
+	}
+
+	if typeName == "" {
+		return nil, reader.ErrEmptyTypeName
+	}
+
 	log = log.WithField("reader", "expvar").WithField("name", name)
 	w := &Reader{
 		name:       name,
@@ -60,7 +83,7 @@ func NewExpvarReader(
 		jobChan:    jobChan,
 		resultChan: resultChan,
 		errorChan:  errorChan,
-		ctxReader:  ctxReader,
+		endpoint:   endpoint,
 		log:        log,
 		timeout:    timeout,
 		interval:   interval,
@@ -110,8 +133,8 @@ func (r *Reader) ResultChan() chan *reader.ReadJobResult { return r.resultChan }
 
 // will send an error back to the engine if it can't read from metrics provider
 func (r *Reader) readMetrics(job context.Context) {
-	resp, err := r.ctxReader.Get(job)
 	id := communication.JobValue(job)
+	resp, err := ctxhttp.Get(job, nil, r.endpoint)
 	if err != nil {
 		r.log.WithField("reader", "expvar_reader").
 			WithField("name", r.Name()).

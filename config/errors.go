@@ -11,22 +11,6 @@ var (
 	EmptyConfigErr = &StructureErr{"", "empty configuration file", nil}
 )
 
-// NotSpecifiedErr represents an error when a section is not specified
-type NotSpecifiedErr interface {
-	NotSpecified()
-}
-
-// RoutersErr represents an error when routes are not configured correctly
-// The section on this error is the subsection of the route
-type RoutersErr interface {
-	Routers()
-}
-
-// NotSupportedErr is for when something is still not supported
-type NotSupportedErr interface {
-	NotSupported()
-}
-
 // StructureErr represents an error reading the configuration file
 type StructureErr struct {
 	Section string // The section that error happened
@@ -50,12 +34,13 @@ func (e *StructureErr) Error() string {
 	return s
 }
 
-type notSpecifiedErr struct{ StructureErr }
+type notSpecifiedErr StructureErr
 
 func newNotSpecifiedErr(section, reason string, err error) *notSpecifiedErr {
-	return &notSpecifiedErr{StructureErr{section, reason, err}}
+	return &notSpecifiedErr{section, reason, err}
 }
 
+// NotSpecified says a section is not specified
 func (e *notSpecifiedErr) NotSpecified() {}
 func (e *notSpecifiedErr) Error() string {
 	if e == nil {
@@ -80,6 +65,8 @@ func newRoutersErr(section, reason string, err error) *routersErr {
 	return &routersErr{StructureErr{section, reason, err}}
 }
 
+// Routers represents an error when routes are not configured correctly.
+// The section on this error is the subsection of the route.
 func (routersErr) Routers() {}
 func (e *routersErr) Error() string {
 	if e == nil {
@@ -99,6 +86,7 @@ func (e *routersErr) Error() string {
 
 type notSupportedErr string
 
+// NotSupported says something is still not supported
 func (notSupportedErr) NotSupported() {}
 func (n notSupportedErr) Error() string {
 	return fmt.Sprintf("%s is not supported", string(n))

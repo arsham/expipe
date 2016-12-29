@@ -123,28 +123,36 @@ routes:
 `)
 }
 
+// returns the file base name and tear down function
+func setup(content []byte) (string, func()) {
+	cwd, _ := os.Getwd()
+	file, err := ioutil.TempFile(cwd, "yaml")
+	if err != nil {
+		panic(err)
+	}
+	oldName := file.Name() //required for viper
+	newName := file.Name() + ".yml"
+	os.Rename(oldName, newName)
+	file.Write(content)
+	return path.Base(file.Name()), func() {
+		os.Remove(newName)
+	}
+}
+
 func TestMainAndFromConfigFileErrors(t *testing.T) {
 	var errMsg string
-	cwd, _ := os.Getwd()
+	var teardown func()
+
 	ExitCommand = func(msg string) {
 		errMsg = msg
 	}
 	shallStartEngines = false
 
 	for i, tc := range errTestCases() {
-		file, err := ioutil.TempFile(cwd, "yaml")
-		if err != nil {
-			panic(err)
-		}
-		oldName := file.Name() //required for viper
-		newName := file.Name() + ".yml"
-		os.Rename(oldName, newName)
-		defer os.Remove(newName)
-		file.Write(tc)
-
 		name := fmt.Sprintf("mainCase_%d", i)
 		t.Run(name, func(t *testing.T) {
-			*confFile = path.Base(file.Name())
+			*confFile, teardown = setup(tc)
+			defer teardown()
 			main()
 			if errMsg == "" {
 				t.Error("want error, got nothing")
@@ -153,7 +161,9 @@ func TestMainAndFromConfigFileErrors(t *testing.T) {
 
 		name = fmt.Sprintf("fromFlagsCase_%d", i)
 		t.Run(name, func(t *testing.T) {
-			result, err := fromConfig(path.Base(file.Name()))
+			filename, teardown := setup(tc)
+			defer teardown()
+			result, err := fromConfig(filename)
 			if err == nil {
 				t.Error("want error, got nothing")
 			}
@@ -166,24 +176,16 @@ func TestMainAndFromConfigFileErrors(t *testing.T) {
 
 func TestMainAndFromConfigFilePasses(t *testing.T) {
 	var errMsg string
-	cwd, _ := os.Getwd()
 	shallStartEngines = false
 	ExitCommand = func(msg string) {
 		errMsg = msg
 	}
 
-	file, err := ioutil.TempFile(cwd, "yaml")
-	if err != nil {
-		panic(err)
-	}
-	oldName := file.Name() //required for viper
-	newName := file.Name() + ".yml"
-	os.Rename(oldName, newName)
-	file.Write(passingInput())
-	defer os.Remove(newName)
+	filename, teardown := setup(passingInput())
+	defer teardown()
 
 	t.Run("mainCase", func(t *testing.T) {
-		*confFile = path.Base(file.Name())
+		*confFile = filename
 		main()
 		if errMsg != "" {
 			t.Errorf("want nil, got (%v)", errMsg)
@@ -191,7 +193,7 @@ func TestMainAndFromConfigFilePasses(t *testing.T) {
 	})
 
 	t.Run("flagCase", func(t *testing.T) {
-		result, err := fromConfig(path.Base(file.Name()))
+		result, err := fromConfig(filename)
 		if err != nil {
 			t.Errorf("want nil, got (%v)", err)
 		}

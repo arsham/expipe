@@ -56,6 +56,12 @@ func TestSanitiseURLPasses(t *testing.T) {
 		{"http://localhost", "http://localhost"},
 		{"https://localhost", "https://localhost"},
 		{"https://localhost/a", "https://localhost/a"},
+		{"http://127.0.0.1", "http://127.0.0.1"},
+		{"https://127.0.0.1", "https://127.0.0.1"},
+		{"http://127.0.0.1/a", "http://127.0.0.1/a"},
+		{"https://127.0.0.1/a", "https://127.0.0.1/a"},
+		{"127.0.0.1", "http://127.0.0.1"},
+		{"127.0.0.1/aaa", "http://127.0.0.1/aaa"},
 	}
 
 	for i, tc := range tcs {

@@ -21,9 +21,6 @@ type MemTypeMock struct {
 
 // Values calls the ValuesFunc if exists, otherwise returns nil
 func (m *MapConvertMock) Values(prefix string, values map[string]*jason.Value) []DataType {
-	if m.ValuesFunc != nil {
-		return m.ValuesFunc(prefix, values)
-	}
 	m.DefaultCovertor = DefaultMapper()
 	return m.DefaultCovertor.Values(prefix, values)
 }

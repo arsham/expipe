@@ -7,6 +7,8 @@ package self
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -56,7 +58,12 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 
 // NewInstance instantiates a SelfReader
 func (c *Config) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, errorChan chan<- communication.ErrorMessage) (reader.DataReader, error) {
-	return NewSelfReader(c.log, c.mapper, jobChan, resultChan, errorChan, c.name, c.TypeName(), c.interval)
+	l, _ := net.Listen("tcp", "127.0.0.1:0")
+	l.Close()
+	url := "http://" + l.Addr().String() + "/debug/vars"
+	go http.ListenAndServe(l.Addr().String(), nil)
+	c.log.Debugf("running self expvar on %s", l.Addr().String())
+	return NewSelfReader(c.log, url, c.mapper, jobChan, resultChan, errorChan, c.name, c.TypeName(), c.interval, time.Second)
 }
 
 // Name returns the name

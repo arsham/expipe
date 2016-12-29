@@ -1,5 +1,5 @@
-hash: d28d459a699389d23ef4c165af079808f19c923c0931b9bf86bb2da192535ea7
-updated: 2016-12-27T19:22:08.356692127Z
+hash: 5f22d461002c265e14a183c57d5c583e94bec62f697ed497b490ab37a029abdc
+updated: 2016-12-30T20:31:48.034969523Z
 imports:
 - name: github.com/antonholmquist/jason
   version: c23cef7eaa75a6a5b8810120e167bd590d8fd2ab
@@ -29,7 +29,7 @@ imports:
 - name: github.com/pelletier/go-buffruneio
   version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
 - name: github.com/pelletier/go-toml
-  version: 017119f7a78a0b5fc0ea39ef6be09f03acf3345d
+  version: 439fbba1f887c286024370cb4f281ba815c4c7d7
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Sirupsen/logrus
@@ -49,7 +49,7 @@ imports:
 - name: github.com/spf13/viper
   version: 5ed0fc31f7f453625df314d8e66b9791e8d13003
 - name: golang.org/x/net
-  version: 45e771701b814666a7eb299e6c7a57d0b1799e91
+  version: 8fd7f25955530b92e73e9e1932a41b522b22ccd9
   subpackages:
   - context
   - context/ctxhttp
@@ -58,7 +58,7 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: a49bea13b776691cb1b49873e5d8df96ec74831a
+  version: fd889fe3a20f4878f5f47672fd3ca5b86db005e2
   subpackages:
   - transform
   - unicode/norm

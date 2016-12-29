@@ -2,10 +2,9 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package reader
+package reader_test
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -15,260 +14,93 @@ import (
 
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/reader"
 )
+
+func setup(jobChanBuff, resultChanBuff, errorChanBuff int, message string) (red *reader.SimpleReader, errorChan chan communication.ErrorMessage, teardown func()) {
+	log := lib.DiscardLogger()
+	jobChan := make(chan context.Context, jobChanBuff)
+	resultChan := make(chan *reader.ReadJobResult, resultChanBuff)
+	errorChan = make(chan communication.ErrorMessage, errorChanBuff)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, message)
+	}))
+	red, _ = reader.NewSimpleReader(log, ts.URL, jobChan, resultChan, errorChan, "reader_example", "reader_example", time.Second, time.Second)
+	return red, errorChan, func() { ts.Close() }
+}
+
+func setupWithURL(url string, jobChanBuff, errorChanBuff int, message string) (red *reader.SimpleReader, errorChan chan communication.ErrorMessage) {
+	log := lib.DiscardLogger()
+	jobChan := make(chan context.Context, jobChanBuff)
+	resultChan := make(chan *reader.ReadJobResult)
+	errorChan = make(chan communication.ErrorMessage, errorChanBuff)
+	red, _ = reader.NewSimpleReader(log, url, jobChan, resultChan, errorChan, "my_reader", "example_type", time.Hour, time.Hour)
+	return red, errorChan
+}
 
 // The purpose of these tests is to make sure the simple reader, which is a mock,
 // works perfect, so other tests can rely on it.
-func TestSimpleReaderReceivesJob(t *testing.T) {
-	t.Parallel()
-	log := lib.DiscardLogger()
-	ctx := context.Background()
+func TestSimpleReader(t *testing.T) {
+	reader.TestReaderEssentials(t, func(testCase int) (reader.DataReader, chan communication.ErrorMessage, string, func()) {
+		testMessage := `{"the key": "is the value!"}`
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{"the key": "is the value!"}`)
-	}))
-	defer ts.Close()
+		switch testCase {
+		case reader.GenericReaderReceivesJobTestCase:
+			red, errorChan, teardown := setup(0, 1, 0, testMessage)
+			return red, errorChan, testMessage, teardown
 
-	jobChan := make(chan context.Context)
-	errorChan := make(chan communication.ErrorMessage)
-	resultChan := make(chan *ReadJobResult, 1)
-	red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	red.Start(ctx, stop)
+		case reader.ReaderSendsResultTestCase:
+			testMessage := `{"the key": "is the value!"}`
+			red, errorChan, teardown := setup(0, 0, 0, testMessage)
+			return red, errorChan, testMessage, teardown
 
-	select {
-	case red.JobChan() <- communication.NewReadJob(ctx):
-	case <-time.After(5 * time.Second):
-		t.Error("expected the reader to receive the job, but it blocked")
-	}
-	done := make(chan struct{})
-	stop <- done
-	<-done
+		case reader.ReaderReadsOnBufferedChanTestCase:
+			red, errorChan, teardown := setup(10, 0, 10, testMessage)
+			return red, errorChan, testMessage, teardown
 
-}
+		case reader.ReaderDrainsAfterClosingContextTestCase:
+			red, errorChan, teardown := setup(10, 0, 10, testMessage)
+			return red, errorChan, testMessage, teardown
 
-func TestSimpleReaderSendsResult(t *testing.T) {
-	t.Parallel()
-	var res *ReadJobResult
-	log := lib.DiscardLogger()
-	ctx := context.Background()
+		case reader.ReaderClosesTestCase:
+			red, errorChan, teardown := setup(0, 0, 0, testMessage)
+			return red, errorChan, testMessage, teardown
 
-	desire := `{"the key": "is the value!"}`
+		case reader.ReaderClosesWithBufferedChansTestCase:
+			red, errorChan, teardown := setup(10, 0, 10, testMessage)
+			return red, errorChan, testMessage, teardown
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, desire)
-	}))
-	defer ts.Close()
+		case reader.ReaderWithNoValidURLErrorsTestCase:
+			red, errorChan := setupWithURL("nowhere", 0, 0, "")
+			return red, errorChan, testMessage, nil
 
-	jobChan := make(chan context.Context)
-	errorChan := make(chan communication.ErrorMessage)
-	resultChan := make(chan *ReadJobResult)
-	red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	red.Start(ctx, stop)
-
-	red.JobChan() <- communication.NewReadJob(ctx)
-
-	select {
-	case err := <-errorChan:
-		t.Errorf("didn't expect errors, got (%v)", err.Error())
-	case <-time.After(20 * time.Millisecond):
-	}
-
-	select {
-	case res = <-resultChan:
-	case <-time.After(5 * time.Second):
-		t.Error("expected to receive a data back, nothing received")
-	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(res.Res)
-	if buf.String() != desire {
-		t.Errorf("want (%s), got (%s)", desire, buf.String())
-	}
-	done := make(chan struct{})
-	stop <- done
-	<-done
-
-}
-
-func TestSimpleReaderReadsOnBufferedChan(t *testing.T) {
-	t.Parallel()
-	var res *ReadJobResult
-	log := lib.DiscardLogger()
-	ctx := context.Background()
-	desire := `{"the key": "is the value!"}`
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, desire)
-	}))
-	defer ts.Close()
-
-	jobChan := make(chan context.Context, 10)
-	errorChan := make(chan communication.ErrorMessage, 10)
-	resultChan := make(chan *ReadJobResult)
-
-	red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	red.Start(ctx, stop)
-
-	red.JobChan() <- communication.NewReadJob(ctx)
-
-	select {
-	case err := <-errorChan:
-		t.Errorf("didn't expect errors, got (%v)", err.Error())
-	case <-time.After(20 * time.Millisecond):
-	}
-
-	select {
-	case res = <-resultChan:
-	case <-time.After(5 * time.Second):
-		t.Error("expected to receive a data back, nothing received")
-	}
-
-	drained := false
-	// Go is fast!
-	for i := 0; i < 10; i++ {
-		if len(red.JobChan()) == 0 {
-			drained = true
-			break
+		default:
+			return nil, nil, "", nil
 		}
-		time.Sleep(10 * time.Millisecond)
-
-	}
-	if !drained {
-		t.Errorf("expected to drain the jobChan, got (%d) left", len(red.JobChan()))
-	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(res.Res)
-	if buf.String() != desire {
-		t.Errorf("want (%s), got (%s)", desire, buf.String())
-	}
-	done := make(chan struct{})
-	stop <- done
-	<-done
-
+	})
 }
 
-func TestSimpleReaderDrainsAfterClosingContext(t *testing.T) {
-	t.Parallel()
-	var res *ReadJobResult
-	log := lib.DiscardLogger()
-	ctx := context.Background()
-	desire := `{"the key": "is the value!"}`
+func TestSimpleReaderConstruction(t *testing.T) {
+	reader.TestReaderConstruction(t, func(name, endpoint, typeName string, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, interval time.Duration, timeout time.Duration) (reader.DataReader, error) {
+		log := lib.DiscardLogger()
+		errorChan := make(chan communication.ErrorMessage)
+		return reader.NewSimpleReader(log, endpoint, jobChan, resultChan, errorChan, name, typeName, time.Hour, time.Hour)
+	})
+}
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, desire)
-	}))
-	defer ts.Close()
+func TestSimpleReaderEndpointManeuvers(t *testing.T) {
+	reader.TestReaderEndpointManeuvers(t, func(testCase int, endpoint string) (reader.DataReader, chan communication.ErrorMessage) {
+		switch testCase {
+		case reader.ReaderErrorsOnEndpointDisapearsTestCase:
+			log := lib.DiscardLogger()
+			jobChan := make(chan context.Context)
+			resultChan := make(chan *reader.ReadJobResult)
+			errorChan := make(chan communication.ErrorMessage)
+			red, _ := reader.NewSimpleReader(log, endpoint, jobChan, resultChan, errorChan, "my_reader", "example_type", 1*time.Second, 1*time.Second)
+			return red, errorChan
 
-	jobChan := make(chan context.Context, 10)
-	errorChan := make(chan communication.ErrorMessage, 10)
-	resultChan := make(chan *ReadJobResult)
-
-	red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	red.Start(ctx, stop)
-
-	red.JobChan() <- communication.NewReadJob(ctx)
-
-	select {
-	case err := <-errorChan:
-		t.Errorf("didn't expect errors, got (%v)", err.Error())
-	case <-time.After(20 * time.Millisecond):
-	}
-
-	select {
-	case res = <-resultChan:
-	case <-time.After(5 * time.Second):
-		t.Error("expected to receive a data back, nothing received")
-	}
-
-	drained := false
-	// Go is fast!
-	for i := 0; i < 10; i++ {
-		if len(red.JobChan()) == 0 {
-			drained = true
-			break
+		default:
+			return nil, nil
 		}
-		time.Sleep(10 * time.Millisecond)
-
-	}
-	if !drained {
-		t.Errorf("expected to drain the jobChan, got (%d) left", len(red.JobChan()))
-	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(res.Res)
-	if buf.String() != desire {
-		t.Errorf("want (%s), got (%s)", desire, buf.String())
-	}
-	done := make(chan struct{})
-	stop <- done
-	<-done
-}
-
-func TestSimpleReaderCloses(t *testing.T) {
-	t.Parallel()
-	var res *ReadJobResult
-	log := lib.DiscardLogger()
-	ctx := context.Background()
-	desire := `{"the key": "is the value!"}`
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, desire)
-	}))
-	defer ts.Close()
-
-	jobChan := make(chan context.Context)
-	errorChan := make(chan communication.ErrorMessage)
-	resultChan := make(chan *ReadJobResult)
-	red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	red.Start(ctx, stop)
-
-	red.JobChan() <- communication.NewReadJob(ctx)
-	res = <-resultChan
-	defer res.Res.Close()
-	done := make(chan struct{})
-	stop <- done
-
-	select {
-	case <-done:
-	case <-time.After(5 * time.Second):
-		t.Error("expected to be done with the reader, but it blocked")
-	}
-}
-
-func TestSimpleReaderClosesWithBufferedChans(t *testing.T) {
-	t.Parallel()
-	var res *ReadJobResult
-	log := lib.DiscardLogger()
-	ctx := context.Background()
-	desire := `{"the key": "is the value!"}`
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, desire)
-	}))
-	defer ts.Close()
-
-	jobChan := make(chan context.Context, 1000)
-	errorChan := make(chan communication.ErrorMessage, 1000)
-	resultChan := make(chan *ReadJobResult, 1000)
-	red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	red.Start(ctx, stop)
-
-	red.JobChan() <- communication.NewReadJob(ctx)
-	res = <-resultChan
-	defer res.Res.Close()
-
-	done := make(chan struct{})
-	stop <- done
-	select {
-	case <-done:
-	case <-time.After(5 * time.Second):
-		t.Error("expected to be done with the reader, but it blocked")
-	}
+	})
 }

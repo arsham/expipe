@@ -40,8 +40,7 @@ func ExampleEngine_sendingJobs() {
 	resultChan := make(chan *reader.ReadJobResult)
 	payloadChan := make(chan *recorder.RecordJob)
 
-	ctxReader := reader.NewCtxReader(redTs.URL)
-	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "typeName", time.Hour, time.Hour) // We want to issue manually
+	red, _ := reader.NewSimpleReader(log, redTs.URL, jobChan, resultChan, errorChan, "reader_example", "typeName", time.Hour, time.Hour) // We want to issue manually
 	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", recTs.URL, "intexName", time.Hour)
 
 	e, err := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, red)

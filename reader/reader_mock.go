@@ -6,22 +6,25 @@ package reader
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/lib"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 // SimpleReader is useful for testing purposes.
 type SimpleReader struct {
 	name       string
 	typeName   string
+	endpoint   string
 	mapper     datatype.Mapper
 	jobChan    chan context.Context
 	resultChan chan *ReadJobResult
 	errorChan  chan<- communication.ErrorMessage
-	ctxReader  ContextReader
 	log        logrus.FieldLogger
 	interval   time.Duration
 	timeout    time.Duration
@@ -31,7 +34,7 @@ type SimpleReader struct {
 // NewSimpleReader is a reader for using in tests
 func NewSimpleReader(
 	log logrus.FieldLogger,
-	ctxReader ContextReader,
+	endpoint string,
 	jobChan chan context.Context,
 	resultChan chan *ReadJobResult,
 	errorChan chan<- communication.ErrorMessage,
@@ -40,14 +43,35 @@ func NewSimpleReader(
 	interval,
 	timeout time.Duration,
 ) (*SimpleReader, error) {
+	if name == "" {
+		return nil, ErrEmptyName
+	}
+
+	if endpoint == "" {
+		return nil, ErrEmptyEndpoint
+	}
+
+	url, err := lib.SanitiseURL(endpoint)
+	if err != nil {
+		return nil, ErrInvalidEndpoint(endpoint)
+	}
+	_, err = http.Head(url)
+	if err != nil {
+		return nil, ErrEndpointNotAvailable{Endpoint: url, Err: err}
+	}
+
+	if typeName == "" {
+		return nil, ErrEmptyTypeName
+	}
+
 	w := &SimpleReader{
 		name:       name,
 		typeName:   typeName,
+		endpoint:   url,
 		mapper:     &datatype.MapConvertMock{},
 		jobChan:    jobChan,
 		errorChan:  errorChan,
 		resultChan: resultChan,
-		ctxReader:  ctxReader,
 		log:        log,
 		timeout:    timeout,
 		interval:   interval,
@@ -66,9 +90,9 @@ func (m *SimpleReader) Start(ctx context.Context, stop communication.StopChannel
 			select {
 			case job := <-m.JobChan():
 				id := communication.JobValue(job)
-				resp, err := m.ctxReader.Get(job)
+				resp, err := ctxhttp.Get(job, nil, m.endpoint)
 				if err != nil {
-					m.errorChan <- communication.ErrorMessage{ID: id, Err: err}
+					m.errorChan <- communication.ErrorMessage{ID: id, Err: err, Name: m.Name()}
 					continue
 				}
 				res := &ReadJobResult{
@@ -91,16 +115,16 @@ func (m *SimpleReader) Start(ctx context.Context, stop communication.StopChannel
 // Name returns the name
 func (m *SimpleReader) Name() string { return m.name }
 
-// TypeName returns the typename
+// TypeName returns the type name
 func (m *SimpleReader) TypeName() string { return m.typeName }
 
 // Mapper returns the mapper
 func (m *SimpleReader) Mapper() datatype.Mapper { return m.mapper }
 
-// JobChan returns the jobchan
+// JobChan returns the job channel
 func (m *SimpleReader) JobChan() chan context.Context { return m.jobChan }
 
-// ResultChan returns the resultchan
+// ResultChan returns the result channel
 func (m *SimpleReader) ResultChan() chan *ReadJobResult { return m.resultChan }
 
 // Interval returns the interval
@@ -108,6 +132,3 @@ func (m *SimpleReader) Interval() time.Duration { return m.interval }
 
 // Timeout returns the timeout
 func (m *SimpleReader) Timeout() time.Duration { return m.timeout }
-
-// ErrorChan returns the errorchan
-func (m *SimpleReader) ErrorChan() chan<- communication.ErrorMessage { return m.errorChan }

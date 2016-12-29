@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package recorder
+package recorder_test
 
 import (
 	"context"
@@ -13,131 +13,60 @@ import (
 
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/recorder"
 )
 
 // The purpose of these tests is to make sure the simple recorder, which is a mock,
 // works perfect, so other tests can rely on it.
 
-func TestSimpleRecorderReceivesPayload(t *testing.T) {
-	t.Parallel()
+func setupWithURL(URL string, errorChan chan communication.ErrorMessage) (ctx context.Context, rec *recorder.SimpleRecorder) {
 	log := lib.DiscardLogger()
-	ctx := context.Background()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	defer ts.Close()
-
-	payloadChan := make(chan *RecordJob)
-	errorChan := make(chan communication.ErrorMessage)
-	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	rec.Start(ctx, stop)
-
-	payload := &RecordJob{
-		ID:        communication.NewJobID(),
-		Ctx:       ctx,
-		Payload:   nil,
-		IndexName: "my index",
-		Time:      time.Now(),
-	}
-	select {
-	case rec.PayloadChan() <- payload:
-	case <-time.After(5 * time.Second):
-		t.Error("expected the recorder to receive the payload, but it blocked")
-	}
-	done := make(chan struct{})
-	stop <- done
-	<-done
-
+	ctx = context.Background()
+	payloadChan := make(chan *recorder.RecordJob)
+	rec, _ = recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "recorder_example", URL, "intexName", 10*time.Millisecond)
+	return ctx, rec
 }
 
-func TestSimpleRecorderSendsResult(t *testing.T) {
-	t.Parallel()
-	log := lib.DiscardLogger()
-	ctx := context.Background()
-
+func setup(errorChan chan communication.ErrorMessage) (ctx context.Context, rec *recorder.SimpleRecorder, teardown func()) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	defer ts.Close()
+	ctx, rec = setupWithURL(ts.URL, errorChan)
+	return ctx, rec, func() { ts.Close() }
+}
 
-	payloadChan := make(chan *RecordJob)
-	errorChan := make(chan communication.ErrorMessage)
-	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	rec.Start(ctx, stop)
+func TestSimpleRecorder(t *testing.T) {
 
-	payload := &RecordJob{
-		ID:        communication.NewJobID(),
-		Ctx:       ctx,
-		Payload:   nil,
-		IndexName: "my index",
-		Time:      time.Now(),
-	}
-	rec.PayloadChan() <- payload
+	recorder.TestRecorderEssentials(t, func(testCase int) (context.Context, recorder.DataRecorder, error, chan communication.ErrorMessage, func()) {
+		switch testCase {
+		case recorder.RecorderReceivesPayloadTestCase:
+			errorChan := make(chan communication.ErrorMessage)
+			ctx, rec, teardown := setup(make(chan communication.ErrorMessage))
+			return ctx, rec, nil, errorChan, teardown
 
-	select {
-	case err := <-errorChan:
-		if err.Err != nil {
-			t.Errorf("want (nil), got (%v)", err)
+		case recorder.RecorderSendsResultTestCase:
+			errorChan := make(chan communication.ErrorMessage)
+			ctx, rec, teardown := setup(make(chan communication.ErrorMessage))
+			return ctx, rec, nil, errorChan, teardown
+
+		case recorder.RecorderErrorsOnUnavailableEndpointTestCase:
+			err := recorder.ErrEndpointNotAvailable{Endpoint: "nowhere", Err: nil} // this is a special case because it's a mock
+			return context.TODO(), (*recorder.SimpleRecorder)(nil), err, nil, func() {}
+
+		case recorder.RecorderClosesTestCase:
+			errorChan := make(chan communication.ErrorMessage)
+			ctx, rec, teardown := setup(make(chan communication.ErrorMessage))
+			return ctx, rec, nil, errorChan, teardown
+
+		default:
+			return nil, nil, nil, nil, nil
 		}
-	case <-time.After(20 * time.Millisecond):
-	}
-	done := make(chan struct{})
-	stop <- done
-	<-done
+	})
 }
 
-func TestSimpleRecorderErrorsOnBadURL(t *testing.T) {
-	t.Parallel()
-	log := lib.DiscardLogger()
-	ctx := context.Background()
-
-	payloadChan := make(chan *RecordJob)
-	errorChan := make(chan communication.ErrorMessage)
-	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", "leads nowhere", "intexName", 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	rec.Start(ctx, stop)
-
-	payload := &RecordJob{
-		ID:        communication.NewJobID(),
-		Ctx:       ctx,
-		Payload:   nil,
-		IndexName: "my index",
-		Time:      time.Now(),
-	}
-	rec.PayloadChan() <- payload
-
-	select {
-	case err := <-errorChan:
-		if err.Err == nil {
-			t.Errorf("want (nil), got (%v)", err)
-		}
-	case <-time.After(5 * time.Second):
-		t.Error("expected to receive a data back, nothing received")
-	}
-	done := make(chan struct{})
-	stop <- done
-	<-done
-}
-
-func TestSimpleRecorderCloses(t *testing.T) {
-	t.Parallel()
-	log := lib.DiscardLogger()
-	ctx := context.Background()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	defer ts.Close()
-
-	payloadChan := make(chan *RecordJob)
-	errorChan := make(chan communication.ErrorMessage)
-	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	rec.Start(ctx, stop)
-
-	done := make(chan struct{})
-	stop <- done
-
-	select {
-	case <-done:
-	case <-time.After(5 * time.Second):
-		t.Error("expected the recorder to quit working")
-	}
+func TestSimpleRecorderConstruction(t *testing.T) {
+	recorder.TestRecorderConstruction(t, func(payloadChan chan *recorder.RecordJob, name, indexName string, timeout time.Duration) recorder.DataRecorder {
+		log := lib.DiscardLogger()
+		ctx := context.Background()
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, nil, name, "nowhere", indexName, timeout)
+		return rec
+	})
 }

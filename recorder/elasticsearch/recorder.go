@@ -47,9 +47,16 @@ func NewRecorder(
 	log.Debug("connecting to: ", endpoint)
 	addr := elastic.SetURL(endpoint)
 	logger := elastic.SetErrorLog(log)
-	client, err := elastic.NewClient(addr, logger)
+
+	client, err := elastic.NewClient(
+		addr,
+		logger,
+		elastic.SetHealthcheckTimeoutStartup(timeout),
+		elastic.SetSnifferTimeout(timeout),
+		elastic.SetHealthcheckTimeout(timeout),
+	)
 	if err != nil {
-		log.Fatal(err)
+		return nil, recorder.ErrEndpointNotAvailable{Endpoint: endpoint, Err: err}
 	}
 
 	// QUESTION: Is there any significant for this cancel?

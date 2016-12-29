@@ -42,8 +42,7 @@ func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
 	jobChan := make(chan context.Context, jobBuffC)
 	errorChan := make(chan communication.ErrorMessage, jobBuffC)
 	resultChan := make(chan *ReadJobResult, resBuffC)
-	ctxReader := NewCtxReader(ts.URL)
-	red, _ := NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+	red, _ := NewSimpleReader(log, ts.URL, jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
 	stop := make(communication.StopChannel)
 	red.Start(ctx, stop)
 

@@ -90,12 +90,8 @@ func NewWithReadRecorder(ctx context.Context, log logrus.FieldLogger, errorChan 
 	seenNames := make(map[string]struct{}, len(reds))
 
 	for i, red := range reds {
-		if red.Name() == "" {
-			return nil, ErrEmptyRedName
-		}
-
 		if _, ok := seenNames[red.Name()]; ok {
-			return nil, ErrDupRecName
+			return nil, ErrDuplicateRecorderName
 		}
 
 		seenNames[red.Name()] = struct{}{}
@@ -117,4 +113,10 @@ func NewWithReadRecorder(ctx context.Context, log logrus.FieldLogger, errorChan 
 	}
 	log.Debug("started the engine")
 	return cl, nil
+}
+
+func (e *Engine) setReaders(readers map[reader.DataReader]communication.StopChannel) {
+	e.redmu.Lock()
+	defer e.redmu.Unlock()
+	e.readers = readers
 }

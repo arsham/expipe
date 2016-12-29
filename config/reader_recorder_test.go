@@ -7,6 +7,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/arsham/expvastic/lib"
@@ -38,7 +39,7 @@ func TestTypeCheckErrors(t *testing.T) {
 		t.Fatalf("want notSpecifiedErr, got (%v)", err)
 	}
 
-	if val.Section != "reader1" {
+	if !strings.Contains(val.Section, "reader1") {
 		t.Errorf("want error for (reader1) section, got for (%s)", val.Section)
 	}
 
@@ -54,7 +55,7 @@ func TestTypeCheckErrors(t *testing.T) {
 	_, err = LoadYAML(log, v)
 
 	if val, ok = err.(*notSpecifiedErr); !ok {
-		t.Fatalf("want StructureErr, got (%v)", err)
+		t.Fatalf("want notSpecifiedErr, got (%v)", err)
 	}
 
 	if val.Section != "recorder1" {
@@ -75,7 +76,10 @@ func TestGetReaderKeys(t *testing.T) {
             type: expvar
     `))
 	v.ReadConfig(input)
-	keys, _ := getReaders(v)
+	keys, err := getReaders(v)
+	if err != nil {
+		t.Errorf("want nil, got (%v)", err)
+	}
 	if len(keys) != 2 {
 		t.Errorf("expected 2 keys, got (%d)", len(keys))
 	}

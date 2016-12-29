@@ -92,16 +92,16 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 
 func withConfig(c *Config) (*Config, error) {
 	if c.name == "" {
-		return nil, fmt.Errorf("name cannot be empty")
+		return nil, reader.ErrEmptyName
 	}
 
 	if c.EXPEndpoint == "" {
-		return nil, fmt.Errorf("endpoint cannot be empty")
+		return nil, reader.ErrEmptyEndpoint
 	}
 
 	url, err := lib.SanitiseURL(c.EXPEndpoint)
 	if err != nil {
-		return nil, fmt.Errorf("invalid endpoint: %s", c.EXPEndpoint)
+		return nil, reader.ErrInvalidEndpoint(c.EXPEndpoint)
 	}
 	c.EXPEndpoint = url
 
@@ -110,7 +110,7 @@ func withConfig(c *Config) (*Config, error) {
 	}
 
 	if c.EXPTypeName == "" {
-		return nil, fmt.Errorf("type_name cannot be empty")
+		return nil, reader.ErrEmptyTypeName
 	}
 
 	if c.MapFile != "" {
@@ -147,8 +147,7 @@ func (c *Config) NewInstance(
 		return nil, err
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
-	ctxReader := reader.NewCtxReader(endpoint.String())
-	return NewExpvarReader(c.log, ctxReader, c.mapper, jobChan, resultChan, errorChan, c.name, c.EXPTypeName, c.interval, c.timeout)
+	return NewExpvarReader(c.log, endpoint.String(), c.mapper, jobChan, resultChan, errorChan, c.name, c.EXPTypeName, c.interval, c.timeout)
 }
 
 // Name returns name

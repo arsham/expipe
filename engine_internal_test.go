@@ -21,9 +21,9 @@ import (
 	"github.com/arsham/expvastic/recorder"
 )
 
-type err string
+type errMsg string
 
-func (e err) Error() string { return string(e) }
+func (e errMsg) Error() string { return string(e) }
 
 // inspectLogs checks if the niddle is found in the entries
 // the entries might have been stacked, we need to iterate over.
@@ -56,25 +56,28 @@ func withReaders(ctx context.Context, log logrus.FieldLogger, cancel context.Can
 }
 
 func TestEventLoopCatchesReaderError(t *testing.T) {
-	t.Parallel()
 	log, hook := test.NewNullLogger()
 	log.Level = logrus.ErrorLevel
 
 	ctx, cancel := context.WithCancel(context.Background())
 	e, jobChan, redJobResChan, errorChan := withReaders(ctx, log, cancel)
-	red, _ := reader.NewSimpleReader(lib.DiscardLogger(), reader.NewMockCtxReader("url"), jobChan, redJobResChan, errorChan, "reader_name", "typeName", time.Hour, time.Hour)
+	red, err := reader.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", jobChan, redJobResChan, errorChan, "reader_name", "typeName", time.Hour, time.Hour)
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
+
 	redStop := make(communication.StopChannel)
-	e.readers = map[reader.DataReader]communication.StopChannel{red: redStop}
+	e.setReaders(map[reader.DataReader]communication.StopChannel{red: redStop})
 
 	jobID := communication.NewJobID()
-	errMsg := err("an error happened")
+	errMsg := errMsg("an error happened")
 	recorded := make(chan struct{})
 
 	// Testing the engine catches errors
 	red.StartFunc = func(stop communication.StopChannel) {
 		go func() {
-			<-red.JobChan()
-			red.ErrorChan() <- communication.ErrorMessage{ID: jobID, Err: errMsg}
+			<-jobChan
+			errorChan <- communication.ErrorMessage{ID: jobID, Err: errMsg}
 			recorded <- struct{}{} // important, otherwise the test might not be valid
 		}()
 		go func() {
@@ -88,7 +91,7 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 		e.Start()
 		done <- struct{}{}
 	}()
-	jobChan <- ctx
+	red.JobChan() <- ctx
 
 	select {
 	case <-recorded:
@@ -103,20 +106,26 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 		t.Error("expected the engine to quit gracefully")
 	}
 
-	if all, found := inspectLogs(hook.Entries, errMsg.Error()); !found {
-		t.Errorf("want (%s) in the error, got (%v)", errMsg.Error(), all)
+	if _, found := inspectLogs(hook.Entries, errMsg.Error()); !found {
+		// sometimes it takes time for logrus to register the error, trying again
+		time.Sleep(500 * time.Millisecond)
+		if all, found := inspectLogs(hook.Entries, errMsg.Error()); !found {
+			t.Errorf("want (%s) in the error, got (%v)", errMsg.Error(), all)
+		}
 	}
 }
 
 func TestEventLoopOneReaderSendsPayload(t *testing.T) {
-	t.Parallel()
 	log := lib.DiscardLogger()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	e, jobChan, redJobResChan, errorChan := withReaders(ctx, log, cancel)
-	red, _ := reader.NewSimpleReader(lib.DiscardLogger(), reader.NewMockCtxReader("url"), jobChan, redJobResChan, errorChan, "reader_name", "typeName", time.Hour, time.Hour)
+	red, err := reader.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", jobChan, redJobResChan, errorChan, "reader_name", "typeName", time.Hour, time.Hour)
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
 	redStop := make(communication.StopChannel)
-	e.readers = map[reader.DataReader]communication.StopChannel{red: redStop}
+	e.setReaders(map[reader.DataReader]communication.StopChannel{red: redStop})
 
 	jobID := communication.NewJobID()
 	recorded := make(chan struct{})
@@ -178,16 +187,15 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 }
 
 func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
-	t.Parallel()
 	log, hook := test.NewNullLogger()
 	log.Level = logrus.DebugLevel
 
 	ctx, cancel := context.WithCancel(context.Background())
 	e, jobChan, redJobResChan, errorChan := withReaders(ctx, log, cancel)
-	red1, _ := reader.NewSimpleReader(lib.DiscardLogger(), reader.NewMockCtxReader("url"), jobChan, redJobResChan, errorChan, "reader_name", "typeName", time.Hour, time.Hour)
-	red2, _ := reader.NewSimpleReader(lib.DiscardLogger(), reader.NewMockCtxReader("url"), jobChan, redJobResChan, errorChan, "reader2_name", "typeName", time.Hour, time.Hour)
+	red1, _ := reader.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", jobChan, redJobResChan, errorChan, "reader_name", "typeName", time.Hour, time.Hour)
+	red2, _ := reader.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", jobChan, redJobResChan, errorChan, "reader2_name", "typeName", time.Hour, time.Hour)
 
-	e.readers = map[reader.DataReader]communication.StopChannel{red1: make(communication.StopChannel), red2: make(communication.StopChannel)}
+	e.setReaders(map[reader.DataReader]communication.StopChannel{red1: make(communication.StopChannel), red2: make(communication.StopChannel)})
 	red1.StartFunc = func(stop communication.StopChannel) {
 		go func() {
 			s := <-stop
@@ -222,8 +230,12 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 		t.Error("expected the engine to quit gracefully")
 	}
 
-	if all, found := inspectLogs(hook.Entries, recorderGone); !found {
-		t.Errorf("want (%s) in the error, got (%v)", recorderGone, all)
+	if _, found := inspectLogs(hook.Entries, recorderGone); !found {
+		// sometimes it takes time for logrus to register the error, trying again
+		time.Sleep(500 * time.Millisecond)
+		if all, found := inspectLogs(hook.Entries, recorderGone); !found {
+			t.Errorf("want (%s) in the error, got (%v)", recorderGone, all)
+		}
 	}
 
 	select {
@@ -234,15 +246,17 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 }
 
 func TestEventLoopClosingContext(t *testing.T) {
-	t.Parallel()
 	log, hook := test.NewNullLogger()
 	log.Level = logrus.DebugLevel
 
 	ctx, cancel := context.WithCancel(context.Background())
 	e, jobChan, redJobResChan, errorChan := withReaders(ctx, log, cancel)
-	red, _ := reader.NewSimpleReader(lib.DiscardLogger(), reader.NewMockCtxReader("url"), jobChan, redJobResChan, errorChan, "reader_name", "typeName", time.Hour, time.Hour)
+	red, err := reader.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", jobChan, redJobResChan, errorChan, "reader_name", "typeName", time.Hour, time.Hour)
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
 	stop := make(communication.StopChannel)
-	e.readers = map[reader.DataReader]communication.StopChannel{red: stop}
+	e.setReaders(map[reader.DataReader]communication.StopChannel{red: stop})
 
 	done := make(chan struct{})
 	go func() {
@@ -257,23 +271,26 @@ func TestEventLoopClosingContext(t *testing.T) {
 		t.Fatal("expected the engine to quit gracefully")
 	}
 
-	if all, found := inspectLogs(hook.Entries, contextCanceled); !found {
-		t.Errorf("want (%s) in the error, got (%v)", contextCanceled, all)
+	if _, found := inspectLogs(hook.Entries, contextCanceled); !found {
+		// sometimes it takes time for logrus to register the error, trying again
+		time.Sleep(500 * time.Millisecond)
+		if all, found := inspectLogs(hook.Entries, contextCanceled); !found {
+			t.Errorf("want (%s) in the error, got (%v)", contextCanceled, all)
+		}
 	}
 }
 
 func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
-	t.Parallel()
 	log := lib.DiscardLogger()
 	log.Level = logrus.DebugLevel
 
 	ctx, cancel := context.WithCancel(context.Background())
 	e, jobChan, redJobResChan, errorChan := withReaders(ctx, log, cancel)
-	red1, _ := reader.NewSimpleReader(lib.DiscardLogger(), reader.NewMockCtxReader("url"), jobChan, redJobResChan, errorChan, "reader1_name", "typeName", time.Hour, time.Hour)
-	red2, _ := reader.NewSimpleReader(lib.DiscardLogger(), reader.NewMockCtxReader("url"), jobChan, redJobResChan, errorChan, "reader2_name", "typeName", time.Hour, time.Hour)
+	red1, _ := reader.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", jobChan, redJobResChan, errorChan, "reader1_name", "typeName", time.Hour, time.Hour)
+	red2, _ := reader.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", jobChan, redJobResChan, errorChan, "reader2_name", "typeName", time.Hour, time.Hour)
 	red1Stop := make(communication.StopChannel)
 	red2Stop := make(communication.StopChannel)
-	e.readers = map[reader.DataReader]communication.StopChannel{red1: red1Stop, red2: red2Stop}
+	e.setReaders(map[reader.DataReader]communication.StopChannel{red1: red1Stop, red2: red2Stop})
 
 	jobID1 := communication.NewJobID()
 	jobID2 := communication.NewJobID()
@@ -366,14 +383,16 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 }
 
 func TestStartReadersTicking(t *testing.T) {
-	t.Parallel()
 	log := lib.DiscardLogger()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	e, jobChan, redJobResChan, errorChan := withReaders(ctx, log, cancel)
-	red, _ := reader.NewSimpleReader(lib.DiscardLogger(), reader.NewMockCtxReader("url"), jobChan, redJobResChan, errorChan, "reader_name", "typeName", time.Millisecond, time.Millisecond)
+	red, err := reader.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", jobChan, redJobResChan, errorChan, "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond)
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
 	redStop := make(communication.StopChannel)
-	e.readers = map[reader.DataReader]communication.StopChannel{red: redStop}
+	e.setReaders(map[reader.DataReader]communication.StopChannel{red: redStop})
 
 	recorded := make(chan struct{})
 
@@ -381,9 +400,9 @@ func TestStartReadersTicking(t *testing.T) {
 	// There is no need for the actual job
 	red.StartFunc = func(stop communication.StopChannel) {
 		go func() {
-			<-red.JobChan()
+			<-jobChan
 			jobID := communication.NewJobID()
-			red.ErrorChan() <- communication.ErrorMessage{ID: jobID, Err: err("blah blah")}
+			errorChan <- communication.ErrorMessage{ID: jobID, Err: errMsg("blah blah")}
 			recorded <- struct{}{} // important, otherwise the test might not be valid
 		}()
 		go func() {
@@ -400,18 +419,14 @@ func TestStartReadersTicking(t *testing.T) {
 
 	select {
 	case <-recorded:
-	case <-time.After(5 * time.Second):
+	case <-time.After(2 * time.Second):
 		t.Error("expected to record, didn't happen")
 	}
 
 	cancel()
 	select {
 	case <-done:
-	case <-time.After(5 * time.Second):
+	case <-time.After(2 * time.Second):
 		t.Error("expected the engine to quit gracefully")
 	}
 }
-
-//start
-//issueReaderJob
-//redirectToRecorders, and test the error

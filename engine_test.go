@@ -23,31 +23,20 @@ import (
 // TODO: test engine closes readers when recorder goes out of scope
 
 func TestNewWithReadRecorder(t *testing.T) {
-	t.Parallel()
 	log := lib.DiscardLogger()
 	ctx := context.Background()
 
 	jobChan := make(chan context.Context)
 	errorChan := make(chan communication.ErrorMessage)
 	resultChan := make(chan *reader.ReadJobResult)
-	red, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), jobChan, resultChan, errorChan, "", "", time.Hour, time.Hour)
 
 	payloadChan := make(chan *recorder.RecordJob)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "a", "nowhere", "", time.Hour)
+	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "a", "http://127.0.0.1:9200", "aa", time.Hour)
+	red, _ := reader.NewSimpleReader(log, "http://127.0.0.1:9200", jobChan, resultChan, errorChan, "a", "dd", time.Hour, time.Hour)
+	red2, _ := reader.NewSimpleReader(log, "http://127.0.0.1:9200", jobChan, resultChan, errorChan, "a", "dd", time.Hour, time.Hour)
 
-	e, err := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, red)
-	if err != expvastic.ErrEmptyRedName {
-		t.Errorf("want ErrEmptyRedName, got (%v)", err)
-	}
-	if e != nil {
-		t.Errorf("want (nil), got (%v)", e)
-	}
-
-	red, _ = reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), jobChan, resultChan, errorChan, "a", "", time.Hour, time.Hour)
-	red2, _ := reader.NewSimpleReader(log, reader.NewMockCtxReader("nowhere"), jobChan, resultChan, errorChan, "a", "", time.Hour, time.Hour)
-
-	e, err = expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, red, red2)
-	if err != expvastic.ErrDupRecName {
+	e, err := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, red, red2)
+	if err != expvastic.ErrDuplicateRecorderName {
 		t.Error("want error, got nil")
 	}
 	if e != nil {
@@ -56,7 +45,6 @@ func TestNewWithReadRecorder(t *testing.T) {
 }
 
 func TestEngineSendJob(t *testing.T) {
-	t.Parallel()
 	var recorderID communication.JobID
 	log := lib.DiscardLogger()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -65,8 +53,7 @@ func TestEngineSendJob(t *testing.T) {
 	resultChan := make(chan *reader.ReadJobResult)
 	errorChan := make(chan communication.ErrorMessage)
 
-	ctxReader := reader.NewCtxReader("nowhere")
-	red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "example_type", time.Hour, time.Hour)
+	red, _ := reader.NewSimpleReader(log, "http://127.0.0.1:9200", jobChan, resultChan, errorChan, "reader_example", "example_type", time.Hour, time.Hour)
 	red.StartFunc = func(stop communication.StopChannel) {
 		go func() {
 			recorderID = communication.NewJobID()
@@ -132,7 +119,6 @@ func TestEngineSendJob(t *testing.T) {
 }
 
 func TestEngineMultiReader(t *testing.T) {
-	t.Parallel()
 	count := 10
 	log := lib.DiscardLogger()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -169,9 +155,8 @@ func TestEngineMultiReader(t *testing.T) {
 	reds := make([]reader.DataReader, count)
 	for i := 0; i < count; i++ {
 
-		ctxReader := reader.NewCtxReader("nowhere")
 		name := fmt.Sprintf("reader_example_%d", i)
-		red, _ := reader.NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, name, "example_type", time.Hour, time.Hour)
+		red, _ := reader.NewSimpleReader(log, "http://127.0.0.1:9200", jobChan, resultChan, errorChan, name, "example_type", time.Hour, time.Hour)
 		red.StartFunc = func(stop communication.StopChannel) {
 			go func() {
 				res := ioutil.NopCloser(bytes.NewBuffer([]byte(`{"devil":666}`)))
@@ -219,7 +204,6 @@ func TestEngineMultiReader(t *testing.T) {
 }
 
 func TestEngineNewWithConfig(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	log := lib.DiscardLogger()
 
@@ -227,18 +211,18 @@ func TestEngineNewWithConfig(t *testing.T) {
 	rec, _ := recorder.NewMockConfig("reader_example", log, "nowhere", time.Hour, 1, "index")
 
 	e, err := expvastic.NewWithConfig(ctx, log, 0, 0, 0, rec, red)
-	if err != expvastic.ErrEmptyRedName {
-		t.Error("want ErrEmptyRedName, got nil")
+	if err != reader.ErrEmptyName {
+		t.Error("want ErrEmptyReaderName, got nil")
 	}
 	if e != nil {
 		t.Errorf("want (nil), got (%v)", e)
 	}
 
-	red, _ = reader.NewMockConfig("same_name_is_illegal", "reader_example", log, "nowhere", "/still/nowhere", time.Hour, time.Hour, 1)
-	red2, _ := reader.NewMockConfig("same_name_is_illegal", "reader_example", log, "nowhere", "/still/nowhere", time.Hour, time.Hour, 1)
+	red, _ = reader.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 1)
+	red2, _ := reader.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 1)
 
 	e, err = expvastic.NewWithConfig(ctx, log, 0, 0, 0, rec, red, red2)
-	if err != expvastic.ErrDupRecName {
+	if err != expvastic.ErrDuplicateRecorderName {
 		t.Error("want error, got nil")
 	}
 	if e != nil {

@@ -28,8 +28,7 @@ func ExampleSimpleReader() {
 	jobChan := make(chan context.Context, 10)
 	errorChan := make(chan communication.ErrorMessage, 10)
 	resultChan := make(chan *ReadJobResult, 10)
-	ctxReader := NewCtxReader(ts.URL)
-	red, _ := NewSimpleReader(log, ctxReader, jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+	red, _ := NewSimpleReader(log, ts.URL, jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
 	stop := make(communication.StopChannel)
 	red.Start(ctx, stop)
 
@@ -74,7 +73,7 @@ func ExampleSimpleReader_start() {
 	errorChan := make(chan communication.ErrorMessage)
 	resultChan := make(chan *ReadJobResult)
 
-	red, _ := NewSimpleReader(log, NewCtxReader(ts.URL), jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
+	red, _ := NewSimpleReader(log, ts.URL, jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
 	stop := make(communication.StopChannel)
 	red.Start(ctx, stop)
 

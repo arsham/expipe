@@ -68,8 +68,8 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 		resultChan := make(chan *reader.ReadJobResult, bc.readResChanBuff)
 
 		// Setting the intervals to an hour so the benchmark can issue jobs
-		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reacorder_example", "nowhere, it doesn't matter", "intexName", time.Hour)
-		reds := makeReaders(ctx, bc.readers, log, resultChan, errorChan, bc.recChanBuff, "nowhere, it doesn't matter")
+		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reacorder_example", "http://127.0.0.1", "intexName", time.Hour)
+		reds := makeReaders(ctx, bc.readers, log, resultChan, errorChan, bc.recChanBuff, "http://127.0.0.1")
 		e, _ := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, reds...)
 
 		done := make(chan struct{})
@@ -122,7 +122,7 @@ func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, resultC
 	for i := 0; i < count; i++ {
 		jobChan := make(chan context.Context, chanBuff)
 		name := fmt.Sprintf("reader_%d", i)
-		red, _ := reader.NewSimpleReader(log, reader.NewCtxReader(url), jobChan, resultChan, errorChan, name, "example_type", time.Hour, time.Hour)
+		red, _ := reader.NewSimpleReader(log, url, jobChan, resultChan, errorChan, name, "example_type", time.Hour, time.Hour)
 		red.StartFunc = startFunc(red)
 		reds[i] = red
 	}

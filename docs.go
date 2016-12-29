@@ -1,7 +1,7 @@
 // Copyright 2016 Arsham Shirvani <arshamshirvani@gmail.com>. All rights reserved.
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
-//
+
 // Package expvastic can read from any endpoints that provides expvar data and ships them to elasticsearch. You can inspect the metrics with kibana.
 //
 // Please refer to golang's expvar documentation for more information.
@@ -149,5 +149,4 @@
 //   go tool pprof -pdf $BASENAME.test mem.out > mem.pdf && open mem.pdf
 //
 // Use of this source code is governed by the Apache 2.0 license. License that can be found in the LICENSE file.
-
 package expvastic

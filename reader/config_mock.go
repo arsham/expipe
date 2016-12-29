@@ -40,8 +40,7 @@ func NewMockConfig(name, typeName string, log logrus.FieldLogger, endpoint, rout
 
 // NewInstance  returns a mocked version of the config
 func (c *MockConfig) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *ReadJobResult, errChan chan<- communication.ErrorMessage) (DataReader, error) {
-	ctxReader := NewCtxReader(c.Endpoint())
-	return NewSimpleReader(c.MockLogger, ctxReader, jobChan, resultChan, errChan, c.MockName, c.MockTypeName, c.MockInterval, c.MockTimeout)
+	return NewSimpleReader(c.MockLogger, c.Endpoint(), jobChan, resultChan, errChan, c.MockName, c.MockTypeName, c.MockInterval, c.MockTimeout)
 }
 
 // Name returns the name
