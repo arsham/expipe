@@ -34,11 +34,11 @@ func ExampleEngine_sendingJobs() {
 	}))
 	defer recTs.Close()
 
-	red, err := reader_testing.NewSimpleReader(log, redTs.URL, "reader_example", "typeName", time.Millisecond, time.Millisecond, 5) //for testing
+	red, err := reader_testing.NewSimpleReader(log, redTs.URL, "reader_example", "typeName", time.Second, time.Second, 5) //for testing
 	if err != nil {
 		panic(err)
 	}
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", time.Millisecond, 5)
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", time.Second, 5)
 	if err != nil {
 		panic(err)
 	}
