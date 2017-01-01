@@ -151,6 +151,7 @@ type ByteType struct {
 }
 
 // Bytes returns the byte slice representation of the type.
+// It turns the byte into Megabyte
 func (b ByteType) Bytes() []byte {
 	return []byte(fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE))
 }

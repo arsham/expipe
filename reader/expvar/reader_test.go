@@ -29,24 +29,25 @@ func setup(message string) (red *expvar.Reader, teardown func()) {
 	}
 }
 
-func TestExpvarReader(t *testing.T) {
-	reader_test.TestReaderEssentials(t, func(testCase int) (reader.DataReader, string, func()) {
+func TestReaderConstruction(t *testing.T) {
+	reader_test.TestReaderConstruction(t, func(name, endpoint, typeName string, interval time.Duration, timeout time.Duration, backoff int) (reader.DataReader, error) {
+		log := lib.DiscardLogger()
+		return expvar.NewExpvarReader(log, endpoint, datatype.DefaultMapper(), name, typeName, interval, timeout, backoff)
+	})
+}
+
+func TestReaderCommunication(t *testing.T) {
+	reader_test.TestReaderCommunication(t, func(testCase int) (reader.DataReader, string, func()) {
 		testMessage := `{"the key": "is the value!"}`
 
 		switch testCase {
-		case reader_test.GenericReaderReceivesJobTestCase:
+		case reader_test.ReaderReceivesJobTestCase:
 			red, teardown := setup(testMessage)
 			return red, testMessage, teardown
 
-		case reader_test.ReaderSendsResultTestCase:
-			testMessage := `{"the key": "is the value!"}`
+		case reader_test.ReaderReturnsSameIDTestCase:
 			red, teardown := setup(testMessage)
 			return red, testMessage, teardown
-
-		case reader_test.ReaderWithNoValidURLErrorsTestCase:
-			log := lib.DiscardLogger()
-			red, _ := expvar.NewExpvarReader(log, "nowhere", &datatype.MapConvertMock{}, "my_reader", "example_type", time.Hour, time.Hour, 5)
-			return red, testMessage, nil
 
 		default:
 			return nil, "", nil
@@ -54,14 +55,7 @@ func TestExpvarReader(t *testing.T) {
 	})
 }
 
-func TestExpvarReaderConstruction(t *testing.T) {
-	reader_test.TestReaderConstruction(t, func(name, endpoint, typeName string, interval time.Duration, timeout time.Duration, backoff int) (reader.DataReader, error) {
-		log := lib.DiscardLogger()
-		return expvar.NewExpvarReader(log, endpoint, datatype.DefaultMapper(), name, typeName, interval, timeout, backoff)
-	})
-}
-
-func TestExpvarReaderEndpointManeuvers(t *testing.T) {
+func TestReaderEndpointManeuvers(t *testing.T) {
 	reader_test.TestReaderEndpointManeuvers(t, func(testCase int, endpoint string) (reader.DataReader, error) {
 		switch testCase {
 		case reader_test.ReaderErrorsOnEndpointDisapearsTestCase:

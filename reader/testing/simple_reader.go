@@ -7,7 +7,6 @@ package testing
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -94,7 +93,6 @@ func (m *SimpleReader) Read(job context.Context) (*reader.ReadJobResult, error) 
 	id := communication.JobValue(job)
 	resp, err := ctxhttp.Get(job, nil, m.endpoint)
 	if err != nil {
-		fmt.Println(err)
 		if v, ok := err.(*url.Error); ok {
 			if strings.Contains(v.Error(), "getsockopt: connection refused") {
 				m.strike++

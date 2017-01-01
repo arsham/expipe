@@ -85,7 +85,7 @@ func withConfig(c *Config) (*Config, error) {
 
 // NewInstance returns an instance of the elasticsearch recorder
 func (c *Config) NewInstance(ctx context.Context) (recorder.DataRecorder, error) {
-	return NewRecorder(ctx, c.log, c.name, c.Endpoint(), c.IndexName(), c.timeout, c.Backoff())
+	return NewRecorder(ctx, c.Logger(), c.Name(), c.Endpoint(), c.IndexName(), c.Timeout(), c.Backoff())
 }
 
 // Name return the name

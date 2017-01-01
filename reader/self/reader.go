@@ -57,8 +57,8 @@ type Reader struct {
 	endpoint string
 }
 
-// NewSelfReader exposes expvastic's own metrics.
-func NewSelfReader(
+// NewReader exposes expvastic's own metrics.
+func NewReader(
 	log logrus.FieldLogger,
 	endpoint string,
 	mapper datatype.Mapper,
@@ -111,11 +111,7 @@ func NewSelfReader(
 // Read begins reading from the target.
 // It sends an error back to the engine if it can't read from metrics provider
 func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
-	if r.strike > r.backoff {
-		return nil, reader.ErrBackoffExceeded
-	}
-
-	if r.endpoint != ignoredEndpoint {
+	if r.endpoint != IgnoredEndpoint {
 		// To support the tests
 		return r.readMetricsFromURL(job)
 	}
@@ -158,6 +154,10 @@ func (r *Reader) Interval() time.Duration { return r.interval }
 func (r *Reader) Timeout() time.Duration { return r.timeout }
 
 func (r *Reader) readMetricsFromURL(job context.Context) (*reader.ReadJobResult, error) {
+	if r.strike > r.backoff {
+		return nil, reader.ErrBackoffExceeded
+	}
+
 	id := communication.JobValue(job)
 	resp, err := http.Get(r.endpoint)
 	if err != nil {

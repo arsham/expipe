@@ -142,6 +142,7 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 	case <-recorded:
 		cancel()
 	case <-time.After(5 * time.Second):
+		cancel()
 		t.Error("expected to record, didn't happen")
 	}
 

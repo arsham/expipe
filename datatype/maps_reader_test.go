@@ -189,3 +189,22 @@ func TestNestedPauseNsRegression(t *testing.T) {
 		t.Errorf("want (%#v), got (%#v)", expected, container.List()[0])
 	}
 }
+
+func TestGetArrayValue(t *testing.T) {
+	t.Parallel()
+	prefix := "Mr. "
+	name := "Devil"
+	m := &MapConvert{}
+
+	expected := &FloatListType{Key: "Mr. Devil", Value: []float64{}}
+	result := m.getArrayValue(prefix, name, []*jason.Value{})
+	if !result.Equal(expected) {
+		t.Errorf("want (%v), got (%v)", expected, result)
+	}
+
+	str, _ := jason.NewValueFromBytes([]byte(`{"sdss":"sdfs"}`))
+	result = m.getArrayValue(prefix, name, []*jason.Value{str})
+	if result != nil {
+		t.Errorf("want nil, got (%v)", result)
+	}
+}

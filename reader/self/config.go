@@ -55,11 +55,12 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 	return &c, nil
 }
 
-var ignoredEndpoint = "http://127.0.0.1"
+// IgnoredEndpoint is used for testing
+var IgnoredEndpoint = "http://127.0.0.1:9200"
 
 // NewInstance instantiates a SelfReader
 func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
-	return NewSelfReader(c.log, ignoredEndpoint, c.mapper, c.name, c.TypeName(), c.interval, c.Timeout(), c.Backoff())
+	return NewReader(c.Logger(), c.Endpoint(), c.mapper, c.Name(), c.TypeName(), c.Interval(), c.Timeout(), c.Backoff())
 }
 
 // Name returns the name
@@ -69,7 +70,7 @@ func (c *Config) Name() string { return c.name }
 func (c *Config) TypeName() string { return c.SelfTypeName }
 
 // Endpoint returns the endpoint
-func (c *Config) Endpoint() string { return "" }
+func (c *Config) Endpoint() string { return IgnoredEndpoint }
 
 // RoutePath returns the routepath
 func (c *Config) RoutePath() string { return "" }
