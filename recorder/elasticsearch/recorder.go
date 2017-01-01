@@ -118,6 +118,10 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.RecordJob) error {
 				r.strike++
 			}
 		}
+		r.log.WithField("recorder", "elasticsearch").
+			WithField("name", r.Name()).
+			WithField("ID", job.ID).
+			Debugf("%s: error making request: %v", r.name, err)
 		return err
 	}
 	return nil

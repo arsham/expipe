@@ -97,8 +97,6 @@ func (m *MapConvert) getArrayValue(prefix, name string, arr []*jason.Value) Data
 			return getGCList(prefix+name, arr)
 		}
 		return getFloatListValues(prefix+name, arr)
-	} else {
-		// TODO: decide what to do in this situation
 	}
 	return nil
 }

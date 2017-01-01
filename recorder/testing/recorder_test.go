@@ -32,8 +32,8 @@ func setup(backoff int) (ctx context.Context, rec *recorder_testing.SimpleRecord
 	return ctx, rec, err, func() { ts.Close() }
 }
 
-func TestSimpleRecorder(t *testing.T) {
-	recorder_testing.TestRecorderEssentials(t, func(testCase int) (context.Context, recorder.DataRecorder, error, func()) {
+func TestRecorderCommunication(t *testing.T) {
+	recorder_testing.TestRecorderCommunication(t, func(testCase int) (context.Context, recorder.DataRecorder, error, func()) {
 		switch testCase {
 		case recorder_testing.RecorderReceivesPayloadTestCase:
 			ctx, rec, err, teardown := setup(5)

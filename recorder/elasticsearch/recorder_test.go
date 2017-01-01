@@ -77,8 +77,8 @@ func setup(t *testing.T) (ctx context.Context, rec *elasticsearch.Recorder, tear
 	}, err
 }
 
-func TestElasticsearchRecorder(t *testing.T) {
-	recorder_testing.TestRecorderEssentials(t, func(testCase int) (context.Context, recorder.DataRecorder, error, func()) {
+func TestRecorderCommunication(t *testing.T) {
+	recorder_testing.TestRecorderCommunication(t, func(testCase int) (context.Context, recorder.DataRecorder, error, func()) {
 		switch testCase {
 		case recorder_testing.RecorderReceivesPayloadTestCase:
 			ctx, rec, teardown, err := setup(t)

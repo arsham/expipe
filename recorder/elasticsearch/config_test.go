@@ -2,62 +2,50 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvar_test
+package elasticsearch_test
 
 import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
 	"testing"
 	"time"
 
 	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/reader/expvar"
+	"github.com/arsham/expvastic/recorder/elasticsearch"
 	"github.com/spf13/viper"
 )
 
-func TestLoadExpvarSuccess(t *testing.T) {
+func TestLoadElasticsearchSuccess(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
 	log := lib.DiscardLogger()
 
 	input := bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
+    recorders:
+        recorder1:
             endpoint: http://127.0.0.1:9200
-            type_name: example_type
-            routepath: /debug/vars
-            interval: 2s
-            timeout: 3s
-            log_level: info
+            index_name: example_index
+            timeout: 10s
             backoff: 15
     `))
 
 	v.ReadConfig(input)
-	c1, err := expvar.FromViper(v, log, "reader1", "readers.reader1")
-	c2, err := expvar.NewConfig(log, "name", "example_type", "http://127.0.0.1:9200", "/debug/vars", 2*time.Second, 3*time.Second, 15, "")
-	for _, c := range []*expvar.Config{c1, c2} {
+	c1, err := elasticsearch.FromViper(v, log, "recorder1", "recorders.recorder1")
+	c2, err := elasticsearch.NewConfig(log, "name", "http://127.0.0.1:9200", 10*time.Second, 15, "example_index")
+	for _, c := range []*elasticsearch.Config{c1, c2} {
 
 		if err != nil {
 			t.Fatalf("want no errors, got (%v)", err)
 		}
-		if c.TypeName() != "example_type" {
-			t.Errorf("want (example_type), got (%v)", c.TypeName())
+		if c.IndexName() != "example_index" {
+			t.Errorf("want (example_index), got (%v)", c.IndexName())
 		}
 		if c.Endpoint() != "http://127.0.0.1:9200" {
 			t.Errorf("want (http://127.0.0.1:9200), got (%v)", c.Endpoint())
 		}
-		if c.RoutePath() != "/debug/vars" {
-			t.Errorf("want (/debug/vars), got (%v)", c.RoutePath())
-		}
-		if c.Interval() != time.Duration(2*time.Second) {
-			t.Errorf("want (%v), got (%v)", time.Duration(2*time.Second), c.Interval())
-		}
-		if c.Timeout() != time.Duration(3*time.Second) {
+		if c.Timeout() != time.Duration(10*time.Second) {
 			t.Errorf("want (%v), got (%v)", time.Duration(3*time.Second), c.Timeout())
 		}
 		if c.Backoff() != 15 {
@@ -66,7 +54,7 @@ func TestLoadExpvarSuccess(t *testing.T) {
 	}
 }
 
-func TestLoadExpvarErrors(t *testing.T) {
+func TestLoadElasticsearchErrors(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	log := lib.DiscardLogger()
@@ -76,19 +64,19 @@ func TestLoadExpvarErrors(t *testing.T) {
 	}{
 		{ // 0
 			input: bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
-                type_name: example_type
+    recorders:
+        recorder1:
+                index_name: example_index
                 interval: 2sq
-                timeout: 3s
+                timeout: 1ms
                 backoff: 15
     `)),
 		},
 		{ // 1
 			input: bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
-                type_name: example_type
+    recorders:
+        recorder1:
+                index_name: example_index
                 interval: 2s
                 timeout: 3sw
                 backoff: 15
@@ -96,57 +84,57 @@ func TestLoadExpvarErrors(t *testing.T) {
 		},
 		{ // 2
 			input: bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
-                type_name: example_type
+    recorders:
+        recorder1:
+                index_name: example_index
                 interval: 2s
-                timeout: 3s
+                timeout: 1ms
                 backoff: 1
     `)),
 		},
 		{ // 3
 			input: bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
-                type_name: example_type
+    recorders:
+        recorder1:
+                index_name: example_index
                 interval: 2s
-                timeout: 3s
+                timeout: 1ms
                 backoff: 20w
     `)),
 		},
 		{ // 4
 			input: bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
-            type_name: example_type
+    recorders:
+        recorder1:
+            index_name: example_index
             routepath: /debug/vars
             interval: 2s
-            timeout: 3s
+            timeout: 1ms
             log_level: info
             backoff: 15
     `)),
 		},
 		{ // 5
 			input: bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
-            type_name: example_type
+    recorders:
+        recorder1:
+            index_name: example_index
             endpoint: http:// bad url
             routepath: /debug/vars
             interval: 2s
-            timeout: 3s
+            timeout: 1ms
             log_level: info
             backoff: 15
     `)),
 		},
 		{ // 5 No types specified
 			input: bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
+    recorders:
+        recorder1:
             endpoint: http://127.0.0.1:9200
             routepath: /debug/vars
             interval: 2s
-            timeout: 3s
+            timeout: 1ms
             log_level: info
             backoff: 15
     `)),
@@ -156,7 +144,7 @@ func TestLoadExpvarErrors(t *testing.T) {
 		name := fmt.Sprintf("case_%d", i)
 		t.Run(name, func(t *testing.T) {
 			v.ReadConfig(tc.input)
-			c, err := expvar.FromViper(v, log, "reader1", "readers.reader1")
+			c, err := elasticsearch.FromViper(v, log, "recorder1", "recorders.recorder1")
 			if err == nil {
 				t.Fatal("want an errors, got nothing")
 			}
@@ -165,8 +153,7 @@ func TestLoadExpvarErrors(t *testing.T) {
 			}
 		})
 	}
-
-	c, err := expvar.NewConfig(log, "", "example_type", "http://127.0.0.1:9200", "/debug/vars", 2*time.Second, 3*time.Second, 15, "")
+	c, err := elasticsearch.NewConfig(log, "", "http://127.0.0.1:9200", time.Millisecond, 5, "indexName")
 	if err == nil {
 		t.Error("want error, got nil")
 	}
@@ -176,38 +163,23 @@ func TestLoadExpvarErrors(t *testing.T) {
 }
 
 func TestNewInstance(t *testing.T) {
+	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
 	log := lib.DiscardLogger()
-	cwd, _ := os.Getwd()
-	file, err := ioutil.TempFile(cwd, "yaml")
-	if err != nil {
-		panic(err)
-	}
-	file.Write([]byte(`gc_types:
-    PauseEnd
-    PauseNs
-`))
-	oldName := file.Name() //required for viper
-	newName := file.Name() + ".yml"
-	os.Rename(oldName, newName)
-	defer os.Remove(newName)
 
-	input := bytes.NewBuffer([]byte(fmt.Sprintf(`
-    readers:
-        reader1:
+	input := bytes.NewBuffer([]byte(`
+    recorders:
+        recorder1:
             endpoint: http://127.0.0.1:9200
-            type_name: example_type
-            routepath: /debug/vars
-            interval: 2s
+            index_name: example_index
             timeout: 3s
             log_level: info
             backoff: 15
-            map_file: %s
-    `, path.Base(file.Name()))))
+    `))
 
 	v.ReadConfig(input)
-	c, err := expvar.FromViper(v, log, "reader1", "readers.reader1")
+	c, err := elasticsearch.FromViper(v, log, "recorder1", "recorders.recorder1")
 	if err != nil {
 		t.Fatalf("want no errors, got (%v)", err)
 	}
@@ -217,9 +189,6 @@ func TestNewInstance(t *testing.T) {
 		t.Errorf("want nil, got (%v)", err)
 	}
 	if r == nil {
-		t.Error("want reader, got nil")
-	}
-	if r.Mapper() == nil {
-		t.Error("want mapper, got nil")
+		t.Error("want recorder, got nil")
 	}
 }

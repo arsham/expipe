@@ -31,30 +31,27 @@ func setupWithURL(url string, message string) (red *reader_test.SimpleReader) {
 	return red
 }
 
+func TestReaderConstruction(t *testing.T) {
+	reader_test.TestReaderConstruction(t, func(name, endpoint, typeName string, interval time.Duration, timeout time.Duration, backoff int) (reader.DataReader, error) {
+		log := lib.DiscardLogger()
+		return reader_test.NewSimpleReader(log, endpoint, name, typeName, time.Hour, time.Hour, backoff)
+	})
+}
+
 // The purpose of these tests is to make sure the simple reader, which is a mock,
 // works perfect, so other tests can rely on it.
-func TestSimpleReader(t *testing.T) {
-	reader_test.TestReaderEssentials(t, func(testCase int) (reader.DataReader, string, func()) {
+func TestReaderCommunication(t *testing.T) {
+	reader_test.TestReaderCommunication(t, func(testCase int) (reader.DataReader, string, func()) {
 		testMessage := `{"the key": "is the value!"}`
 
 		switch testCase {
-		case reader_test.GenericReaderReceivesJobTestCase:
+		case reader_test.ReaderReceivesJobTestCase:
 			red, teardown := setup(testMessage)
 			return red, testMessage, teardown
 
-		case reader_test.ReaderSendsResultTestCase:
-			testMessage := `{"the key": "is the value!"}`
+		case reader_test.ReaderReturnsSameIDTestCase:
 			red, teardown := setup(testMessage)
 			return red, testMessage, teardown
-
-		case reader_test.ReaderReadsOnBufferedChanTestCase:
-			red, teardown := setup(testMessage)
-			return red, testMessage, teardown
-
-		case reader_test.ReaderWithNoValidURLErrorsTestCase:
-			log := lib.DiscardLogger()
-			red, _ := reader_test.NewSimpleReader(log, "nowhere", "my_reader", "example_type", time.Hour, time.Hour, 10)
-			return red, testMessage, nil
 
 		default:
 			return nil, "", nil
@@ -62,14 +59,7 @@ func TestSimpleReader(t *testing.T) {
 	})
 }
 
-func TestSimpleReaderConstruction(t *testing.T) {
-	reader_test.TestReaderConstruction(t, func(name, endpoint, typeName string, interval time.Duration, timeout time.Duration, backoff int) (reader.DataReader, error) {
-		log := lib.DiscardLogger()
-		return reader_test.NewSimpleReader(log, endpoint, name, typeName, time.Hour, time.Hour, backoff)
-	})
-}
-
-func TestSimpleReaderEndpointManeuvers(t *testing.T) {
+func TestReaderEndpointManeuvers(t *testing.T) {
 	reader_test.TestReaderEndpointManeuvers(t, func(testCase int, endpoint string) (reader.DataReader, error) {
 		switch testCase {
 		case reader_test.ReaderErrorsOnEndpointDisapearsTestCase:

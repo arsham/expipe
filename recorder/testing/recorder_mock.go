@@ -59,9 +59,11 @@ func (s *SimpleRecorder) Record(ctx context.Context, job *recorder.RecordJob) er
 		return s.RecordFunc(ctx, job)
 	}
 	s.Smu.RUnlock()
+
 	if s.strike > s.backoff {
 		return recorder.ErrBackoffExceeded
 	}
+
 	res, err := http.Get(s.endpoint)
 	if err != nil {
 		if v, ok := err.(*url.Error); ok {
