@@ -184,7 +184,7 @@ func TestNestedPauseNsRegression(t *testing.T) {
 	input := bytes.NewBuffer([]byte(`{"memstats": {"PauseNs":[438238,506913]}}`))
 	expected := &GCListType{Key: "memstats.PauseNs", Value: []uint64{438238, 506913}}
 	mapper := DefaultMapper()
-	container := JobResultDataTypes(input, mapper)
+	container := JobResultDataTypes(input.Bytes(), mapper)
 	if !container.List()[0].Equal(expected) {
 		t.Errorf("want (%#v), got (%#v)", expected, container.List()[0])
 	}

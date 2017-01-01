@@ -23,6 +23,7 @@ readers:
         type: self # only used for this reason
         type_name: expvastic
         interval: 500ms
+        backoff: 10
 
 recorders:
     elastic1: # service name

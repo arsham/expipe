@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
 )
@@ -21,7 +20,11 @@ import (
 type Conf interface {
 	Endpoint() string
 	Timeout() time.Duration
+
+	// Backoff returns the amount of retries after the endpoint is rejected
+	// the request or not responsive.
 	Backoff() int
+
 	Logger() logrus.FieldLogger
 }
 
@@ -34,7 +37,7 @@ type ReaderConf interface {
 
 	// NewInstance should return an initialised Reader instance.
 	// You should return an error if the endpoint is not responding to a ping request.
-	NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, errorChan chan<- communication.ErrorMessage) (reader.DataReader, error)
+	NewInstance(ctx context.Context) (reader.DataReader, error)
 
 	// TypeName is usually the application name.
 	// Recorders should not intercept the engine for its decision, unless they have a
@@ -49,7 +52,7 @@ type RecorderConf interface {
 
 	// NewInstance should return an initialised Recorder instance.
 	// You should return an error if the endpoint is not responding to a ping request.
-	NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob, errorChan chan<- communication.ErrorMessage) (recorder.DataRecorder, error)
+	NewInstance(ctx context.Context) (recorder.DataRecorder, error)
 
 	// IndexName comes from the configuration, but the engine might take over.
 	// Recorders should not intercept the engine for its decision, unless they have a

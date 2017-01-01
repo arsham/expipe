@@ -23,14 +23,12 @@ const (
 	MEGABYTE = 1024 * KILOBYTE
 )
 
-// TODO: refactor to use byte slices
-
 // ErrUnidentifiedJason .
 var ErrUnidentifiedJason = errors.New("unidentified jason value")
 
 // DataType implements Stringer and Marshal/Unmarshal
 type DataType interface {
-	fmt.Stringer
+	Bytes() []byte
 
 	// Equal compares both keys and values and returns true if they are equal
 	Equal(DataType) bool
@@ -42,14 +40,17 @@ type FloatType struct {
 	Value float64
 }
 
-// String satisfies the Stringer interface
-func (f FloatType) String() string {
-	return fmt.Sprintf(`"%s":%f`, f.Key, f.Value)
+// Bytes returns the byte slice representation of the type.
+func (f FloatType) Bytes() []byte {
+	return []byte(fmt.Sprintf(`"%s":%f`, f.Key, f.Value))
 }
 
 // Equal compares both keys and values and returns true if they are equal
-// Not implemented
 func (f FloatType) Equal(other DataType) bool {
+	switch o := other.(type) {
+	case *FloatType:
+		return f.Key == o.Key && f.Value == o.Value
+	}
 	return false
 }
 
@@ -59,9 +60,9 @@ type StringType struct {
 	Value string
 }
 
-// String satisfies the Stringer interface
-func (s StringType) String() string {
-	return fmt.Sprintf(`"%s":"%s"`, s.Key, s.Value)
+// Bytes returns the byte slice representation of the type.
+func (s StringType) Bytes() []byte {
+	return []byte(fmt.Sprintf(`"%s":"%s"`, s.Key, s.Value))
 }
 
 // Equal compares both keys and values and returns true if they are equal
@@ -79,13 +80,13 @@ type FloatListType struct {
 	Value []float64
 }
 
-// String satisfies the Stringer interface
-func (fl FloatListType) String() string {
+// Bytes returns the byte slice representation of the type.
+func (fl FloatListType) Bytes() []byte {
 	list := make([]string, len(fl.Value))
 	for i, v := range fl.Value {
 		list[i] = fmt.Sprintf("%f", v)
 	}
-	return fmt.Sprintf(`"%s":[%s]`, fl.Key, strings.Join(list, ","))
+	return []byte(fmt.Sprintf(`"%s":[%s]`, fl.Key, strings.Join(list, ",")))
 }
 
 // Equal compares both keys and all values and returns true if they are equal.
@@ -112,8 +113,8 @@ type GCListType struct {
 	Value []uint64
 }
 
-// String satisfies the Stringer interface
-func (flt GCListType) String() string {
+// Bytes returns the byte slice representation of the type.
+func (flt GCListType) Bytes() []byte {
 	// We are filtering, therefore we don't know the size
 	var list []string
 	for _, v := range flt.Value {
@@ -121,7 +122,7 @@ func (flt GCListType) String() string {
 			list = append(list, fmt.Sprintf("%d", v/1000))
 		}
 	}
-	return fmt.Sprintf(`"%s":[%s]`, flt.Key, strings.Join(list, ","))
+	return []byte(fmt.Sprintf(`"%s":[%s]`, flt.Key, strings.Join(list, ",")))
 }
 
 // Equal is not implemented. You should iterate and check yourself.
@@ -149,9 +150,9 @@ type ByteType struct {
 	Value float64
 }
 
-// String satisfies the Stringer interface
-func (b ByteType) String() string {
-	return fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE)
+// Bytes returns the byte slice representation of the type.
+func (b ByteType) Bytes() []byte {
+	return []byte(fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE))
 }
 
 // Equal compares both keys and values and returns true if they are equal
@@ -170,9 +171,9 @@ type KiloByteType struct {
 	Value float64
 }
 
-// String satisfies the Stringer interface
-func (k KiloByteType) String() string {
-	return fmt.Sprintf(`"%s":%f`, k.Key, k.Value/KILOBYTE)
+// Bytes returns the byte slice representation of the type.
+func (k KiloByteType) Bytes() []byte {
+	return []byte(fmt.Sprintf(`"%s":%f`, k.Key, k.Value/KILOBYTE))
 }
 
 // Equal compares both keys and values and returns true if they are equal
@@ -191,9 +192,9 @@ type MegaByteType struct {
 	Value float64
 }
 
-// String satisfies the Stringer interface
-func (m MegaByteType) String() string {
-	return fmt.Sprintf(`"%s":%f`, m.Key, m.Value/MEGABYTE)
+// Bytes returns the byte slice representation of the type.
+func (m MegaByteType) Bytes() []byte {
+	return []byte(fmt.Sprintf(`"%s":%f`, m.Key, m.Value/MEGABYTE))
 }
 
 // Equal compares both keys and values and returns true if they are equal

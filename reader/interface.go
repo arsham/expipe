@@ -18,44 +18,20 @@ package reader
 
 import (
 	"context"
-	"io"
 	"time"
 
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 )
 
-// InterTimer is required by the Engine so it can read the intervals and time-outs.
-type InterTimer interface {
-	Timeout() time.Duration  // is used for timing out reading from the endpoint.
-	Interval() time.Duration // the engine will issue jobs based on this interval.
-}
-
 // DataReader receives job requests to read from the target, and sends its success
 // through the ResultChan channel.
 type DataReader interface {
-	InterTimer
+	// Name should return the representation string for this reader. Choose a very simple and unique name.
+	Name() string
 
-	// The engine will send a signal to this channel to inform the reader when
-	// it is time to read from the target.
-	// The engine never blocks if the reader is not able to process the requests.
-	// This channel will be provided by the Engine.
-	// The context might be cancelled depending how the user sets the time-outs.
-	// The UUID associated with this job is inside the context. Readers are
-	// advised to use this ID and pass them along.
-	JobChan() chan context.Context
-
-	// The engine runs the reading job in another goroutine. The engine will provide this channel, however
-	// the reader should not send send a lot of data back to the engine, otherwise it might cause crash
-	// on readers and the application itself.
-	ResultChan() chan *ReadJobResult
-
-	// The reader's loop should be inside a goroutine.
-	// This channel should be closed once the worker receives a stop signal
-	// and its work is finished. The response to the stop signal should happen
-	// otherwise it will hang the Engine around.
 	// When the context is timed-out or cancelled, the reader should return.
-	Start(ctx context.Context, stop communication.StopChannel)
+	Read(context.Context) (*ReadJobResult, error)
 
 	// Mapper should return an instance of the datatype mapper.
 	// Engine uses this object to present the data to recorders.
@@ -66,8 +42,11 @@ type DataReader interface {
 	// valid reason.
 	TypeName() string
 
-	// Name should return the representation string for this reader. Choose a very simple and unique name.
-	Name() string
+	// Timeout is required by the Engine so it can read the time-outs.
+	Timeout() time.Duration
+
+	// Interval is required by the Engine so it can read the intervals.
+	Interval() time.Duration
 }
 
 // ReadJobResult is constructed every time a new record is fetched.
@@ -76,6 +55,6 @@ type ReadJobResult struct {
 	ID       communication.JobID
 	Time     time.Time
 	TypeName string
-	Res      io.ReadCloser
+	Res      []byte
 	Mapper   datatype.Mapper //TODO: refactor this out
 }

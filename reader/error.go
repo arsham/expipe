@@ -17,6 +17,10 @@ var (
 
 	// ErrEmptyTypeName is the error when the type_name is an empty string.
 	ErrEmptyTypeName = fmt.Errorf("type_name cannot be empty")
+
+	// ErrBackoffExceeded is the error when the endpoint's absence has exceeded the backoff value.
+	// It is not strictly an error, it is however a pointer to an error in the past.
+	ErrBackoffExceeded = fmt.Errorf("endpoint gone too long")
 )
 
 // ErrInvalidEndpoint is the error when the endpoint is not a valid url
@@ -37,3 +41,10 @@ func (ErrEndpointNotAvailable) EndpointNotAvailable() {}
 func (e ErrEndpointNotAvailable) Error() string {
 	return fmt.Sprintf("endpoint (%s) not available: %s", e.Endpoint, e.Err)
 }
+
+// ErrLowBackoffValue is the error when the endpoint is not a valid url
+type ErrLowBackoffValue int64
+
+// LowBackoffValue defines the behaviour of the error
+func (ErrLowBackoffValue) LowBackoffValue() {}
+func (e ErrLowBackoffValue) Error() string  { return fmt.Sprintf("back off should be at least 5: %d", e) }

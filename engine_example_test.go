@@ -13,10 +13,9 @@ import (
 	"time"
 
 	"github.com/arsham/expvastic"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/reader"
-	"github.com/arsham/expvastic/recorder"
+	reader_testing "github.com/arsham/expvastic/reader/testing"
+	recorder_testing "github.com/arsham/expvastic/recorder/testing"
 )
 
 func ExampleEngine_sendingJobs() {
@@ -35,15 +34,16 @@ func ExampleEngine_sendingJobs() {
 	}))
 	defer recTs.Close()
 
-	jobChan := make(chan context.Context)
-	errorChan := make(chan communication.ErrorMessage, 10)
-	resultChan := make(chan *reader.ReadJobResult)
-	payloadChan := make(chan *recorder.RecordJob)
+	red, err := reader_testing.NewSimpleReader(log, redTs.URL, "reader_example", "typeName", time.Millisecond, time.Millisecond, 5) //for testing
+	if err != nil {
+		panic(err)
+	}
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", time.Millisecond, 5)
+	if err != nil {
+		panic(err)
+	}
 
-	red, _ := reader.NewSimpleReader(log, redTs.URL, jobChan, resultChan, errorChan, "reader_example", "typeName", time.Hour, time.Hour) // We want to issue manually
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", recTs.URL, "intexName", time.Hour)
-
-	e, err := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, red)
+	e, err := expvastic.NewWithReadRecorder(ctx, log, rec, red)
 	done := make(chan struct{})
 	go func() {
 		e.Start()
@@ -51,29 +51,7 @@ func ExampleEngine_sendingJobs() {
 	}()
 	fmt.Println("Engine creation success:", err == nil)
 
-	select {
-	case jobChan <- communication.NewReadJob(ctx):
-		fmt.Println("Just sent a job request")
-	case <-time.After(1 * time.Second):
-		panic("expected the reader to receive the job, but it blocked")
-	}
-
 	fmt.Println(<-recorded)
-
-	select {
-	case <-errorChan:
-		panic("expected no errors")
-	case <-time.After(10 * time.Millisecond):
-		fmt.Println("No errors reported!")
-	}
-	// We can check again
-	// Both readers and recorders produce errors if they need to
-	select {
-	case <-errorChan:
-		panic("expected no errors")
-	case <-time.After(10 * time.Millisecond):
-		fmt.Println("No errors reported!")
-	}
 
 	cancel()
 	<-done
@@ -81,9 +59,6 @@ func ExampleEngine_sendingJobs() {
 
 	// Output:
 	// Engine creation success: true
-	// Just sent a job request
 	// Job was recorded
-	// No errors reported!
-	// No errors reported!
 	// Client closed gracefully
 }

@@ -5,8 +5,8 @@
 package datatype
 
 import (
+	"bytes"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 )
@@ -23,7 +23,7 @@ type DataContainer interface {
 	List() []DataType
 	Len() int
 
-	String(timestamp time.Time) string
+	Bytes(timestamp time.Time) []byte
 	// Returns the Err value
 	Error() error
 }
@@ -67,16 +67,14 @@ func (c *Container) Error() error {
 	return c.Err
 }
 
-// String prepends the timestamp to the list, and generates a json object suitable for recording into
+// Bytes prepends the timestamp to the list, and generates a json object suitable for recording into
 // a document store.
-// TODO: also provide JSONDeocder encoder
-// TODO: a lot of data doesn't require processing, use them as they are
-func (c *Container) String(timestamp time.Time) string {
+func (c *Container) Bytes(timestamp time.Time) []byte {
 	ts := fmt.Sprintf(`"@timestamp":"%s"`, timestamp.Format("2006-01-02T15:04:05.999999-07:00"))
-	l := make([]string, c.Len()+1)
-	l[0] = ts
+	l := make([][]byte, c.Len()+1)
+	l[0] = []byte(ts)
 	for i, v := range c.List() {
-		l[i+1] = v.String()
+		l[i+1] = v.Bytes()
 	}
-	return fmt.Sprintf("{%s}", strings.Join(l, ","))
+	return []byte(fmt.Sprintf("{%s}", bytes.Join(l, []byte(","))))
 }

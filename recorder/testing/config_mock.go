@@ -2,14 +2,14 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package recorder
+package testing
 
 import (
 	"context"
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/communication"
+	"github.com/arsham/expvastic/recorder"
 )
 
 // MockConfig holds the necessary configuration for setting up an elasticsearch reader endpoint.
@@ -35,8 +35,8 @@ func NewMockConfig(name string, log logrus.FieldLogger, endpoint string, timeout
 }
 
 // NewInstance returns a mocked object
-func (m *MockConfig) NewInstance(ctx context.Context, payloadChan chan *RecordJob, errorChan chan<- communication.ErrorMessage) (DataRecorder, error) {
-	return NewSimpleRecorder(ctx, m.Logger(), payloadChan, errorChan, m.Name(), m.Endpoint(), m.IndexName(), m.Timeout())
+func (m *MockConfig) NewInstance(ctx context.Context) (recorder.DataRecorder, error) {
+	return NewSimpleRecorder(ctx, m.Logger(), m.Name(), m.Endpoint(), m.IndexName(), m.Timeout(), m.Backoff())
 }
 
 // Name is the mocked version

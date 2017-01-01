@@ -7,12 +7,9 @@ package self
 import (
 	"context"
 	"fmt"
-	"net"
-	"net/http"
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 	"github.com/spf13/viper"
@@ -26,6 +23,7 @@ type Config struct {
 	name         string
 	SelfTypeName string `mapstructure:"type_name"`
 	SelfInterval string `mapstructure:"interval"`
+	SelfBackoff  int    `mapstructure:"backoff"`
 	mapper       datatype.Mapper
 
 	interval time.Duration
@@ -49,6 +47,7 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 	if c.SelfTypeName == "" {
 		return nil, fmt.Errorf("type_name cannot be empty: %s", c.SelfTypeName)
 	}
+
 	c.mapper = datatype.DefaultMapper()
 	c.interval = inter
 	c.log = log
@@ -56,14 +55,11 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 	return &c, nil
 }
 
+var ignoredEndpoint = "http://127.0.0.1"
+
 // NewInstance instantiates a SelfReader
-func (c *Config) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, errorChan chan<- communication.ErrorMessage) (reader.DataReader, error) {
-	l, _ := net.Listen("tcp", "127.0.0.1:0")
-	l.Close()
-	url := "http://" + l.Addr().String() + "/debug/vars"
-	go http.ListenAndServe(l.Addr().String(), nil)
-	c.log.Debugf("running self expvar on %s", l.Addr().String())
-	return NewSelfReader(c.log, url, c.mapper, jobChan, resultChan, errorChan, c.name, c.TypeName(), c.interval, time.Second)
+func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
+	return NewSelfReader(c.log, ignoredEndpoint, c.mapper, c.name, c.TypeName(), c.interval, c.Timeout(), c.Backoff())
 }
 
 // Name returns the name
@@ -82,10 +78,10 @@ func (c *Config) RoutePath() string { return "" }
 func (c *Config) Interval() time.Duration { return c.interval }
 
 // Timeout returns the timeout
-func (c *Config) Timeout() time.Duration { return 0 }
+func (c *Config) Timeout() time.Duration { return time.Second }
 
 // Logger returns the logger
 func (c *Config) Logger() logrus.FieldLogger { return c.log }
 
 // Backoff returns the backoff
-func (c *Config) Backoff() int { return 0 }
+func (c *Config) Backoff() int { return c.SelfBackoff }

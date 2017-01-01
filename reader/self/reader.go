@@ -25,10 +25,14 @@
 package self
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	// to expose the metrics
-	_ "expvar"
+	"expvar"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -41,16 +45,16 @@ import (
 // Reader contains communication channels with a worker that exposes expvar information.
 // It implements DataReader interface.
 type Reader struct {
-	name       string
-	typeName   string
-	log        logrus.FieldLogger
-	mapper     datatype.Mapper
-	jobChan    chan context.Context
-	resultChan chan *reader.ReadJobResult
-	errorChan  chan<- communication.ErrorMessage
-	interval   time.Duration
-	timeout    time.Duration
-	url        string
+	name     string
+	typeName string
+	log      logrus.FieldLogger
+	mapper   datatype.Mapper
+	interval time.Duration
+	timeout  time.Duration
+	backoff  int
+	strike   int
+	quit     chan struct{}
+	endpoint string
 }
 
 // NewSelfReader exposes expvastic's own metrics.
@@ -58,13 +62,11 @@ func NewSelfReader(
 	log logrus.FieldLogger,
 	endpoint string,
 	mapper datatype.Mapper,
-	jobChan chan context.Context,
-	resultChan chan *reader.ReadJobResult,
-	errorChan chan<- communication.ErrorMessage,
 	name,
 	typeName string,
 	interval time.Duration,
 	timeout time.Duration,
+	backoff int,
 ) (*Reader, error) {
 	if name == "" {
 		return nil, reader.ErrEmptyName
@@ -87,38 +89,57 @@ func NewSelfReader(
 		return nil, reader.ErrEmptyTypeName
 	}
 
+	if backoff < 5 {
+		return nil, reader.ErrLowBackoffValue(backoff)
+	}
+
 	log = log.WithField("engine", "expvastic")
 	w := &Reader{
-		name:       name,
-		typeName:   typeName,
-		mapper:     mapper,
-		jobChan:    jobChan,
-		resultChan: resultChan,
-		errorChan:  errorChan,
-		log:        log,
-		interval:   interval,
-		timeout:    timeout,
-		url:        url,
+		name:     name,
+		typeName: typeName,
+		mapper:   mapper,
+		log:      log,
+		interval: interval,
+		timeout:  timeout,
+		endpoint: url,
+		backoff:  backoff,
+		quit:     make(chan struct{}),
 	}
 	return w, nil
 }
 
-// Start begins reading from the target in its own goroutine.
-// It will issue a goroutine on each job request.
-// It will close the done channel when the job channel is closed.
-func (r *Reader) Start(ctx context.Context, stop communication.StopChannel) {
-	r.log.Debug("starting")
-	go func() {
-		for {
-			select {
-			case job := <-r.jobChan:
-				go r.readMetrics(job)
-			case s := <-stop:
-				s <- struct{}{}
-				return
-			}
+// Read begins reading from the target.
+// It sends an error back to the engine if it can't read from metrics provider
+func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
+	if r.strike > r.backoff {
+		return nil, reader.ErrBackoffExceeded
+	}
+
+	if r.endpoint != ignoredEndpoint {
+		// To support the tests
+		return r.readMetricsFromURL(job)
+	}
+
+	id := communication.JobValue(job)
+	buf := new(bytes.Buffer) // construct a json encoder and pass it
+	fmt.Fprintf(buf, "{\n")
+	first := true
+	expvar.Do(func(kv expvar.KeyValue) {
+		if !first {
+			fmt.Fprintf(buf, ",\n")
 		}
-	}()
+		first = false
+		fmt.Fprintf(buf, "%q: %s", kv.Key, kv.Value)
+	})
+	fmt.Fprintf(buf, "\n}\n")
+	res := &reader.ReadJobResult{
+		ID:       id,
+		Time:     time.Now(), // It is sensible to record the time now
+		Res:      buf.Bytes(),
+		TypeName: r.TypeName(),
+		Mapper:   r.Mapper(),
+	}
+	return res, nil
 }
 
 // Name shows the name identifier for this reader
@@ -136,30 +157,29 @@ func (r *Reader) Interval() time.Duration { return r.interval }
 // Timeout returns the timeout
 func (r *Reader) Timeout() time.Duration { return r.timeout }
 
-// JobChan returns the job channel.
-func (r *Reader) JobChan() chan context.Context { return r.jobChan }
-
-// ResultChan returns the result channel.
-func (r *Reader) ResultChan() chan *reader.ReadJobResult { return r.resultChan }
-
-// will send an error back to the engine if it can't read from metrics provider
-func (r *Reader) readMetrics(job context.Context) {
+func (r *Reader) readMetricsFromURL(job context.Context) (*reader.ReadJobResult, error) {
 	id := communication.JobValue(job)
-	resp, err := http.Get(r.url)
+	resp, err := http.Get(r.endpoint)
 	if err != nil {
+		if v, ok := err.(*url.Error); ok {
+			if strings.Contains(v.Error(), "getsockopt: connection refused") {
+				r.strike++
+			}
+		}
 		r.log.WithField("reader", "self").
 			WithField("ID", id).
 			Errorf("%s: error making request: %v", r.name, err) // Error because it is a local dependency.
-		r.errorChan <- communication.ErrorMessage{ID: id, Name: r.Name(), Err: err}
-		return
+		return nil, err
 	}
-
+	defer resp.Body.Close()
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
 	res := &reader.ReadJobResult{
 		ID:       id,
 		Time:     time.Now(), // It is sensible to record the time now
-		Res:      resp.Body,
+		Res:      buf.Bytes(),
 		TypeName: r.TypeName(),
 		Mapper:   r.Mapper(),
 	}
-	r.resultChan <- res
+	return res, nil
 }

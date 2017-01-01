@@ -5,9 +5,7 @@
 package datatype
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"testing"
 	"time"
@@ -41,7 +39,8 @@ func benchmarkContainerRead(containerCount, itemCount int, b *testing.B) {
 		for j := 0; j <= itemCount; j++ {
 			container.Add(randomFloatType(), randomStringType(), randomByteType(), randomKiloByteType(), randomMegaByteType())
 		}
-		fmt.Fprint(ioutil.Discard, container.String(time.Now()))
+		_ = container.Bytes(time.Now())
+		// fmt.Fprint(ioutil.Discard, container.Bytes(time.Now()))
 	}
 }
 
@@ -68,13 +67,11 @@ func BenchmarkJobResultDataTypes(b *testing.B) {
 func benchmarkJobResultDataTypes(mapper Mapper, containerCount, itemCount int, b *testing.B) {
 	for i := 0; i <= containerCount; i++ {
 		container := Container{}
-		buf := new(bytes.Buffer)
 		for j := 0; j <= itemCount; j++ {
 			container.Add(randomFloatType(), randomStringType(), randomByteType(), randomKiloByteType(), randomMegaByteType())
 		}
-		buf.WriteString(container.String(time.Now()))
-		res := JobResultDataTypes(buf, mapper)
-		if len(res.String(time.Now())) == 0 {
+		res := JobResultDataTypes(container.Bytes(time.Now()), mapper)
+		if len(res.Bytes(time.Now())) == 0 {
 			fmt.Println(0)
 		}
 	}

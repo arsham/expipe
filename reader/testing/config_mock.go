@@ -2,14 +2,14 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package reader
+package testing
 
 import (
 	"context"
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/communication"
+	"github.com/arsham/expvastic/reader"
 )
 
 // MockConfig is used for instantiating a mock reader
@@ -39,8 +39,8 @@ func NewMockConfig(name, typeName string, log logrus.FieldLogger, endpoint, rout
 }
 
 // NewInstance  returns a mocked version of the config
-func (c *MockConfig) NewInstance(ctx context.Context, jobChan chan context.Context, resultChan chan *ReadJobResult, errChan chan<- communication.ErrorMessage) (DataReader, error) {
-	return NewSimpleReader(c.MockLogger, c.Endpoint(), jobChan, resultChan, errChan, c.MockName, c.MockTypeName, c.MockInterval, c.MockTimeout)
+func (c *MockConfig) NewInstance(ctx context.Context) (reader.DataReader, error) {
+	return NewSimpleReader(c.MockLogger, c.Endpoint(), c.MockName, c.MockTypeName, c.MockInterval, c.MockTimeout, c.MockBackoff)
 }
 
 // Name returns the name

@@ -6,8 +6,7 @@ package datatype
 
 import (
 	"fmt"
-	"io"
-	"strings"
+	"reflect"
 	"testing"
 
 	"github.com/antonholmquist/jason"
@@ -15,13 +14,13 @@ import (
 
 type caseType struct {
 	prefix   string
-	value    io.Reader
+	value    []byte
 	expected []DataType
 }
 
 func inArray(a DataType, b []DataType) bool {
 	for i := range b {
-		if a.String() == b[i].String() {
+		if reflect.DeepEqual(a.Bytes(), b[i].Bytes()) {
 			return true
 		}
 	}
@@ -44,72 +43,72 @@ func testCase() []caseType {
 	return []caseType{
 		{ //0
 			"",
-			strings.NewReader(`{"FloatType": 123.4}`),
+			[]byte(`{"FloatType": 123.4}`),
 			[]DataType{&FloatType{"FloatType", 123.4}},
 		},
 		{ //1
 			"",
-			strings.NewReader(`{"StringType": "Random: 666"}`),
+			[]byte(`{"StringType": "Random: 666"}`),
 			[]DataType{&StringType{"StringType", "Random: 666"}},
 		},
 		{ //2
 			"aaa.",
-			strings.NewReader(`{"Prefixed": 666.777}`),
+			[]byte(`{"Prefixed": 666.777}`),
 			[]DataType{&FloatType{"aaa.Prefixed", 666.777}},
 		},
 		{ //3
 			"",
-			strings.NewReader(`{"Nested": {"FloatType": 666.777}}`),
+			[]byte(`{"Nested": {"FloatType": 666.777}}`),
 			[]DataType{&FloatType{"Nested.FloatType", 666.777}},
 		},
 		{ //4
 			"",
-			strings.NewReader(`{"Multy": 666.77, "Nested": {"FloatType": 666.999}}`),
+			[]byte(`{"Multy": 666.77, "Nested": {"FloatType": 666.999}}`),
 			[]DataType{&FloatType{"Multy", 666.77}, &FloatType{"Nested.FloatType", 666.999}},
 		},
 		{ //5
 			"",
-			strings.NewReader(`{"Multy": 666.77, "Nested": {"FloatType": 666.999}}`),
+			[]byte(`{"Multy": 666.77, "Nested": {"FloatType": 666.999}}`),
 			[]DataType{&FloatType{"Nested.FloatType", 666.999}, &FloatType{"Multy", 666.77}},
 		},
 		{ //6
 			"",
-			strings.NewReader(`{"FloatListType": []}`),
+			[]byte(`{"FloatListType": []}`),
 			[]DataType{&FloatListType{"FloatListType", []float64{}}},
 		},
 		{ //7
 			"",
-			strings.NewReader(`{"FloatListType": [0.1,1.2,2.3,3.4,666]}`),
+			[]byte(`{"FloatListType": [0.1,1.2,2.3,3.4,666]}`),
 			[]DataType{&FloatListType{"FloatListType", []float64{0.1, 1.2, 2.3, 3.4, 666}}},
 		},
 		{ //8
 			"",
-			strings.NewReader(`{"PauseNs": []}`),
+			[]byte(`{"PauseNs": []}`),
 			[]DataType{&GCListType{"PauseNs", []uint64{}}},
 		},
 		{ //9
 			"",
-			strings.NewReader(`{"PauseNs": [0,0,0,0,12481868021080215863,1481868005672005459,1481868012773129951,666000,11481937182104993300]}`),
+			[]byte(`{"PauseNs": [0,0,0,0,12481868021080215863,1481868005672005459,1481868012773129951,666000,11481937182104993300]}`),
 			[]DataType{&GCListType{"PauseNs", []uint64{12481868021080215863, 1481868005672005459, 1481868012773129951, 666000, 11481937182104993300}}},
 		},
 		{ //10
 			"",
-			strings.NewReader(`{"TotalAlloc": 0}`),
+			[]byte(`{"TotalAlloc": 0}`),
 			[]DataType{&ByteType{"TotalAlloc", 0}},
 		},
 		{ //11
 			"",
-			strings.NewReader(`{"TotalAlloc": 236478234}`),
+			[]byte(`{"TotalAlloc": 236478234}`),
 			[]DataType{&ByteType{"TotalAlloc", 236478234}},
 		},
 		{ //12
 			"",
-			strings.NewReader(`{"PauseNs": [1481938891973801922,1481938893974355168,1481938895974915920,1481938897975467569,1481938899975919573,1481938901976464855,1481938903977051088,1481938905977636658,1481938907978221684,1481938909978619244,1481938911979100042,1481938913979740815,1481938915980232455,1481938917980671611,1481938919981183393,1481938921981827241,1481938923982308276,1481938925982865139,1481938927983327577,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}`),
+			[]byte(`{"PauseNs": [1481938891973801922,1481938893974355168,1481938895974915920,1481938897975467569,1481938899975919573,1481938901976464855,1481938903977051088,1481938905977636658,1481938907978221684,1481938909978619244,1481938911979100042,1481938913979740815,1481938915980232455,1481938917980671611,1481938919981183393,1481938921981827241,1481938923982308276,1481938925982865139,1481938927983327577,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}`),
 			[]DataType{&GCListType{"PauseNs", []uint64{1481938891973801922, 1481938893974355168, 1481938895974915920, 1481938897975467569, 1481938899975919573, 1481938901976464855, 1481938903977051088, 1481938905977636658, 1481938907978221684, 1481938909978619244, 1481938911979100042, 1481938913979740815, 1481938915980232455, 1481938917980671611, 1481938919981183393, 1481938921981827241, 1481938923982308276, 1481938925982865139, 1481938927983327577}}},
 		},
 		{ //13
 			"",
-			strings.NewReader(`{"memstats": {"Alloc":2780496,"TotalAlloc": 236478234}}`),
+			[]byte(`{"memstats": {"Alloc":2780496,"TotalAlloc": 236478234}}`),
 			[]DataType{&ByteType{"memstats.Alloc", 2780496}, &ByteType{"memstats.TotalAlloc", 236478234}},
 		},
 	}
@@ -122,7 +121,7 @@ func TestGetJasonValues(t *testing.T) {
 		name := fmt.Sprintf("case %d", i)
 		t.Run(name, func(t *testing.T) {
 			var payload []DataType
-			obj, _ := jason.NewObjectFromReader(tc.value)
+			obj, _ := jason.NewObjectFromBytes(tc.value)
 			payload = append(payload, mapper.Values(tc.prefix, obj.Map())...)
 
 			if len(payload) == 0 {
@@ -144,7 +143,7 @@ func TestGetJasonValuesAddToContainer(t *testing.T) {
 		name := fmt.Sprintf("case %d", i)
 		var container Container
 		t.Run(name, func(t *testing.T) {
-			obj, _ := jason.NewObjectFromReader(tc.value)
+			obj, _ := jason.NewObjectFromBytes(tc.value)
 			for _, value := range mapper.Values(tc.prefix, obj.Map()) {
 				container.Add(value)
 			}
@@ -182,7 +181,7 @@ func TestJobResultDataTypesErrors(t *testing.T) {
 	t.Parallel()
 	mapper := &MapConvertMock{}
 
-	value := strings.NewReader(`{"Alloc": "sdsds"}`)
+	value := []byte(`{"Alloc": "sdsds"}`)
 	results := JobResultDataTypes(value, mapper)
 	if results.Error() == nil {
 		t.Error("expected error, got nothing")
@@ -191,7 +190,7 @@ func TestJobResultDataTypesErrors(t *testing.T) {
 		t.Errorf("expected empty results, got (%s)", results.List())
 	}
 
-	value = strings.NewReader(`{"Alloc": "sdsds}`)
+	value = []byte(`{"Alloc": "sdsds}`)
 	results = JobResultDataTypes(value, mapper)
 	if results.Error() == nil {
 		t.Error("expected error, got nothing")

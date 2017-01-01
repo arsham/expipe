@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package reader
+package testing
 
 import (
 	"context"
@@ -39,19 +39,12 @@ func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
 	}))
 	defer ts.Close()
 
-	jobChan := make(chan context.Context, jobBuffC)
-	errorChan := make(chan communication.ErrorMessage, jobBuffC)
-	resultChan := make(chan *ReadJobResult, resBuffC)
-	red, _ := NewSimpleReader(log, ts.URL, jobChan, resultChan, errorChan, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	red.Start(ctx, stop)
+	red, err := NewSimpleReader(log, ts.URL, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond, 100)
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	for n := 0; n < b.N; n++ {
-		red.JobChan() <- communication.NewReadJob(ctx)
-		<-red.ResultChan()
+		red.Read(communication.NewReadJob(ctx))
 	}
-	done := make(chan struct{})
-	stop <- done
-	<-done
-
 }

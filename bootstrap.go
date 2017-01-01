@@ -20,15 +20,11 @@ func StartEngines(ctx context.Context, log logrus.FieldLogger, confMap *config.C
 	var wg sync.WaitGroup
 	done := make(chan struct{})
 
-	readChanBuff := 1000 // TODO: adjust
-	readResChanBuff := 1000
-	recChanBuff := 1000
-
 	for recorder, readers := range confMap.Routes {
 		for _, reader := range readers {
 			red := confMap.Readers[reader]
 			rec := confMap.Recorders[recorder]
-			en, err := NewWithConfig(ctx, log, readChanBuff, readResChanBuff, recChanBuff, rec, red)
+			en, err := NewWithConfig(ctx, log, rec, red)
 			if err != nil {
 				return nil, err
 			}

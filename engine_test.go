@@ -5,10 +5,8 @@
 package expvastic_test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
@@ -17,7 +15,9 @@ import (
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
+	reader_testing "github.com/arsham/expvastic/reader/testing"
 	"github.com/arsham/expvastic/recorder"
+	recorder_testing "github.com/arsham/expvastic/recorder/testing"
 )
 
 // TODO: test engine closes readers when recorder goes out of scope
@@ -26,16 +26,20 @@ func TestNewWithReadRecorder(t *testing.T) {
 	log := lib.DiscardLogger()
 	ctx := context.Background()
 
-	jobChan := make(chan context.Context)
-	errorChan := make(chan communication.ErrorMessage)
-	resultChan := make(chan *reader.ReadJobResult)
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "a", "http://127.0.0.1:9200", "aa", time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red, err := reader_testing.NewSimpleReader(log, "http://127.0.0.1:9200", "a", "dd", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red2, err := reader_testing.NewSimpleReader(log, "http://127.0.0.1:9200", "a", "dd", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	payloadChan := make(chan *recorder.RecordJob)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "a", "http://127.0.0.1:9200", "aa", time.Hour)
-	red, _ := reader.NewSimpleReader(log, "http://127.0.0.1:9200", jobChan, resultChan, errorChan, "a", "dd", time.Hour, time.Hour)
-	red2, _ := reader.NewSimpleReader(log, "http://127.0.0.1:9200", jobChan, resultChan, errorChan, "a", "dd", time.Hour, time.Hour)
-
-	e, err := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, red, red2)
+	e, err := expvastic.NewWithReadRecorder(ctx, log, rec, red, red2)
 	if err != expvastic.ErrDuplicateRecorderName {
 		t.Error("want error, got nil")
 	}
@@ -49,46 +53,33 @@ func TestEngineSendJob(t *testing.T) {
 	log := lib.DiscardLogger()
 	ctx, cancel := context.WithCancel(context.Background())
 
-	jobChan := make(chan context.Context)
-	resultChan := make(chan *reader.ReadJobResult)
-	errorChan := make(chan communication.ErrorMessage)
-
-	red, _ := reader.NewSimpleReader(log, "http://127.0.0.1:9200", jobChan, resultChan, errorChan, "reader_example", "example_type", time.Hour, time.Hour)
-	red.StartFunc = func(stop communication.StopChannel) {
-		go func() {
-			recorderID = communication.NewJobID()
-			res := ioutil.NopCloser(bytes.NewBuffer([]byte(`{"devil":666}`)))
-			resp := &reader.ReadJobResult{
-				ID:       recorderID,
-				Res:      res,
-				TypeName: red.TypeName(),
-				Mapper:   red.Mapper(),
-			}
-			resultChan <- resp
-		}()
-		go func() {
-			s := <-stop
-			s <- struct{}{}
-		}()
+	red, err := reader_testing.NewSimpleReader(log, "http://127.0.0.1:9200", "reader_example", "example_type", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red.ReadFunc = func(ctx context.Context) (*reader.ReadJobResult, error) {
+		recorderID = communication.NewJobID()
+		resp := &reader.ReadJobResult{
+			ID:       recorderID,
+			Res:      []byte(`{"devil":666}`),
+			TypeName: red.TypeName(),
+			Mapper:   red.Mapper(),
+		}
+		return resp, nil
 	}
 
-	payloadChan := make(chan *recorder.RecordJob)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "recorder_example", "nowhere", "intexName", time.Hour)
-	rec.StartFunc = func(stop communication.StopChannel) {
-		go func() {
-			recordedPayload := <-payloadChan
-
-			if recordedPayload.ID != recorderID {
-				t.Errorf("want (%d), got (%s)", recorderID, recordedPayload.ID)
-			}
-		}()
-		go func() {
-			s := <-stop
-			s <- struct{}{}
-		}()
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_example", "http://127.0.0.1:9200", "intexName", time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec.RecordFunc = func(ctx context.Context, job *recorder.RecordJob) error {
+		if job.ID != recorderID {
+			t.Errorf("want (%d), got (%s)", recorderID, job.ID)
+		}
+		return nil
 	}
 
-	e, err := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, red)
+	e, err := expvastic.NewWithReadRecorder(ctx, log, rec, red)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -97,18 +88,6 @@ func TestEngineSendJob(t *testing.T) {
 		e.Start()
 		done <- struct{}{}
 	}()
-
-	select {
-	case err := <-errorChan:
-		t.Fatalf("didn't expect errors, got (%v)", err)
-	case <-time.After(5 * time.Millisecond): // Should be more than the interval, otherwise the response is not ready yet
-	}
-	// checking twice, non of reader and recorder should report any errors
-	select {
-	case err := <-errorChan:
-		t.Fatalf("didn't expect errors, got (%v)", err)
-	case <-time.After(5 * time.Millisecond): // Should be more than the interval, otherwise the response is not ready yet
-	}
 
 	cancel()
 	select {
@@ -132,52 +111,38 @@ func TestEngineMultiReader(t *testing.T) {
 		}(id)
 	}
 
-	jobChan := make(chan context.Context)
-	resultChan := make(chan *reader.ReadJobResult)
-	errorChan := make(chan communication.ErrorMessage)
-	payloadChan := make(chan *recorder.RecordJob)
-	rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "recorder_example", "nowhere", "intexName", time.Hour)
-	rec.StartFunc = func(stop communication.StopChannel) {
-		go func() {
-			recordedPayload := <-payloadChan
-
-			if !lib.StringInSlice(recordedPayload.ID.String(), IDs) {
-				t.Errorf("want once of (%s), got (%s)", strings.Join(IDs, ","), recordedPayload.ID)
-			}
-
-		}()
-		go func() {
-			s := <-stop
-			s <- struct{}{}
-		}()
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_example", "http://127.0.0.1:9200", "intexName", time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec.RecordFunc = func(ctx context.Context, job *recorder.RecordJob) error {
+		if !lib.StringInSlice(job.ID.String(), IDs) {
+			t.Errorf("want once of (%s), got (%s)", strings.Join(IDs, ","), job.ID)
+		}
+		return nil
 	}
 
 	reds := make([]reader.DataReader, count)
 	for i := 0; i < count; i++ {
 
 		name := fmt.Sprintf("reader_example_%d", i)
-		red, _ := reader.NewSimpleReader(log, "http://127.0.0.1:9200", jobChan, resultChan, errorChan, name, "example_type", time.Hour, time.Hour)
-		red.StartFunc = func(stop communication.StopChannel) {
-			go func() {
-				res := ioutil.NopCloser(bytes.NewBuffer([]byte(`{"devil":666}`)))
-				resp := &reader.ReadJobResult{
-					ID:       <-idChan,
-					Res:      res,
-					TypeName: red.TypeName(),
-					Mapper:   red.Mapper(),
-				}
-				resultChan <- resp
-			}()
-			go func() {
-				s := <-stop
-				s <- struct{}{}
-			}()
-
+		red, err := reader_testing.NewSimpleReader(log, "http://127.0.0.1:9200", name, "example_type", time.Hour, time.Hour, 5)
+		if err != nil {
+			t.Fatal(err)
+		}
+		red.ReadFunc = func(ctx context.Context) (*reader.ReadJobResult, error) {
+			resp := &reader.ReadJobResult{
+				ID:       <-idChan,
+				Res:      []byte(`{"devil":666}`),
+				TypeName: red.TypeName(),
+				Mapper:   red.Mapper(),
+			}
+			return resp, nil
 		}
 		reds[i] = red
 	}
 
-	e, err := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, reds...)
+	e, err := expvastic.NewWithReadRecorder(ctx, log, rec, reds...)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -186,14 +151,6 @@ func TestEngineMultiReader(t *testing.T) {
 		e.Start()
 		done <- struct{}{}
 	}()
-
-	for i := 0; i < count; i++ {
-		select {
-		case err := <-errorChan:
-			t.Fatalf("didn't expect errors, got (%v)", err)
-		case <-time.After(5 * time.Millisecond): // Should be more than the interval, otherwise the response is not ready yet
-		}
-	}
 
 	cancel()
 	select {
@@ -207,23 +164,46 @@ func TestEngineNewWithConfig(t *testing.T) {
 	ctx := context.Background()
 	log := lib.DiscardLogger()
 
-	red, _ := reader.NewMockConfig("", "reader_example", log, "nowhere", "/still/nowhere", time.Hour, time.Hour, 1)
-	rec, _ := recorder.NewMockConfig("reader_example", log, "nowhere", time.Hour, 1, "index")
+	red, err := reader_testing.NewMockConfig("", "reader_example", log, "nowhere", "/still/nowhere", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec, err := recorder_testing.NewMockConfig("recorder_example", log, "nowhere", time.Hour, 5, "index")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	e, err := expvastic.NewWithConfig(ctx, log, 0, 0, 0, rec, red)
+	e, err := expvastic.NewWithConfig(ctx, log, rec, red)
 	if err != reader.ErrEmptyName {
-		t.Error("want ErrEmptyReaderName, got nil")
+		t.Errorf("want ErrEmptyReaderName, got (%v)", err)
 	}
 	if e != nil {
-		t.Errorf("want (nil), got (%v)", e)
+		t.Errorf("want nil, got (%v)", e)
 	}
 
-	red, _ = reader.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 1)
-	red2, _ := reader.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 1)
+	// triggering recorder errors
+	rec, _ = recorder_testing.NewMockConfig("recorder_example", log, "nowhere", time.Hour, 5, "index")
+	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 5)
 
-	e, err = expvastic.NewWithConfig(ctx, log, 0, 0, 0, rec, red, red2)
-	if err != expvastic.ErrDuplicateRecorderName {
+	e, err = expvastic.NewWithConfig(ctx, log, rec, red)
+	if e != nil {
+		t.Errorf("want nil, got (%v)", e)
+	}
+	if _, ok := err.(interface {
+		InvalidEndpoint()
+	}); !ok {
+		t.Errorf("want ErrInvalidEndpoint, got (%v)", err)
+	}
+
+	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 5)
+	red2, _ := reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 5)
+	rec, _ = recorder_testing.NewMockConfig("recorder_example", log, "http://127.0.0.1:9200", time.Hour, 5, "index")
+	e, err = expvastic.NewWithConfig(ctx, log, rec, red, red2)
+	if err == nil {
 		t.Error("want error, got nil")
+	}
+	if err != expvastic.ErrDuplicateRecorderName {
+		t.Errorf("want ErrDuplicateRecorderName, got (%v)", err)
 	}
 	if e != nil {
 		t.Errorf("want (nil), got (%v)", e)

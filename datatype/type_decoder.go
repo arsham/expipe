@@ -4,18 +4,14 @@
 
 package datatype
 
-import (
-	"io"
-
-	"github.com/antonholmquist/jason"
-)
+import "github.com/antonholmquist/jason"
 
 // JobResultDataTypes generates a list of DataType and puts them inside the DataContainer
 // TODO: bypass the operation that won't be converted in any way. They are not supposed to be read
 // and converted back.
 // TODO: this operation can happen only once. Lazy load the thing.
-func JobResultDataTypes(r io.Reader, mapper Mapper) DataContainer {
-	obj, err := jason.NewObjectFromReader(r)
+func JobResultDataTypes(b []byte, mapper Mapper) DataContainer {
+	obj, err := jason.NewObjectFromBytes(b)
 	if err != nil {
 		return &Container{Err: err}
 	}

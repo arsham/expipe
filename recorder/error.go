@@ -15,6 +15,10 @@ var (
 
 	// ErrEmptyIndexName is the error when the index_name is an empty string.
 	ErrEmptyIndexName = fmt.Errorf("index_name cannot be empty")
+
+	// ErrBackoffExceeded is the error when the endpoint's absence has exceeded the backoff value.
+	// It is not strictly an error, it is however a pointer to an error in the past.
+	ErrBackoffExceeded = fmt.Errorf("endpoint gone too long")
 )
 
 // ErrInvalidEndpoint is the error when the endpoint is not a valid url

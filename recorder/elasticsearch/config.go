@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/recorder"
 	"github.com/spf13/viper"
@@ -81,15 +80,12 @@ func withConfig(c *Config) (*Config, error) {
 		return nil, recorder.ErrEmptyIndexName
 	}
 
-	if c.ESBackoff <= 5 {
-		return nil, recorder.ErrLowBackoffValue(c.ESBackoff)
-	}
 	return c, nil
 }
 
 // NewInstance returns an instance of the elasticsearch recorder
-func (c *Config) NewInstance(ctx context.Context, payloadChan chan *recorder.RecordJob, errorChan chan<- communication.ErrorMessage) (recorder.DataRecorder, error) {
-	return NewRecorder(ctx, c.log, payloadChan, errorChan, c.name, c.Endpoint(), c.IndexName(), c.timeout)
+func (c *Config) NewInstance(ctx context.Context) (recorder.DataRecorder, error) {
+	return NewRecorder(ctx, c.log, c.name, c.Endpoint(), c.IndexName(), c.timeout, c.Backoff())
 }
 
 // Name return the name

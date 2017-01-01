@@ -24,32 +24,24 @@ import (
 // DataRecorder in an interface for shipping data to a repository.
 // The repository should have the concept of index/database and type/table abstractions.
 // See ElasticSearch for more information.
-// Recorder should send the error error channel if any error occurs.
+// Recorders should not change the index name coming in the payload unless
+//they have a valid reason. The engine might add a date to this index name
+// if the user has specified in the configuration file.
 type DataRecorder interface {
-	// Timeout is required by the Engine so it can read the time-outs.
-	Timeout() time.Duration
-
-	// The Engine provides this channel and sends the payload through this channel.
-	// Recorder should not block when RecordJob is sent to this channel.
-	PayloadChan() chan *RecordJob
-
-	// The recorder's loop should be inside a goroutine.
-	// This channel should be closed once the worker receives a stop signal
-	// and its work is finished. The response to the stop signal should happen
-	// otherwise it will hang the Engine around.
-	// When the context is timed-out or cancelled, the recorder should return.
-	Start(ctx context.Context, stop communication.StopChannel)
-
 	// Name should return the representation string for this recorder.
 	// Choose a very simple and unique name.
 	Name() string
 
 	// IndexName comes from the configuration, but the engine takes over.
-	// Recorders should not intercept the engine for its decision, unless they have a
-	// valid reason.
-	// The engine might add a date to this index name if the user has specified in the
-	// configuration file.
 	IndexName() string
+
+	// Timeout is required by the Engine so it can read the time-outs.
+	Timeout() time.Duration
+
+	// The recorder should record the RecordJob and report any errors happened.
+	// When the context is timed-out or cancelled, the recorder should return
+	// with the context's error.
+	Record(context.Context, *RecordJob) error
 }
 
 // RecordJob is sent with a context and a payload to be recorded.
@@ -59,7 +51,6 @@ type DataRecorder interface {
 // nil error value as the engine ignores it.
 type RecordJob struct {
 	ID        communication.JobID
-	Ctx       context.Context
 	Payload   datatype.DataContainer
 	IndexName string
 	TypeName  string

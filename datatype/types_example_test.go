@@ -20,7 +20,7 @@ func ExampleFromJason_floatType() {
 	r := result.(*datatype.FloatType)
 	fmt.Printf("Result key: %s\n", r.Key)
 	fmt.Printf("Result value: %f\n", r.Value)
-	fmt.Printf("String representation: %s\n", result.String())
+	fmt.Printf("String representation: %s\n", string(result.Bytes()))
 
 	// Output:
 	// error: <nil>
@@ -38,7 +38,7 @@ func ExampleFromJason_stringType() {
 	r := result.(*datatype.StringType)
 	fmt.Printf("Result key: %s\n", r.Key)
 	fmt.Printf("Result value: %s\n", r.Value)
-	fmt.Printf("String representation: %s\n", result.String())
+	fmt.Printf("String representation: %s\n", string(result.Bytes()))
 	// Output:
 	// error: <nil>
 	// Type: *datatype.StringType

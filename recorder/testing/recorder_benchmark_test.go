@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package recorder
+package testing
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/recorder"
 )
 
 func BenchmarkRecorder0_0(b *testing.B)       { benchmarkRecorder(0, 0, b) }
@@ -33,22 +33,17 @@ func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer ts.Close()
 
-	payloadChan := make(chan *RecordJob, jobBuffC)
-	errorChan := make(chan communication.ErrorMessage, doneBuffC)
-	rec, _ := NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reader_example", ts.URL, "intexName", 10*time.Millisecond)
-	stop := make(communication.StopChannel)
-	rec.Start(ctx, stop)
+	rec, err := NewSimpleRecorder(ctx, log, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10)
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	for n := 0; n < b.N; n++ {
-		job := &RecordJob{
-			Ctx:       ctx,
+		job := &recorder.RecordJob{
 			Payload:   nil,
 			IndexName: "my index",
 			Time:      time.Now(),
 		}
-		rec.PayloadChan() <- job
+		rec.Record(ctx, job)
 	}
-	done := make(chan struct{})
-	stop <- done
-	<-done
 }

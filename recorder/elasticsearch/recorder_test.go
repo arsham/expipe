@@ -6,14 +6,17 @@ package elasticsearch_test
 
 import (
 	"context"
+	"errors"
+	"net/url"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
+	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/recorder"
 	"github.com/arsham/expvastic/recorder/elasticsearch"
+	recorder_testing "github.com/arsham/expvastic/recorder/testing"
 	"github.com/olivere/elastic"
 )
 
@@ -52,77 +55,97 @@ func destroyIndex(t *testing.T, endpoint, indexName string) {
 	}
 }
 
-func setupWithURL(t *testing.T, URL string, indexName string, errorChan chan communication.ErrorMessage) (ctx context.Context, rec *elasticsearch.Recorder) {
-	var err error
+func setupWithURL(t *testing.T, URL string, indexName string) (ctx context.Context, rec *elasticsearch.Recorder, err error) {
 	log := lib.DiscardLogger()
 	ctx = context.Background()
-	payloadChan := make(chan *recorder.RecordJob)
 
 	timeout := 10 * time.Millisecond
 	if isTravis() {
 		timeout = 10 * time.Second
 	}
 
-	rec, err = elasticsearch.NewRecorder(ctx, log, payloadChan, errorChan, "reader_example", URL, indexName, timeout)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return ctx, rec
+	rec, err = elasticsearch.NewRecorder(ctx, log, "reader_example", URL, indexName, timeout, 5)
+	return ctx, rec, err
 }
 
-func setup(t *testing.T, errorChan chan communication.ErrorMessage) (ctx context.Context, rec *elasticsearch.Recorder, teardown func()) {
+func setup(t *testing.T) (ctx context.Context, rec *elasticsearch.Recorder, teardown func(), err error) {
 	endpoint := "http://127.0.0.1:9200"
 	indexName := "expvastic_test"
-	ctx, rec = setupWithURL(t, endpoint, indexName, errorChan)
+	ctx, rec, err = setupWithURL(t, endpoint, indexName)
 	return ctx, rec, func() {
 		destroyIndex(t, endpoint, indexName)
-	}
+	}, err
 }
 
 func TestElasticsearchRecorder(t *testing.T) {
-	recorder.TestRecorderEssentials(t, func(testCase int) (context.Context, recorder.DataRecorder, error, chan communication.ErrorMessage, func()) {
+	recorder_testing.TestRecorderEssentials(t, func(testCase int) (context.Context, recorder.DataRecorder, error, func()) {
 		switch testCase {
-		case recorder.RecorderReceivesPayloadTestCase:
-			errorChan := make(chan communication.ErrorMessage)
-			ctx, rec, teardown := setup(t, make(chan communication.ErrorMessage))
-			return ctx, rec, nil, errorChan, teardown
+		case recorder_testing.RecorderReceivesPayloadTestCase:
+			ctx, rec, teardown, err := setup(t)
+			return ctx, rec, err, teardown
 
-		case recorder.RecorderSendsResultTestCase:
-			errorChan := make(chan communication.ErrorMessage)
-			ctx, rec, teardown := setup(t, errorChan)
-			return ctx, rec, nil, errorChan, teardown
+		case recorder_testing.RecorderSendsResultTestCase:
+			ctx, rec, teardown, err := setup(t)
+			return ctx, rec, err, teardown
 
-		case recorder.RecorderClosesTestCase:
-			errorChan := make(chan communication.ErrorMessage)
-			ctx, rec, teardown := setup(t, errorChan)
-			return ctx, rec, nil, errorChan, teardown
-
-		case recorder.RecorderErrorsOnUnavailableEndpointTestCase:
-			var err error
-			log := lib.DiscardLogger()
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-
-			timeout := 1 * time.Microsecond
-			if isTravis() {
-				timeout = 10 * time.Second
-			}
-
-			defer cancel()
-			rec, err := elasticsearch.NewRecorder(ctx, log, nil, nil, "d", "nowhere", "d", timeout)
-			return ctx, rec, err, nil, nil
+		case recorder_testing.RecorderClosesTestCase:
+			ctx, rec, teardown, err := setup(t)
+			return ctx, rec, err, teardown
 
 		default:
-			return nil, nil, nil, nil, nil
+			return nil, nil, nil, nil
 		}
 	})
 }
 
 func TestElasticsearchRecorderConstruction(t *testing.T) {
-	recorder.TestRecorderConstruction(t, func(payloadChan chan *recorder.RecordJob, name, indexName string, timeout time.Duration) recorder.DataRecorder {
-		log := lib.DiscardLogger()
-		endpoint := "http://127.0.0.1:9200"
-		rec, _ := elasticsearch.NewRecorder(context.Background(), log, payloadChan, nil, name, endpoint, indexName, timeout)
-		destroyIndex(t, endpoint, indexName)
-		return rec
+	recorder_testing.TestRecorderConstruction(t, func(testCase int, name, endpoint, indexName string, timeout time.Duration, backoff int) (recorder.DataRecorder, error) {
+		switch testCase {
+		case recorder_testing.RecorderConstructionCasesTestCase:
+			log := lib.DiscardLogger()
+			rec, err := elasticsearch.NewRecorder(context.Background(), log, name, endpoint, indexName, timeout, backoff)
+			destroyIndex(t, endpoint, indexName)
+			return rec, err
+
+		case recorder_testing.RecorderErrorsOnInvalidEndpointTestCase:
+			log := lib.DiscardLogger()
+			return elasticsearch.NewRecorder(context.Background(), log, name, endpoint, indexName, timeout, backoff)
+
+		default:
+			return nil, nil
+		}
+	})
+}
+
+func TestElasticsearchRecorderEndpointManeuvers(t *testing.T) {
+	recorder_testing.TestRecorderEndpointManeuvers(t, func(testCase int) (context.Context, recorder.DataRecorder, error, func()) {
+		switch testCase {
+		case recorder_testing.RecorderErrorsOnUnavailableEndpointTestCase:
+			var err error
+			log := lib.DiscardLogger()
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+
+			timeout := 1 * time.Millisecond
+			if isTravis() {
+				timeout = 10 * time.Second
+			}
+
+			rec, err := elasticsearch.NewRecorder(ctx, log, "d", "http://nowherelocalhost", "d", timeout, 5)
+			return ctx, rec, err, func() {
+				cancel()
+			}
+
+		case recorder_testing.RecorderBacksOffOnEndpointGoneTestCase:
+			ctx, rec, teardown, err := setup(t)
+			rec.SetRecordFunc(func(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
+				return &url.Error{Op: "GET", URL: "nowhere", Err: errors.New("getsockopt: connection refused")}
+			})
+			return ctx, rec, err, func() {
+				teardown()
+			}
+
+		default:
+			return nil, nil, nil, nil
+		}
 	})
 }

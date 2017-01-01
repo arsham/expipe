@@ -5,10 +5,8 @@
 package expvastic_test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -17,7 +15,8 @@ import (
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
-	"github.com/arsham/expvastic/recorder"
+	reader_testing "github.com/arsham/expvastic/reader/testing"
+	recorder_testing "github.com/arsham/expvastic/recorder/testing"
 )
 
 func BenchmarkEngineSingle(b *testing.B) {
@@ -63,14 +62,11 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 	for _, bc := range bcs {
 		ctx, cancel := context.WithCancel(context.Background())
 		name := fmt.Sprintf("Benchmark-%d_%d_%d_%d_(r:%d)", bc.readChanBuff, bc.readResChanBuff, bc.recChanBuff, bc.recResChan, bc.readers)
-		errorChan := make(chan communication.ErrorMessage, bc.recChanBuff+(bc.readers*bc.readChanBuff))
-		payloadChan := make(chan *recorder.RecordJob, bc.recChanBuff)
-		resultChan := make(chan *reader.ReadJobResult, bc.readResChanBuff)
 
 		// Setting the intervals to an hour so the benchmark can issue jobs
-		rec, _ := recorder.NewSimpleRecorder(ctx, log, payloadChan, errorChan, "reacorder_example", "http://127.0.0.1", "intexName", time.Hour)
-		reds := makeReaders(ctx, bc.readers, log, resultChan, errorChan, bc.recChanBuff, "http://127.0.0.1")
-		e, _ := expvastic.NewWithReadRecorder(ctx, log, errorChan, resultChan, rec, reds...)
+		rec, _ := recorder_testing.NewSimpleRecorder(ctx, log, "reacorder_example", "http://127.0.0.1", "intexName", time.Hour, 5)
+		reds := makeReaders(ctx, bc.readers, log, "http://127.0.0.1")
+		e, _ := expvastic.NewWithReadRecorder(ctx, log, rec, reds...)
 
 		done := make(chan struct{})
 		go func(done chan struct{}) {
@@ -89,41 +85,30 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 func benchmarkEngine(ctx context.Context, reds []reader.DataReader, b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		for _, red := range reds {
-			red.JobChan() <- communication.NewReadJob(ctx)
+			red.Read(communication.NewReadJob(ctx))
 		}
 	}
 }
 
-func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, resultChan chan *reader.ReadJobResult, errorChan chan communication.ErrorMessage, chanBuff int, url string) []reader.DataReader {
+func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url string) []reader.DataReader {
 	reds := make([]reader.DataReader, count)
-	startFunc := func(m *reader.SimpleReader) func(communication.StopChannel) {
-		return func(stop communication.StopChannel) {
-			go func() {
-				for {
-					select {
-					case job := <-m.JobChan():
-						id := communication.JobValue(job)
-						res := &reader.ReadJobResult{
-							ID:       id,
-							Time:     time.Now(),
-							Res:      ioutil.NopCloser(bytes.NewBuffer([]byte(``))),
-							TypeName: m.TypeName(),
-							Mapper:   m.Mapper(),
-						}
-						m.ResultChan() <- res
-					case s := <-stop:
-						s <- struct{}{}
-						return
-					}
-				}
-			}()
+	readFunc := func(m *reader_testing.SimpleReader) func(ctx context.Context) (*reader.ReadJobResult, error) {
+		return func(job context.Context) (*reader.ReadJobResult, error) {
+			id := communication.JobValue(job)
+			res := &reader.ReadJobResult{
+				ID:       id,
+				Time:     time.Now(),
+				Res:      []byte(``),
+				TypeName: m.TypeName(),
+				Mapper:   m.Mapper(),
+			}
+			return res, nil
 		}
 	}
 	for i := 0; i < count; i++ {
-		jobChan := make(chan context.Context, chanBuff)
 		name := fmt.Sprintf("reader_%d", i)
-		red, _ := reader.NewSimpleReader(log, url, jobChan, resultChan, errorChan, name, "example_type", time.Hour, time.Hour)
-		red.StartFunc = startFunc(red)
+		red, _ := reader_testing.NewSimpleReader(log, url, name, "example_type", time.Hour, time.Hour, 10)
+		red.ReadFunc = readFunc(red)
 		reds[i] = red
 	}
 	return reds

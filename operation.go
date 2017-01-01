@@ -19,8 +19,7 @@ import (
 // This file contains the operation section of the engine and its event loop.
 
 // Start begins pulling the data from DataReaders and chips them to the DataRecorder.
-// When the context is cancelled or timed out, the engine closes all job channels
-// and sends them a stop signal.
+// When the context is cancelled or timed out, the engine abandons its operations.
 func (e *Engine) Start() {
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -33,26 +32,20 @@ func (e *Engine) Start() {
 		}
 	}()
 
-	stop := make(communication.StopChannel)
-	e.recorder.Start(e.ctx, stop)
-	e.log.Debugf("started recorder: %s", e.recorder.Name())
-
 	e.startReaders(e.ctx)
-	go e.eventLoop()
 
-	select {
-	case <-e.ctx.Done():
-		done := make(chan struct{})
+LOOP:
+	for {
 		select {
-		case stop <- done:
-			<-done
-			e.log.Debugf(recorderGone)
-		case <-time.After(5 * time.Second):
-			e.log.Warnf("recorder %s didn't stop in time", e.recorder.Name())
-		}
+		case job := <-e.readerJobs:
+			// sending the payload
+			go e.shipToRecorder(job)
 
-		e.log.Debug(contextCanceled)
-		wg.Done()
+		case <-e.ctx.Done():
+			e.log.Debug(contextCanceled)
+			wg.Done()
+			break LOOP
+		}
 	}
 	wg.Wait()
 }
@@ -61,13 +54,11 @@ func (e *Engine) startReaders(ctx context.Context) {
 	e.redmu.RLock()
 	readers := e.readers
 	e.redmu.RUnlock()
-
-	for red, stop := range readers {
+	for _, red := range readers {
 		expReaders.Add(1)
 
-		go func(red reader.DataReader, stop communication.StopChannel) {
+		go func(red reader.DataReader) {
 			ticker := time.NewTicker(red.Interval())
-			red.Start(ctx, stop)
 			e.log.Debugf("started reader: %s", red.Name())
 
 		LOOP:
@@ -79,34 +70,11 @@ func (e *Engine) startReaders(ctx context.Context) {
 					go e.issueReaderJob(red)
 
 				case <-ctx.Done():
-					e.stop()
 					e.log.Debug("context has been cancelled, end of startReaders method")
 					break LOOP
 				}
 			}
-		}(red, stop)
-	}
-}
-
-// Reads from DataReaders and issues jobs to DataRecorder.
-func (e *Engine) eventLoop() {
-	e.log.Info("starting event loop")
-	for {
-		select {
-		case r := <-e.readerResChan:
-			// [2] then the result from the readers arrives here.
-			e.log.Debugf("received job %s", r.ID)
-			go e.redirectToRecorder(r)
-
-		case err := <-e.errorChan:
-			// [3] some of readers or the recorder had an error
-			e.log.WithField("ID", err.ID).WithField("name", err.Name).Error(err)
-
-		case <-e.ctx.Done():
-			e.log.Debug("context closed while in eventLoop", e.ctx.Err().Error())
-			e.stop()
-			return
-		}
+		}(red)
 	}
 }
 
@@ -115,9 +83,21 @@ func (e *Engine) issueReaderJob(red reader.DataReader) {
 	// to make sure the reader is behaving.
 	timeout := red.Timeout() + time.Duration(10*time.Second)
 	timer := time.NewTimer(timeout)
+	done := make(chan struct{})
+	job := communication.NewReadJob(e.ctx)
+
+	go func() {
+		res, err := red.Read(job)
+		if err != nil {
+			e.log.WithField("ID", communication.JobValue(job)).WithField("name", red.Name()).Error(err)
+			return
+		}
+		e.readerJobs <- res
+		close(done)
+	}()
 
 	select {
-	case red.JobChan() <- communication.NewReadJob(e.ctx):
+	case <-done:
 		// job was sent, we are done here.
 		if !timer.Stop() {
 			<-timer.C
@@ -129,39 +109,44 @@ func (e *Engine) issueReaderJob(red reader.DataReader) {
 		e.log.Warn("time out before job was read")
 
 	case <-e.ctx.Done():
+		if !timer.Stop() {
+			<-timer.C
+		}
 		erroredJobs.Add(1)
 		e.log.Warn("main context closed before job was read", e.ctx.Err().Error())
-		e.stop()
-
 	}
 }
 
-// Be aware that I am closing the stream.
-func (e *Engine) redirectToRecorder(result *reader.ReadJobResult) {
-	defer result.Res.Close()
-
+func (e *Engine) shipToRecorder(result *reader.ReadJobResult) {
 	payload := datatype.JobResultDataTypes(result.Res, result.Mapper)
 	if payload.Error() != nil {
 		erroredJobs.Add(1)
-		e.log.Warnf("error in payload", payload.Error())
+		e.log.Warnf("error in payload: %s", payload.Error())
 		return
 	}
 	recordJobs.Add(1)
-
 	timeout := e.recorder.Timeout() + time.Duration(10*time.Second)
 	timer := time.NewTimer(timeout)
 	recPayload := &recorder.RecordJob{
 		ID:        result.ID,
-		Ctx:       e.ctx,
 		Payload:   payload,
 		IndexName: e.recorder.IndexName(),
 		TypeName:  result.TypeName,
 		Time:      result.Time,
 	}
 
-	// sending payload
+	done := make(chan struct{})
+	go func() {
+		// sending payload
+		err := e.recorder.Record(e.ctx, recPayload)
+		if err != nil {
+			e.log.WithField("ID", result.ID).WithField("name", e.recorder.Name()).Error(err)
+		}
+		close(done)
+	}()
+
 	select {
-	case e.recorder.PayloadChan() <- recPayload:
+	case <-done:
 		// [4] job was sent
 		if !timer.Stop() {
 			<-timer.C
@@ -176,35 +161,5 @@ func (e *Engine) redirectToRecorder(result *reader.ReadJobResult) {
 		if !timer.Stop() {
 			<-timer.C
 		}
-		e.stop()
 	}
-}
-
-// [5] stop closes the job channels
-func (e *Engine) stop() {
-	// TODO: wait for the recorders to finish their jobs.
-	e.log.Debug("STOP method has been called")
-	e.shutdown.Do(func() {
-		var wg sync.WaitGroup
-		e.redmu.RLock()
-		readers := e.readers
-		e.redmu.RUnlock()
-
-		for red, stop := range readers {
-			wg.Add(1)
-			go func(red reader.DataReader, stop communication.StopChannel) {
-				done := make(chan struct{})
-				select {
-				case stop <- done:
-					<-done
-					e.log.Debugf("reader %s has stopped", red.Name())
-
-				case <-time.After(5 * time.Second):
-					e.log.Warnf("reader %s didn't stop in time", red.Name())
-				}
-				wg.Done()
-			}(red, stop)
-		}
-		wg.Wait()
-	})
 }

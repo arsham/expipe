@@ -5,105 +5,63 @@
 package self_test
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/reader/self"
+	reader_test "github.com/arsham/expvastic/reader/testing"
 )
 
-func setup(jobChanBuff, errorChanBuff int, message string) (red *self.Reader, errorChan chan communication.ErrorMessage, teardown func()) {
+func setup(message string) (red *self.Reader, teardown func()) {
 	log := lib.DiscardLogger()
-	jobChan := make(chan context.Context, jobChanBuff)
-	resultChan := make(chan *reader.ReadJobResult)
-	errorChan = make(chan communication.ErrorMessage, errorChanBuff)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, message)
 	}))
-	red, _ = self.NewSelfReader(log, ts.URL, datatype.DefaultMapper(), jobChan, resultChan, errorChan, "test_self", "n/a", time.Hour, time.Hour)
-	return red, errorChan, func() {
+	red, _ = self.NewSelfReader(log, ts.URL, datatype.DefaultMapper(), "test_self", "n/a", time.Hour, time.Hour, 10)
+	return red, func() {
 		ts.Close()
 	}
 }
 
-func setupWithURL(url string, jobChanBuff, errorChanBuff int, message string) (red *self.Reader, errorChan chan communication.ErrorMessage) {
-	log := lib.DiscardLogger()
-	jobChan := make(chan context.Context, jobChanBuff)
-	resultChan := make(chan *reader.ReadJobResult)
-	errorChan = make(chan communication.ErrorMessage, errorChanBuff)
-	red, _ = self.NewSelfReader(log, url, &datatype.MapConvertMock{}, jobChan, resultChan, errorChan, "my_reader", "example_type", time.Hour, time.Hour)
-	return red, errorChan
-}
-
 func TestSelfReader(t *testing.T) {
 
-	reader.TestReaderEssentials(t, func(testCase int) (reader.DataReader, chan communication.ErrorMessage, string, func()) {
+	reader_test.TestReaderEssentials(t, func(testCase int) (reader.DataReader, string, func()) {
 		testMessage := `{"the key": "is the value!"}`
 
 		switch testCase {
-		case reader.GenericReaderReceivesJobTestCase:
-			red, errorChan, teardown := setup(0, 0, testMessage)
-			return red, errorChan, testMessage, teardown
+		case reader_test.GenericReaderReceivesJobTestCase:
+			red, teardown := setup(testMessage)
+			return red, testMessage, teardown
 
-		case reader.ReaderSendsResultTestCase:
+		case reader_test.ReaderSendsResultTestCase:
 			testMessage := `{"the key": "is the value!"}`
-			red, errorChan, teardown := setup(0, 0, testMessage)
-			return red, errorChan, testMessage, teardown
+			red, teardown := setup(testMessage)
+			return red, testMessage, teardown
 
-		case reader.ReaderReadsOnBufferedChanTestCase:
-			red, errorChan, teardown := setup(10, 10, testMessage)
-			return red, errorChan, testMessage, teardown
+		case reader_test.ReaderReadsOnBufferedChanTestCase:
+			red, teardown := setup(testMessage)
+			return red, testMessage, teardown
 
-		case reader.ReaderDrainsAfterClosingContextTestCase:
-			red, errorChan, teardown := setup(10, 10, testMessage)
-			return red, errorChan, testMessage, teardown
-
-		case reader.ReaderClosesTestCase:
-			red, errorChan, teardown := setup(0, 0, testMessage)
-			return red, errorChan, testMessage, teardown
-
-		case reader.ReaderClosesWithBufferedChansTestCase:
-			red, errorChan, teardown := setup(10, 10, testMessage)
-			return red, errorChan, testMessage, teardown
-
-		case reader.ReaderWithNoValidURLErrorsTestCase:
-			red, errorChan := setupWithURL("nowhere", 0, 0, "")
-			return red, errorChan, testMessage, nil
+		case reader_test.ReaderWithNoValidURLErrorsTestCase:
+			log := lib.DiscardLogger()
+			red, _ := self.NewSelfReader(log, "nowhere", &datatype.MapConvertMock{}, "my_reader", "example_type", time.Hour, time.Hour, 10)
+			return red, testMessage, nil
 
 		default:
-			return nil, nil, "", nil
+			return nil, "", nil
 		}
 	})
 }
 
 func TestSelfReaderConstruction(t *testing.T) {
-	reader.TestReaderConstruction(t, func(name, endpoint, typeName string, jobChan chan context.Context, resultChan chan *reader.ReadJobResult, interval time.Duration, timeout time.Duration) (reader.DataReader, error) {
+	reader_test.TestReaderConstruction(t, func(name, endpoint, typeName string, interval time.Duration, timeout time.Duration, backoff int) (reader.DataReader, error) {
 		log := lib.DiscardLogger()
-		errorChan := make(chan communication.ErrorMessage)
-		return self.NewSelfReader(log, endpoint, datatype.DefaultMapper(), jobChan, resultChan, errorChan, name, typeName, interval, timeout)
-	})
-}
-
-func TestSelfReaderEndpointManeuvers(t *testing.T) {
-	reader.TestReaderEndpointManeuvers(t, func(testCase int, endpoint string) (reader.DataReader, chan communication.ErrorMessage) {
-		switch testCase {
-		case reader.ReaderErrorsOnEndpointDisapearsTestCase:
-			log := lib.DiscardLogger()
-			jobChan := make(chan context.Context)
-			resultChan := make(chan *reader.ReadJobResult)
-			errorChan := make(chan communication.ErrorMessage)
-			red, _ := self.NewSelfReader(log, endpoint, &datatype.MapConvertMock{}, jobChan, resultChan, errorChan, "my_reader", "example_type", time.Second, time.Second)
-			return red, errorChan
-
-		default:
-			return nil, nil
-		}
+		return self.NewSelfReader(log, endpoint, datatype.DefaultMapper(), name, typeName, interval, timeout, backoff)
 	})
 }

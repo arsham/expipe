@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
@@ -91,6 +90,7 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 }
 
 func withConfig(c *Config) (*Config, error) {
+	// TODO: these checks are also in the reader, remove them
 	if c.name == "" {
 		return nil, reader.ErrEmptyName
 	}
@@ -104,10 +104,6 @@ func withConfig(c *Config) (*Config, error) {
 		return nil, reader.ErrInvalidEndpoint(c.EXPEndpoint)
 	}
 	c.EXPEndpoint = url
-
-	if c.EXPBackoff <= 5 {
-		return nil, fmt.Errorf("back off should be at least 5: %d", c.EXPBackoff)
-	}
 
 	if c.EXPTypeName == "" {
 		return nil, reader.ErrEmptyTypeName
@@ -136,18 +132,13 @@ func withConfig(c *Config) (*Config, error) {
 }
 
 // NewInstance returns an instance of the expvar reader
-func (c *Config) NewInstance(
-	ctx context.Context,
-	jobChan chan context.Context,
-	resultChan chan *reader.ReadJobResult,
-	errorChan chan<- communication.ErrorMessage,
-) (reader.DataReader, error) {
+func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
 	endpoint, err := url.Parse(c.Endpoint())
 	if err != nil {
 		return nil, err
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
-	return NewExpvarReader(c.log, endpoint.String(), c.mapper, jobChan, resultChan, errorChan, c.name, c.EXPTypeName, c.interval, c.timeout)
+	return NewExpvarReader(c.log, endpoint.String(), c.mapper, c.name, c.EXPTypeName, c.interval, c.timeout, c.Backoff())
 }
 
 // Name returns name

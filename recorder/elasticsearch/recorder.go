@@ -10,11 +10,13 @@ import (
 	"context"
 	"expvar"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/recorder"
 	"github.com/olivere/elastic"
 )
@@ -24,27 +26,33 @@ var elasticsearchRecords = expvar.NewInt("ElasticSearch Records")
 // Recorder contains an elasticsearch client and an index name for recording data
 // It implements DataRecorder interface
 type Recorder struct {
-	name        string
-	client      *elastic.Client // Elasticsearch client
-	indexName   string
-	payloadChan chan *recorder.RecordJob
-	errorChan   chan<- communication.ErrorMessage
-	log         logrus.FieldLogger
-	timeout     time.Duration
+	name       string
+	client     *elastic.Client // Elasticsearch client
+	endpoint   string
+	indexName  string
+	log        logrus.FieldLogger
+	timeout    time.Duration
+	backoff    int
+	strike     int
+	recordFunc func(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error
 }
 
 // NewRecorder returns an error if it can't create the index
 func NewRecorder(
 	ctx context.Context,
 	log logrus.FieldLogger,
-	payloadChan chan *recorder.RecordJob,
-	errorChan chan<- communication.ErrorMessage,
 	name,
 	endpoint,
 	indexName string,
 	timeout time.Duration,
+	backoff int,
 ) (*Recorder, error) {
 	log.Debug("connecting to: ", endpoint)
+	url, err := lib.SanitiseURL(endpoint)
+	if err != nil {
+		return nil, recorder.ErrInvalidEndpoint(endpoint)
+	}
+	endpoint = url
 	addr := elastic.SetURL(endpoint)
 	logger := elastic.SetErrorLog(log)
 
@@ -81,46 +89,47 @@ func NewRecorder(
 			return nil, err
 		}
 	}
+
+	if backoff < 5 {
+		return nil, recorder.ErrLowBackoffValue(backoff)
+	}
+
 	return &Recorder{
-		name:        name,
-		client:      client,
-		indexName:   indexName,
-		payloadChan: payloadChan,
-		errorChan:   errorChan,
-		log:         log,
-		timeout:     timeout,
+		name:      name,
+		client:    client,
+		endpoint:  endpoint,
+		indexName: indexName,
+		log:       log,
+		timeout:   timeout,
+		backoff:   backoff,
 	}, nil
 }
 
-// Start begins reading from the target in its own goroutine
-// It will close the done channel when the job channel is closed
-func (r *Recorder) Start(ctx context.Context, stop communication.StopChannel) {
-	go func() {
-		for {
-			select {
-			case job := <-r.payloadChan:
-				go func(job *recorder.RecordJob) {
-					err := r.record(job.Ctx, job.TypeName, job.Time, job.Payload)
-					if err != nil {
-						r.errorChan <- communication.ErrorMessage{ID: job.ID, Name: r.Name(), Err: err}
-					}
-				}(job)
-			case s := <-stop:
-				// TODO: make a condition here, we don't want to lose the data that is happening before we quit.
-				s <- struct{}{}
-				return
+// Record returns an error if the endpoint errors. It stops receiving jobs when the
+// endpoint's absence has exceeded the backoff value.
+func (r *Recorder) Record(ctx context.Context, job *recorder.RecordJob) error {
+	if r.strike > r.backoff {
+		return recorder.ErrBackoffExceeded
+	}
+	err := r.record(ctx, job.TypeName, job.Time, job.Payload)
+	if err != nil {
+		if v, ok := err.(*url.Error); ok {
+			if strings.Contains(v.Error(), "getsockopt: connection refused") {
+				r.strike++
 			}
 		}
-	}()
+		return err
+	}
+	return nil
 }
 
-// PayloadChan returns the channel it receives the information from
-func (r *Recorder) PayloadChan() chan *recorder.RecordJob { return r.payloadChan }
-
-// record ships the kv data to elasticsearch
+// record ships the kv data to elasticsearch. It calls the recordFunc if exists, otherwise continues as normal.
 // Although this doesn't change the state of the Client, it is a part of its behaviour
 func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
-	payload := list.String(timestamp)
+	if r.recordFunc != nil {
+		return r.recordFunc(ctx, typeName, timestamp, list)
+	}
+	payload := string(list.Bytes(timestamp))
 	_, err := r.client.Index().
 		Index(r.indexName).
 		Type(typeName).
@@ -141,3 +150,8 @@ func (r *Recorder) IndexName() string { return r.indexName }
 
 // Timeout returns the timeout
 func (r *Recorder) Timeout() time.Duration { return r.timeout }
+
+// SetRecordFunc sets the recordFunc. You should only use it in tests.
+func (r *Recorder) SetRecordFunc(f func(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error) {
+	r.recordFunc = f
+}

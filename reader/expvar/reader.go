@@ -8,9 +8,12 @@
 package expvar
 
 import (
+	"bytes"
 	"context"
 	"expvar"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -28,16 +31,15 @@ var (
 // Reader contains communication channels with a worker that exposes expvar information.
 // It implements DataReader interface.
 type Reader struct {
-	name       string
-	endpoint   string
-	log        logrus.FieldLogger
-	mapper     datatype.Mapper
-	typeName   string
-	jobChan    chan context.Context
-	resultChan chan *reader.ReadJobResult
-	errorChan  chan<- communication.ErrorMessage
-	interval   time.Duration
-	timeout    time.Duration
+	name     string
+	endpoint string
+	log      logrus.FieldLogger
+	mapper   datatype.Mapper
+	typeName string
+	interval time.Duration
+	timeout  time.Duration
+	backoff  int
+	strike   int
 }
 
 // NewExpvarReader creates the worker and sets up its channels.
@@ -46,13 +48,11 @@ func NewExpvarReader(
 	log logrus.FieldLogger,
 	endpoint string,
 	mapper datatype.Mapper,
-	jobChan chan context.Context,
-	resultChan chan *reader.ReadJobResult,
-	errorChan chan<- communication.ErrorMessage,
 	name string,
 	typeName string,
 	interval time.Duration,
 	timeout time.Duration,
+	backoff int,
 ) (*Reader, error) {
 	if name == "" {
 		return nil, reader.ErrEmptyName
@@ -75,39 +75,61 @@ func NewExpvarReader(
 		return nil, reader.ErrEmptyTypeName
 	}
 
+	if backoff < 5 {
+		return nil, reader.ErrLowBackoffValue(backoff)
+	}
+
 	log = log.WithField("reader", "expvar").WithField("name", name)
 	w := &Reader{
-		name:       name,
-		typeName:   typeName,
-		mapper:     mapper,
-		jobChan:    jobChan,
-		resultChan: resultChan,
-		errorChan:  errorChan,
-		endpoint:   endpoint,
-		log:        log,
-		timeout:    timeout,
-		interval:   interval,
+		name:     name,
+		typeName: typeName,
+		mapper:   mapper,
+		endpoint: endpoint,
+		log:      log,
+		timeout:  timeout,
+		interval: interval,
+		backoff:  backoff,
 	}
 	return w, nil
 }
 
-// Start begins reading from the target in its own goroutine.
-// It will issue a goroutine on each job request.
-// It will close the done channel when the job channel is closed.
-func (r *Reader) Start(ctx context.Context, stop communication.StopChannel) {
-	r.log.Debug("starting")
-	go func() {
-		for {
-			select {
-			case job := <-r.jobChan:
-				go r.readMetrics(job)
-			case s := <-stop:
-				// TODO: condition this exit. There might be work happening and we don't want to lose them.
-				s <- struct{}{}
-				return
+// Read begins reading from the target.
+// It sends an error back to the engine if it can't read from metrics provider
+func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
+	if r.strike > r.backoff {
+		return nil, reader.ErrBackoffExceeded
+	}
+	id := communication.JobValue(job)
+	resp, err := ctxhttp.Get(job, nil, r.endpoint)
+
+	if err != nil {
+		if v, ok := err.(*url.Error); ok {
+			if strings.Contains(v.Error(), "getsockopt: connection refused") {
+				r.strike++
 			}
 		}
-	}()
+		r.log.WithField("reader", "expvar_reader").
+			WithField("name", r.Name()).
+			WithField("ID", id).
+			Debugf("%s: error making request: %v", r.name, err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &reader.ReadJobResult{
+		ID:       id,
+		Time:     time.Now(), // It is sensible to record the time now
+		Res:      buf.Bytes(),
+		TypeName: r.TypeName(),
+		Mapper:   r.Mapper(),
+	}
+	expvarReads.Add(1)
+	return res, nil
 }
 
 // Name shows the name identifier for this reader
@@ -124,33 +146,3 @@ func (r *Reader) Interval() time.Duration { return r.interval }
 
 // Timeout returns the time-out
 func (r *Reader) Timeout() time.Duration { return r.timeout }
-
-// JobChan returns the job channel.
-func (r *Reader) JobChan() chan context.Context { return r.jobChan }
-
-// ResultChan returns the result channel.
-func (r *Reader) ResultChan() chan *reader.ReadJobResult { return r.resultChan }
-
-// will send an error back to the engine if it can't read from metrics provider
-func (r *Reader) readMetrics(job context.Context) {
-	id := communication.JobValue(job)
-	resp, err := ctxhttp.Get(job, nil, r.endpoint)
-	if err != nil {
-		r.log.WithField("reader", "expvar_reader").
-			WithField("name", r.Name()).
-			WithField("ID", id).
-			Debugf("%s: error making request: %v", r.name, err)
-		r.errorChan <- communication.ErrorMessage{ID: id, Name: r.Name(), Err: err}
-		return
-	}
-
-	res := &reader.ReadJobResult{
-		ID:       id,
-		Time:     time.Now(), // It is sensible to record the time now
-		Res:      resp.Body,
-		TypeName: r.TypeName(),
-		Mapper:   r.Mapper(),
-	}
-	expvarReads.Add(1)
-	r.resultChan <- res
-}
