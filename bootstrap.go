@@ -28,8 +28,8 @@ func StartEngines(ctx context.Context, log logrus.FieldLogger, confMap *config.C
 			if err != nil {
 				return nil, err
 			}
+			wg.Add(1)
 			go func() {
-				wg.Add(1)
 				en.Start()
 				log.Infof("Engine %s has finished", en.name)
 				wg.Done()

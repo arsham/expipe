@@ -22,7 +22,6 @@ var ErrDuplicateRecorderName = fmt.Errorf("recorder name cannot be reused")
 
 var (
 	numGoroutines   = expvar.NewInt("Number Of Goroutines")
-	expRecorders    = expvar.NewInt("Recorders")
 	expReaders      = expvar.NewInt("Readers")
 	readJobs        = expvar.NewInt("Read Jobs")
 	recordJobs      = expvar.NewInt("Record Jobs")

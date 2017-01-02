@@ -80,7 +80,7 @@ func testEndpointCheck(t *testing.T, setup setupFunc, name string, typeName stri
 		t.Errorf("expected ErrEmptyEndpoint, got (%v)", err)
 	}
 
-	invalidEndpoint := "this is invalid"
+	const invalidEndpoint = "this is invalid"
 	red, err = setup(name, invalidEndpoint, typeName, interval, timeout, backoff)
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("expected nil, got (%v)", red)

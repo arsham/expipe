@@ -6,6 +6,7 @@ package testing
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -17,31 +18,43 @@ import (
 func testReaderReceivesJob(t *testing.T, red reader.DataReader) {
 	ctx := context.Background()
 	done := make(chan struct{})
+	errChan := make(chan string)
+	fatalChan := make(chan string)
 	go func() {
 		result, err := red.Read(communication.NewReadJob(ctx))
 		if err != nil {
-			t.Errorf("want nil, got (%v)", err)
+			errChan <- fmt.Sprintf("want nil, got (%v)", err)
+			return
 		}
 		if result == nil {
-			t.Fatal("expecting results, got nil")
+			fatalChan <- "expecting results, got nil"
+			return
 		}
 		if result.ID.String() == "" {
-			t.Error("expecting ID, got nil")
+			errChan <- "expecting ID, got nil"
+			return
 		}
 		if result.TypeName == "" {
-			t.Error("expecting TypeName, got empty string")
+			errChan <- "expecting TypeName, got empty string"
+			return
 		}
 		if result.Res == nil {
-			t.Error("expecting Res, got nil")
+			errChan <- "expecting Res, got nil"
+			return
 		}
 		if result.Mapper == nil {
-			t.Error("expecting Mapper, got nil")
+			errChan <- "expecting Mapper, got nil"
+			return
 		}
 		close(done)
 	}()
 
 	select {
 	case <-done:
+	case msg := <-errChan:
+		t.Error(msg)
+	case msg := <-fatalChan:
+		t.Fatal(msg)
 	case <-time.After(5 * time.Second):
 		t.Error("expected the reader to receive the job, but it blocked")
 	}
@@ -50,18 +63,20 @@ func testReaderReceivesJob(t *testing.T, red reader.DataReader) {
 // testReaderReturnsSameID is a test helper to test the reader returns the same ID in the response
 func testReaderReturnsSameID(t *testing.T, red reader.DataReader) {
 	done := make(chan struct{})
+	errChan := make(chan string)
+	fatalChan := make(chan string)
 	go func() {
 		ctx := context.Background()
 		job := communication.NewReadJob(ctx)
 		result, err := red.Read(job)
 		if err != nil {
-			t.Errorf("want nil, got (%v)", err)
+			errChan <- fmt.Sprintf("want nil, got (%v)", err)
 		}
 		if result == nil {
-			t.Fatal("expecting results, got nil")
+			fatalChan <- "expecting results, got nil"
 		}
 		if result.ID != communication.JobValue(job) {
-			t.Errorf("want (%v), got (%v)", communication.JobValue(job), result.ID)
+			errChan <- fmt.Sprintf("want (%v), got (%v)", communication.JobValue(job), result.ID)
 		}
 
 		close(done)
@@ -69,6 +84,10 @@ func testReaderReturnsSameID(t *testing.T, red reader.DataReader) {
 
 	select {
 	case <-done:
+	case msg := <-errChan:
+		t.Error(msg)
+	case msg := <-fatalChan:
+		t.Fatal(msg)
 	case <-time.After(5 * time.Second):
 		t.Error("expected the reader to receive the job, but it blocked")
 	}

@@ -14,7 +14,7 @@ import (
 // This example shows how to create a new job from a context.
 func ExampleNewReadJob() {
 	job := communication.NewReadJob(context.Background())
-	_ = job
+	fmt.Println(job)
 }
 
 // This example shows how to pass a jobID around and how to

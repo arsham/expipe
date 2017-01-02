@@ -9,7 +9,6 @@
 // This list will grow in time:
 //      ElasticSearch Var Name    | expvastic var name
 //      ----------------------------------------------
-//      Recorders                 | expRecorders
 //      Readers                   | expReaders
 //      Read Jobs                 | readJobs
 //      Record Jobs               | recordJobs

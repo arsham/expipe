@@ -277,8 +277,8 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 		return nil
 	}
 	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		e.Start()
 		wg.Done()
 	}()

@@ -85,7 +85,7 @@ expvastic -c expvastic.yml
 
 ### How Routes Are Defined
 
-You can mix and match the routes, but the engine will choose the best setup to achive your goal without duplicating the results. For instance assume you set the routes like this:
+You can mix and match the routes, but the engine will choose the best setup to achieve your goal without duplicating the results. For instance assume you set the routes like this:
 
 ```yaml
 readers:

@@ -139,6 +139,7 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 		} else if obj, err := value.Object(); err == nil {
 			// we are dealing with nested objects
 			results = append(results, m.Values(prefix+name+".", obj.Map())...)
+			expNestedTypeCount.Add(1)
 			continue
 
 		} else if s, err := value.String(); err == nil {

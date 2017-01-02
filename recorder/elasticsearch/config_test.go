@@ -32,7 +32,7 @@ func TestLoadElasticsearchSuccess(t *testing.T) {
     `))
 
 	v.ReadConfig(input)
-	c1, err := elasticsearch.FromViper(v, log, "recorder1", "recorders.recorder1")
+	c1, _ := elasticsearch.FromViper(v, log, "recorder1", "recorders.recorder1")
 	c2, err := elasticsearch.NewConfig(log, "name", "http://127.0.0.1:9200", 10*time.Second, 15, "example_index")
 	for _, c := range []*elasticsearch.Config{c1, c2} {
 

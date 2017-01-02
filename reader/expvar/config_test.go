@@ -38,7 +38,7 @@ func TestLoadExpvarSuccess(t *testing.T) {
     `))
 
 	v.ReadConfig(input)
-	c1, err := expvar.FromViper(v, log, "reader1", "readers.reader1")
+	c1, _ := expvar.FromViper(v, log, "reader1", "readers.reader1")
 	c2, err := expvar.NewConfig(log, "name", "example_type", "http://127.0.0.1:9200", "/debug/vars", 2*time.Second, 3*time.Second, 15, "")
 	for _, c := range []*expvar.Config{c1, c2} {
 

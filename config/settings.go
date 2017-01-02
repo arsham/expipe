@@ -15,6 +15,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	selfReader            = "self"
+	expvarReader          = "expvar"
+	elasticsearchRecorder = "elasticsearch"
+)
+
 // routeMap looks like this:
 // {
 //     route1: {readers: [my_app, self], recorders: [elastic1]}
@@ -101,9 +107,9 @@ func getReaders(v *viper.Viper) (readers map[string]string, err error) {
 	readers = make(map[string]string)
 	for reader := range v.GetStringMap("readers") {
 		switch rType := v.GetString("readers." + reader + ".type"); rType {
-		case "self":
+		case selfReader:
 			readers[reader] = rType
-		case "expvar":
+		case expvarReader:
 			readers[reader] = rType
 		case "":
 			fallthrough
@@ -124,7 +130,7 @@ func getRecorders(v *viper.Viper) (recorders map[string]string, err error) {
 
 	for recorder := range v.GetStringMap("recorders") {
 		switch rType := v.GetString("recorders." + recorder + ".type"); rType {
-		case "elasticsearch":
+		case elasticsearchRecorder:
 			recorders[recorder] = rType
 		case "":
 			fallthrough
@@ -216,9 +222,9 @@ func loadConfiguration(v *viper.Viper, log logrus.FieldLogger, routes routeMap, 
 
 func parseReader(v *viper.Viper, log logrus.FieldLogger, readerType, name string) (ReaderConf, error) {
 	switch readerType {
-	case "expvar":
+	case expvarReader:
 		return expvar.FromViper(v, log, name, "readers."+name)
-	case "self":
+	case selfReader:
 		return self.FromViper(v, log, name, "readers."+name)
 	}
 	return nil, notSupportedErr(readerType)
@@ -226,7 +232,7 @@ func parseReader(v *viper.Viper, log logrus.FieldLogger, readerType, name string
 
 func readRecorders(v *viper.Viper, log logrus.FieldLogger, recorderType, name string) (RecorderConf, error) {
 	switch recorderType {
-	case "elasticsearch":
+	case elasticsearchRecorder:
 		return elasticsearch.FromViper(v, log, name, "recorders."+name)
 	}
 	return nil, notSupportedErr(recorderType)
