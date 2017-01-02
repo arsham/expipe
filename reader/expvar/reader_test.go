@@ -23,7 +23,7 @@ func setup(message string) (red *expvar.Reader, teardown func()) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, message)
 	}))
-	red, _ = expvar.NewExpvarReader(log, ts.URL, &datatype.MapConvertMock{}, "my_reader", "example_type", time.Hour, time.Hour, 5)
+	red, _ = expvar.New(log, ts.URL, &datatype.MapConvertMock{}, "my_reader", "example_type", time.Hour, time.Hour, 5)
 	return red, func() {
 		ts.Close()
 	}
@@ -32,7 +32,7 @@ func setup(message string) (red *expvar.Reader, teardown func()) {
 func TestReaderConstruction(t *testing.T) {
 	reader_test.TestReaderConstruction(t, func(name, endpoint, typeName string, interval time.Duration, timeout time.Duration, backoff int) (reader.DataReader, error) {
 		log := lib.DiscardLogger()
-		return expvar.NewExpvarReader(log, endpoint, datatype.DefaultMapper(), name, typeName, interval, timeout, backoff)
+		return expvar.New(log, endpoint, datatype.DefaultMapper(), name, typeName, interval, timeout, backoff)
 	})
 }
 
@@ -60,11 +60,11 @@ func TestReaderEndpointManeuvers(t *testing.T) {
 		switch testCase {
 		case reader_test.ReaderErrorsOnEndpointDisapearsTestCase:
 			log := lib.DiscardLogger()
-			return expvar.NewExpvarReader(log, endpoint, &datatype.MapConvertMock{}, "my_reader", "example_type", time.Second, time.Second, 5)
+			return expvar.New(log, endpoint, &datatype.MapConvertMock{}, "my_reader", "example_type", time.Second, time.Second, 5)
 
 		case reader_test.ReaderBacksOffOnEndpointGoneTestCase:
 			log := lib.DiscardLogger()
-			return expvar.NewExpvarReader(log, endpoint, &datatype.MapConvertMock{}, "my_reader", "example_type", time.Second, time.Second, 5)
+			return expvar.New(log, endpoint, &datatype.MapConvertMock{}, "my_reader", "example_type", time.Second, time.Second, 5)
 
 		default:
 			return nil, nil

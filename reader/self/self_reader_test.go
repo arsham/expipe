@@ -23,7 +23,7 @@ func setup(message string) (red *self.Reader, teardown func()) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, message)
 	}))
-	red, _ = self.NewReader(log, ts.URL, datatype.DefaultMapper(), "test_self", "n/a", time.Hour, time.Hour, 10)
+	red, _ = self.New(log, ts.URL, datatype.DefaultMapper(), "test_self", "n/a", time.Hour, time.Hour, 10)
 	return red, func() {
 		ts.Close()
 	}
@@ -32,7 +32,7 @@ func setup(message string) (red *self.Reader, teardown func()) {
 func TestReaderConstruction(t *testing.T) {
 	reader_test.TestReaderConstruction(t, func(name, endpoint, typeName string, interval time.Duration, timeout time.Duration, backoff int) (reader.DataReader, error) {
 		log := lib.DiscardLogger()
-		return self.NewReader(log, endpoint, datatype.DefaultMapper(), name, typeName, interval, timeout, backoff)
+		return self.New(log, endpoint, datatype.DefaultMapper(), name, typeName, interval, timeout, backoff)
 	})
 }
 
@@ -61,11 +61,11 @@ func TestReaderEndpointManeuvers(t *testing.T) {
 		switch testCase {
 		case reader_test.ReaderErrorsOnEndpointDisapearsTestCase:
 			log := lib.DiscardLogger()
-			return self.NewReader(log, endpoint, datatype.DefaultMapper(), "self_reader", "self_reader", 1*time.Second, 1*time.Second, 10)
+			return self.New(log, endpoint, datatype.DefaultMapper(), "self_reader", "self_reader", 1*time.Second, 1*time.Second, 10)
 
 		case reader_test.ReaderBacksOffOnEndpointGoneTestCase:
 			log := lib.DiscardLogger()
-			return self.NewReader(log, endpoint, datatype.DefaultMapper(), "self_reader", "self_reader", 1*time.Second, 1*time.Second, 5)
+			return self.New(log, endpoint, datatype.DefaultMapper(), "self_reader", "self_reader", 1*time.Second, 1*time.Second, 5)
 
 		default:
 			return nil, nil

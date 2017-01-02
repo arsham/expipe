@@ -28,7 +28,7 @@ var (
 	expvarReads = expvar.NewInt("Expvar Reads")
 )
 
-// Reader contains communication channels with a worker that exposes expvar information.
+// Reader can read from any application that exposes expvar information.
 // It implements DataReader interface.
 type Reader struct {
 	name     string
@@ -42,18 +42,19 @@ type Reader struct {
 	strike   int
 }
 
-// NewExpvarReader creates the worker and sets up its channels.
-// Because the caller is reading the resp.Body, it is its job to close it.
-func NewExpvarReader(
-	log logrus.FieldLogger,
-	endpoint string,
-	mapper datatype.Mapper,
-	name string,
-	typeName string,
-	interval time.Duration,
-	timeout time.Duration,
-	backoff int,
-) (*Reader, error) {
+// New creates the worker and sets up its channels.
+// It returns and error on the following occasions:
+//
+//   Condition            |  Error
+//   ---------------------|-------------
+//   name == ""           | ErrEmptyName
+//   endpoint == ""       | ErrEmptyEndpoint
+//   Invalid endpoint     | ErrInvalidEndpoint
+//   Unavailable endpoint | ErrEndpointNotAvailable
+//   typeName == ""       | ErrEmptyTypeName
+//   backoff < 5          | ErrLowBackoffValue
+//
+func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name string, typeName string, interval time.Duration, timeout time.Duration, backoff int) (*Reader, error) {
 	if name == "" {
 		return nil, reader.ErrEmptyName
 	}
@@ -94,7 +95,7 @@ func NewExpvarReader(
 }
 
 // Read begins reading from the target.
-// It sends an error back to the engine if it can't read from metrics provider
+// It returns an error back to the engine if it can't read from metrics provider.
 func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
 	if r.strike > r.backoff {
 		return nil, reader.ErrBackoffExceeded

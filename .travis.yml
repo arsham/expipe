@@ -23,4 +23,4 @@ before_script:
 script:
   - glide install
   - go test $(glide nv)
-  - goveralls -service=travis-ci -ignore="bootstrap.go,reader/testing/config_mock.go,recorder/testing/config_mock.go,reader/testing/testing.go,recorder/testing/testing.go"
+  - goveralls -service=travis-ci -ignore="bootstrap.go,reader/testing/config_mock.go,reader/testing/testing.go,reader/testing/example_provider.go,reader/testing/testing_communication.go,reader/testing/testing_construction.go,reader/testing/testing_endpoints.go,recorder/testing/config_mock.go,recorder/testing/testing.go,recorder/testing/example_provider.go,recorder/testing/testing_communication.go,recorder/testing/testing_construction.go,recorder/testing/testing_endpoints.go"

@@ -6,8 +6,6 @@ package reader
 
 import "fmt"
 
-// TODO: apply these errors
-
 var (
 	// ErrEmptyName is the error when the package name is empty.
 	ErrEmptyName = fmt.Errorf("name cannot be empty")
@@ -18,8 +16,9 @@ var (
 	// ErrEmptyTypeName is the error when the type_name is an empty string.
 	ErrEmptyTypeName = fmt.Errorf("type_name cannot be empty")
 
-	// ErrBackoffExceeded is the error when the endpoint's absence has exceeded the backoff value.
-	// It is not strictly an error, it is however a pointer to an error in the past.
+	// ErrBackoffExceeded is the error when the endpoint's absence has
+	// exceeded the backoff value. It is not strictly an error, it is
+	// however a pointer to an error in the past.
 	ErrBackoffExceeded = fmt.Errorf("endpoint gone too long")
 )
 

@@ -19,11 +19,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config describes how expvar read is setup
-// IMPORTANT NOTE: This file was copied to elasticsearch's config. Please create tests for that one if this API changes.
-
 // Config holds the necessary configuration for setting up an expvar reader endpoint.
-// If MapFile is provided, the data will be mapped, otherwise it uses the defaults.
+// If MapFile is provided, the data will be mapped, otherwise it uses the DefaultMapper.
 type Config struct {
 	name         string
 	EXPTypeName  string `mapstructure:"type_name"`
@@ -41,14 +38,7 @@ type Config struct {
 }
 
 // NewConfig returns an instance of the expvar reader
-func NewConfig(
-	log logrus.FieldLogger,
-	name, typeName string,
-	endpoint, routepath string,
-	interval, timeout time.Duration,
-	backoff int,
-	mapFile string,
-) (*Config, error) {
+func NewConfig(log logrus.FieldLogger, name, typeName string, endpoint, routepath string, interval, timeout time.Duration, backoff int, mapFile string) (*Config, error) {
 	c := &Config{
 		name:         name,
 		EXPTypeName:  typeName,
@@ -63,7 +53,7 @@ func NewConfig(
 	return withConfig(c)
 }
 
-// FromViper constructs the necessary configuration for bootstrapping the expvar reader
+// FromViper constructs the necessary configuration for bootstrapping the expvar reader.
 func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Config, error) {
 	var (
 		c                 Config
@@ -131,14 +121,14 @@ func withConfig(c *Config) (*Config, error) {
 	return c, nil
 }
 
-// NewInstance returns an instance of the expvar reader
+// NewInstance returns an instance of the expvar reader.
 func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
 	endpoint, err := url.Parse(c.Endpoint())
 	if err != nil {
 		return nil, err
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
-	return NewExpvarReader(c.Logger(), endpoint.String(), c.mapper, c.Name(), c.EXPTypeName, c.Interval(), c.Timeout(), c.Backoff())
+	return New(c.Logger(), endpoint.String(), c.mapper, c.Name(), c.EXPTypeName, c.Interval(), c.Timeout(), c.Backoff())
 }
 
 // Name returns name

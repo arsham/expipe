@@ -64,7 +64,7 @@ func setupWithURL(t *testing.T, URL string, indexName string) (ctx context.Conte
 		timeout = 10 * time.Second
 	}
 
-	rec, err = elasticsearch.NewRecorder(ctx, log, "reader_example", URL, indexName, timeout, 5)
+	rec, err = elasticsearch.New(ctx, log, "reader_example", URL, indexName, timeout, 5)
 	return ctx, rec, err
 }
 
@@ -103,13 +103,13 @@ func TestElasticsearchRecorderConstruction(t *testing.T) {
 		switch testCase {
 		case recorder_testing.RecorderConstructionCasesTestCase:
 			log := lib.DiscardLogger()
-			rec, err := elasticsearch.NewRecorder(context.Background(), log, name, endpoint, indexName, timeout, backoff)
+			rec, err := elasticsearch.New(context.Background(), log, name, endpoint, indexName, timeout, backoff)
 			destroyIndex(t, endpoint, indexName)
 			return rec, err
 
 		case recorder_testing.RecorderErrorsOnInvalidEndpointTestCase:
 			log := lib.DiscardLogger()
-			return elasticsearch.NewRecorder(context.Background(), log, name, endpoint, indexName, timeout, backoff)
+			return elasticsearch.New(context.Background(), log, name, endpoint, indexName, timeout, backoff)
 
 		default:
 			return nil, nil
@@ -130,7 +130,7 @@ func TestElasticsearchRecorderEndpointManeuvers(t *testing.T) {
 				timeout = 10 * time.Second
 			}
 
-			rec, err := elasticsearch.NewRecorder(ctx, log, "d", "http://nowherelocalhost", "d", timeout, 5)
+			rec, err := elasticsearch.New(ctx, log, "d", "http://nowherelocalhost", "d", timeout, 5)
 			return ctx, rec, err, func() {
 				cancel()
 			}

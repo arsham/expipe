@@ -21,11 +21,17 @@ func TestLoadConfiguration(t *testing.T) {
 	input := bytes.NewBuffer([]byte(`
     readers:
         reader_1: # populating to get to the passing tests
+            type_name: expvar
             interval: 1s
             timeout: 1s
             endpoint: localhost:8200
             backoff: 9
-            type_name: erwer
+        reader_2:
+            type_name: self
+            interval: 1s
+            timeout: 1s
+            endpoint: localhost:8200
+            backoff: 9
     recorders:
         recorder_1:
             interval: 1s
@@ -47,7 +53,7 @@ func TestLoadConfiguration(t *testing.T) {
 	if _, ok := err.(interface {
 		NotSupported()
 	}); !ok {
-		t.Errorf("want InvalidEndpoint, got (%v)", err)
+		t.Errorf("want InvalidEndpoint, got (%T)", err)
 	}
 
 	readers = map[string]string{"reader_1": "expvar"}
@@ -56,14 +62,13 @@ func TestLoadConfiguration(t *testing.T) {
 	if _, ok := err.(interface {
 		NotSupported()
 	}); !ok {
-		t.Errorf("want InvalidEndpoint, got (%v)", err)
+		t.Errorf("want InvalidEndpoint, got (%T)", err)
 	}
 
-	readers = map[string]string{"reader_1": "expvar"}
+	readers = map[string]string{"reader_1": "expvar", "reader_2": "self"}
 	recorders = map[string]string{"recorder_1": "elasticsearch"}
 	_, err = loadConfiguration(v, log, routeMap, readers, recorders)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
-
 }

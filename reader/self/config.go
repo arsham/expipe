@@ -15,9 +15,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config describes how expvastic's own app is setup
-// IMPORTANT NOTE: This file was copied to elasticsearch's config. Please create tests for that one if this API changes.
-
 // Config holds the necessary configuration for setting up an self reading facility.
 type Config struct {
 	name         string
@@ -60,7 +57,7 @@ var IgnoredEndpoint = "http://127.0.0.1:9200"
 
 // NewInstance instantiates a SelfReader
 func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
-	return NewReader(c.Logger(), c.Endpoint(), c.mapper, c.Name(), c.TypeName(), c.Interval(), c.Timeout(), c.Backoff())
+	return New(c.Logger(), c.Endpoint(), c.mapper, c.Name(), c.TypeName(), c.Interval(), c.Timeout(), c.Backoff())
 }
 
 // Name returns the name

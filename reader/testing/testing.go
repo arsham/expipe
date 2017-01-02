@@ -2,6 +2,33 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
+// Package testing is a test suit for readers. They should instantiate their objects
+// with all the necessary mocks and call the proper methods.
+// You should always default a zero value on the return.
+//
+// For example:
+//
+//    func TestReaderCommunication(t *testing.T) {
+//        reader_test.TestReaderCommunication(t, func(testCase int) (reader.DataReader, string, func()) {
+//            testMessage := `{"the key": "is the value!"}`
+//
+//            switch testCase {
+//            case reader_test.ReaderReceivesJobTestCase:
+//                red, teardown := setup(testMessage)
+//                return red, testMessage, teardown
+//
+//            case ...:
+//
+//            default:
+//                return nil, "", nil
+//            }
+//        })
+//    }
+//
+// The test suit will pick it up and does all the tests.
+// If you don't provide a test case, it will fail on that particular test.
+//
+// IMPORTANT: you need to write the edge cases if they are not covered in this section.
 package testing
 
 import (
@@ -14,23 +41,18 @@ import (
 )
 
 const (
-	// ReaderReceivesJobTestCase invokes TestReaderReceivesJob test
+	// ReaderReceivesJobTestCase invokes TestReaderReceivesJob test.
 	ReaderReceivesJobTestCase = iota
 
-	// ReaderReturnsSameIDTestCase invokes TestReaderReturnsSameID test
+	// ReaderReturnsSameIDTestCase invokes TestReaderReturnsSameID test.
 	ReaderReturnsSameIDTestCase
 
-	// ReaderErrorsOnEndpointDisapearsTestCase invokes TestReaderErrorsOnEndpointDisapears test
+	// ReaderErrorsOnEndpointDisapearsTestCase invokes TestReaderErrorsOnEndpointDisapears test.
 	ReaderErrorsOnEndpointDisapearsTestCase
 
-	// ReaderBacksOffOnEndpointGoneTestCase invokes TestReaderBacksOffOnEndpointGone test
+	// ReaderBacksOffOnEndpointGoneTestCase invokes TestReaderBacksOffOnEndpointGone test.
 	ReaderBacksOffOnEndpointGoneTestCase
 )
-
-// This file contains generic tests for various readers. You need to pass in your reader
-// as a ready to use object, with all the necessary mocks, and these set of tests will do all
-// the tests for you.
-// IMPORTANT: you need to write the edge cases if they are not covered in this section.
 
 type setupFunc func(
 	name string,

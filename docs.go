@@ -7,7 +7,7 @@
 // Please refer to golang's expvar documentation for more information.
 // Installation guides can be found on github page: https://github.com/arsham/expvastic
 //
-// At the heart of this package, there is Engine. It acts like a glue between a Reader and a Recorder. Messages are transferred in a package called DataContainer, which is a list of DataType objects.
+// At the heart of this package, there is Engine. It acts like a glue between multiple Readers and a Recorder. Messages are transferred in a package called DataContainer, which is a list of DataType objects.
 //
 // Here an example configuration, save it somewhere (let's call it expvastic.yml for now):
 //
@@ -28,7 +28,6 @@
 //            type_name: this_is_awesome
 //            endpoint: localhost:1235
 //            routepath: /metrics
-//            interval: 500ms
 //            timeout: 13s
 //            backoff: 10
 //
@@ -69,7 +68,7 @@
 //
 //    expvasyml -c expvastic.yml
 //
-// You can mix and match the routes, but the engine will choose the best setup to achieve your goal without duplicating the results. For instance assume you set the routes like this:
+// You can mix and match the routes, but the engine will choose the best set-up to achieve your goal without duplicating the results. For instance assume you set the routes like this:
 //
 //     readers:
 //         app_0: type: expvar

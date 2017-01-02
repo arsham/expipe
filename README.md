@@ -29,10 +29,9 @@ Expvastic can record your application's `metrics` in [ElasticSearch][elasticsear
 
 There are TODO items in the issue section. Feature requests welcome!
 
-
 Please refer to golang's [expvar documentation][expvar] for more information.
 
-Screenshots can be found in [this](./SCREENSHOTS.md) document. Here is an example:
+Screen shots can be found in [this](./SCREENSHOTS.md) document. Here is an example:
 
 ![Colored](http://i.imgur.com/34kdQe8.png)
 

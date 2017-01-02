@@ -66,7 +66,7 @@ func TestGetByteRepresentation(t *testing.T) {
 	for i, tc := range testCase {
 		name := fmt.Sprintf("case %d", i)
 		t.Run(name, func(t *testing.T) {
-			contaner := datatype.NewContainer(tc.input)
+			contaner := datatype.New(tc.input)
 			results := contaner.Bytes(now)
 			if !reflect.DeepEqual(results, []byte(tc.expected)) {
 				t.Errorf("want (%s) got (%s)", tc.expected, results)
@@ -76,8 +76,6 @@ func TestGetByteRepresentation(t *testing.T) {
 }
 
 func TestDataTypeEquality(t *testing.T) {
-	// FloatListType
-	// GCListType
 	type inputType struct {
 		a datatype.DataType
 		b datatype.DataType

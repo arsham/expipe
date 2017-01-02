@@ -7,6 +7,7 @@ package datatype
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -206,5 +207,24 @@ func TestGetArrayValue(t *testing.T) {
 	result = m.getArrayValue(prefix, name, []*jason.Value{str})
 	if result != nil {
 		t.Errorf("want nil, got (%v)", result)
+	}
+}
+
+func TestMapCopy(t *testing.T) {
+	t.Parallel()
+	m := &MapConvert{
+		gcTypes:     []string{"first"},
+		memoryTypes: map[string]memType{"second": "third"},
+	}
+	c := m.Copy()
+	cc, ok := c.(*MapConvert)
+	if !ok {
+		t.Fatalf("want MapConvert, got (%T)", c)
+	}
+	if m == c {
+		t.Error("wasn't copied")
+	}
+	if !reflect.DeepEqual(cc, m) {
+		t.Fatalf("want (%v), got (%v)", m, c)
 	}
 }

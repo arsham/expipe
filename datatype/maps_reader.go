@@ -7,6 +7,7 @@ package datatype
 import (
 	"expvar"
 	"strings"
+	"sync"
 
 	"github.com/antonholmquist/jason"
 	"github.com/arsham/expvastic/lib"
@@ -23,25 +24,31 @@ var (
 	expDataTypeObjs       = expvar.NewInt("DataType Objects")
 	expDataTypeErrs       = expvar.NewInt("DataType Objects Errors")
 	expUnidentifiedJSON   = expvar.NewInt("Unidentified JSON Count")
+	once                  sync.Once
+	defaultMap            *MapConvert
 )
 
 // Mapper generates DataTypes based on the given name/value inputs.
 type Mapper interface {
 	// Values closes the channel once all input has been exhausted.
 	Values(prefix string, values map[string]*jason.Value) []DataType
+
+	// Copy returns a new copy of the Mapper.
+	// You should always copy the mapper if you are using it concurrently.
+	Copy() Mapper
 }
 
-// MapConvert can produce output from the defined types.
+type memType string
+
+// MapConvert can produce output from GC string list and memory type input.
 type MapConvert struct {
 	gcTypes     []string
 	memoryTypes map[string]memType
 }
 
-type memType string
-
-// MapsFromViper reads from the map file and produces functions for conversion used in type decoder.
-// It first reads from the default settings defined in the maps.yml in the same folder, then overrides
-// with the user specified mappings.
+// MapsFromViper reads from the map file and produces functions for conversion
+// used in type decoder. It first reads from the default settings defined in
+// the maps.yml in the same folder, then overrides with the user specified mappings.
 func MapsFromViper(v *viper.Viper) *MapConvert {
 	m := &MapConvert{}
 	def := DefaultMapper()
@@ -56,20 +63,24 @@ func MapsFromViper(v *viper.Viper) *MapConvert {
 	return m
 }
 
-// DefaultMapper returns a  MapConvert object that is populated by the default mappings.
+// DefaultMapper returns a MapConvert object that is populated by the default mappings.
+// The data is hard coded in the program, but you can provide your mapping file
+// in your configuration file.
 func DefaultMapper() *MapConvert {
-	v := viper.New()
-	v.SetConfigType("yaml")
-	v.ReadConfig(defaultMappings())
-	m := &MapConvert{}
-	if v.IsSet("gc_types") {
-		m.gcTypes = gcTypes(v, make([]string, 0))
-	}
+	once.Do(func() {
+		v := viper.New()
+		v.SetConfigType("yaml")
+		v.ReadConfig(defaultMappings())
+		defaultMap = &MapConvert{}
+		if v.IsSet("gc_types") {
+			defaultMap.gcTypes = gcTypes(v, make([]string, 0))
+		}
 
-	if v.IsSet("memory_bytes") {
-		m.memoryTypes = memoryTypes(v, make(map[string]memType))
-	}
-	return m
+		if v.IsSet("memory_bytes") {
+			defaultMap.memoryTypes = memoryTypes(v, make(map[string]memType))
+		}
+	})
+	return defaultMap
 }
 
 func (m *MapConvert) getMemoryTypes(prefix, name string, value *jason.Value) (DataType, bool) {
@@ -108,13 +119,17 @@ func (m *MapConvert) getArrayValue(prefix, name string, arr []*jason.Value) Data
 // It will return nil if the value is not one of above.
 func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []DataType {
 	var results []DataType
+	input := make(map[string]jason.Value, len(values))
+	for k, v := range values {
+		input[k] = *v
+	}
 
-	for name, value := range values {
+	for name, value := range input {
 		var result DataType
 		if stringInMapKeys(name, m.memoryTypes) {
 			if stringInMapKeys(name, m.memoryTypes) {
 				var ok bool
-				result, ok = m.getMemoryTypes(prefix, name, value)
+				result, ok = m.getMemoryTypes(prefix, name, &value)
 				if !ok {
 					continue
 				}
@@ -146,6 +161,17 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 	}
 
 	return results
+}
+
+// Copy returns a new copy of the Mapper.
+func (m *MapConvert) Copy() Mapper {
+	newMapper := &MapConvert{}
+	newMapper.gcTypes = m.gcTypes[:]
+	newMapper.memoryTypes = make(map[string]memType, len(m.memoryTypes))
+	for k, v := range m.memoryTypes {
+		newMapper.memoryTypes[k] = v
+	}
+	return newMapper
 }
 
 func getGCList(name string, arr []*jason.Value) *GCListType {
@@ -192,11 +218,12 @@ func gcTypes(v *viper.Viper, gcTypes []string) []string {
 }
 
 func memoryTypes(v *viper.Viper, memoryTypes map[string]memType) map[string]memType {
+	result := make(map[string]memType, len(memoryTypes))
 	for name, memoryType := range v.GetStringMapString("memory_bytes") {
-		memoryTypes[name] = memType(memoryType)
+		result[name] = memType(memoryType)
 	}
 
-	return memoryTypes
+	return result
 }
 
 func stringInMapKeys(niddle string, haystack map[string]memType) bool {

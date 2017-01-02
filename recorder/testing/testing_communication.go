@@ -16,7 +16,7 @@ import (
 
 // testRecorderReceivesPayload tests the recorder receives the payload correctly.
 func testRecorderReceivesPayload(ctx context.Context, t *testing.T, rec recorder.DataRecorder) {
-	p := datatype.NewContainer([]datatype.DataType{})
+	p := datatype.New([]datatype.DataType{})
 	payload := &recorder.RecordJob{
 		ID:        communication.NewJobID(),
 		Payload:   p,
@@ -40,7 +40,7 @@ func testRecorderReceivesPayload(ctx context.Context, t *testing.T, rec recorder
 
 // testRecorderSendsResult tests the recorder send the results to the endpoint.
 func testRecorderSendsResult(ctx context.Context, t *testing.T, rec recorder.DataRecorder) {
-	p := datatype.NewContainer([]datatype.DataType{&datatype.StringType{Key: "test", Value: "test"}})
+	p := datatype.New([]datatype.DataType{&datatype.StringType{Key: "test", Value: "test"}})
 	payload := &recorder.RecordJob{
 		ID:        communication.NewJobID(),
 		Payload:   p,

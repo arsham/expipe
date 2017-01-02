@@ -128,7 +128,7 @@ func TestGetJasonValues(t *testing.T) {
 				t.Errorf("want (%d), got (%d)", len(tc.expected), len(payload))
 				return
 			}
-			results := NewContainer(payload)
+			results := New(payload)
 			if !isIn(results.List(), tc.expected) {
 				t.Errorf("expected (%v), got (%v)", tc.expected, results.List())
 			}

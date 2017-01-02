@@ -2,8 +2,8 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package elasticsearch contains logic to record data to an elasticsearch index. The data is already sanitised
-// by the data provider.
+// Package elasticsearch contains logic to record data to an elasticsearch index.
+// The data is already sanitised by the data provider.
 package elasticsearch
 
 import (
@@ -37,16 +37,19 @@ type Recorder struct {
 	recordFunc func(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error
 }
 
-// NewRecorder returns an error if it can't create the index
-func NewRecorder(
-	ctx context.Context,
-	log logrus.FieldLogger,
-	name,
-	endpoint,
-	indexName string,
-	timeout time.Duration,
-	backoff int,
-) (*Recorder, error) {
+// New returns an error if it can't create the index
+// It returns and error on the following occasions:
+//
+//   Condition            |  Error
+//   ---------------------|-------------
+//   Invalid endpoint     | ErrInvalidEndpoint
+//   Unavailable endpoint | ErrEndpointNotAvailable
+//   Ping errors          | Timeout/Ping failed
+//   backoff < 5          | ErrLowBackoffValue
+//
+// It also errors if it can't create the index.
+//
+func New(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*Recorder, error) {
 	log.Debug("connecting to: ", endpoint)
 	url, err := lib.SanitiseURL(endpoint)
 	if err != nil {
@@ -105,7 +108,7 @@ func NewRecorder(
 	}, nil
 }
 
-// Record returns an error if the endpoint errors. It stops receiving jobs when the
+// Record returns an error if the endpoint responds in errors. It stops receiving jobs when the
 // endpoint's absence has exceeded the backoff value.
 func (r *Recorder) Record(ctx context.Context, job *recorder.RecordJob) error {
 	if r.strike > r.backoff {

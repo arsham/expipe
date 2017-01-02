@@ -6,18 +6,17 @@ package config
 
 import "fmt"
 
-var (
-	// EmptyConfigErr is an error when the config file is empty
-	EmptyConfigErr = &StructureErr{"", "empty configuration file", nil}
-)
+// EmptyConfigErr is an error when the config file is empty
+var EmptyConfigErr = &StructureErr{"", "empty configuration file", nil}
 
-// StructureErr represents an error reading the configuration file
+// StructureErr is an error on reading the configuration file.
 type StructureErr struct {
 	Section string // The section that error happened
 	Reason  string // The reason behind the error
 	Err     error  // Err is the error that occurred during the operation.
 }
 
+// Error returns "<nil>" if the error is nil.
 func (e *StructureErr) Error() string {
 	if e == nil {
 		return "<nil>"

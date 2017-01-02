@@ -2,8 +2,8 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package datatype contains necessary logic to sanitise a JSON object coming from a reader. This
-// package is subjected to change.
+// Package datatype contains necessary logic to sanitise a JSON object coming from a reader.
+// This package is subjected to change.
 package datatype
 
 import (
@@ -15,26 +15,32 @@ import (
 )
 
 const (
-	// BYTE ..
+	// BYTE amount is the same as is read.
 	BYTE = 1.0
-	// KILOBYTE ..
+	// KILOBYTE divides the amount to kilobytes to show smaller value.
 	KILOBYTE = 1024 * BYTE
-	// MEGABYTE ..
+	// MEGABYTE divides the amount to megabytes to show smaller value.
 	MEGABYTE = 1024 * KILOBYTE
 )
 
-// ErrUnidentifiedJason .
+// ErrUnidentifiedJason is an error when the value is not identified.
+// It happens when the value is not a string or a float64 types,
+// or the container ends up empty.
 var ErrUnidentifiedJason = errors.New("unidentified jason value")
 
-// DataType implements Stringer and Marshal/Unmarshal
+// DataType represents a single paired data. The key of the json value
+// is mapped to Key, and the value is to Value.
 type DataType interface {
+	// Bytes returns the []byte representation of the value.
+	// It includes both Key and Value.
 	Bytes() []byte
 
-	// Equal compares both keys and values and returns true if they are equal
-	Equal(DataType) bool
+	// Equal compares the current object to the other returns true if they have
+	// equal values. The value comparison is not ordered.
+	Equal(other DataType) bool
 }
 
-// FloatType represents a pair of key values that the value is a float64
+// FloatType represents a pair of key values that the value is a float64.
 type FloatType struct {
 	Key   string
 	Value float64
@@ -45,7 +51,7 @@ func (f FloatType) Bytes() []byte {
 	return []byte(fmt.Sprintf(`"%s":%f`, f.Key, f.Value))
 }
 
-// Equal compares both keys and values and returns true if they are equal
+// Equal compares both keys and values and returns true if they are equal.
 func (f FloatType) Equal(other DataType) bool {
 	switch o := other.(type) {
 	case *FloatType:
@@ -54,7 +60,7 @@ func (f FloatType) Equal(other DataType) bool {
 	return false
 }
 
-// StringType represents a pair of key values that the value is a string
+// StringType represents a pair of key values that the value is a string.
 type StringType struct {
 	Key   string
 	Value string
@@ -65,7 +71,7 @@ func (s StringType) Bytes() []byte {
 	return []byte(fmt.Sprintf(`"%s":"%s"`, s.Key, s.Value))
 }
 
-// Equal compares both keys and values and returns true if they are equal
+// Equal compares both keys and values and returns true if they are equal.
 func (s StringType) Equal(other DataType) bool {
 	switch o := other.(type) {
 	case *StringType:
@@ -74,7 +80,7 @@ func (s StringType) Equal(other DataType) bool {
 	return false
 }
 
-// FloatListType represents a pair of key values that the value is a list of floats
+// FloatListType represents a pair of key values that the value is a list of floats.
 type FloatListType struct {
 	Key   string
 	Value []float64
@@ -107,7 +113,7 @@ func (fl FloatListType) Equal(other DataType) bool {
 	return false
 }
 
-// GCListType represents a pair of key values of GC list info
+// GCListType represents a pair of key values of GC list info.
 type GCListType struct {
 	Key   string
 	Value []uint64
@@ -126,7 +132,7 @@ func (flt GCListType) Bytes() []byte {
 }
 
 // Equal is not implemented. You should iterate and check yourself.
-// Equal compares both keys and values and returns true if they are equal
+// Equal compares both keys and values and returns true if they are equal.
 func (flt GCListType) Equal(other DataType) bool {
 	switch o := other.(type) {
 	case *GCListType:
@@ -143,20 +149,20 @@ func (flt GCListType) Equal(other DataType) bool {
 	return false
 }
 
-// ByteType represents a pair of key values in which the value represents bytes
-// It converts the value to MB
+// ByteType represents a pair of key values in which the value represents bytes.
+// It converts the value to MB.
 type ByteType struct {
 	Key   string
 	Value float64
 }
 
 // Bytes returns the byte slice representation of the type.
-// It turns the byte into Megabyte
+// It turns the byte into Megabyte.
 func (b ByteType) Bytes() []byte {
 	return []byte(fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE))
 }
 
-// Equal compares both keys and values and returns true if they are equal
+// Equal compares both keys and values and returns true if they are equal.
 func (b ByteType) Equal(other DataType) bool {
 	switch o := other.(type) {
 	case *ByteType:
@@ -165,8 +171,8 @@ func (b ByteType) Equal(other DataType) bool {
 	return false
 }
 
-// KiloByteType represents a pair of key values in which the value represents bytes
-// It converts the value to MB
+// KiloByteType represents a pair of key values in which the value represents bytes.
+// It converts the value to KB.
 type KiloByteType struct {
 	Key   string
 	Value float64
@@ -177,7 +183,7 @@ func (k KiloByteType) Bytes() []byte {
 	return []byte(fmt.Sprintf(`"%s":%f`, k.Key, k.Value/KILOBYTE))
 }
 
-// Equal compares both keys and values and returns true if they are equal
+// Equal compares both keys and values and returns true if they are equal.
 func (k KiloByteType) Equal(other DataType) bool {
 	switch o := other.(type) {
 	case *KiloByteType:
@@ -186,8 +192,8 @@ func (k KiloByteType) Equal(other DataType) bool {
 	return false
 }
 
-// MegaByteType represents a pair of key values in which the value represents bytes
-// It converts the value to MB
+// MegaByteType represents a pair of key values in which the value represents bytes.
+// It converts the value to MB.
 type MegaByteType struct {
 	Key   string
 	Value float64
@@ -198,7 +204,7 @@ func (m MegaByteType) Bytes() []byte {
 	return []byte(fmt.Sprintf(`"%s":%f`, m.Key, m.Value/MEGABYTE))
 }
 
-// Equal compares both keys and values and returns true if they are equal
+// Equal compares both keys and values and returns true if they are equal.
 func (m MegaByteType) Equal(other DataType) bool {
 	switch o := other.(type) {
 	case *MegaByteType:

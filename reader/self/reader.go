@@ -27,9 +27,8 @@ package self
 import (
 	"bytes"
 	"context"
-	"fmt"
-	// to expose the metrics
 	"expvar"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -42,7 +41,7 @@ import (
 	"github.com/arsham/expvastic/reader"
 )
 
-// Reader contains communication channels with a worker that exposes expvar information.
+// Reader reads from expvastic own application's metric information.
 // It implements DataReader interface.
 type Reader struct {
 	name     string
@@ -57,17 +56,16 @@ type Reader struct {
 	endpoint string
 }
 
-// NewReader exposes expvastic's own metrics.
-func NewReader(
-	log logrus.FieldLogger,
-	endpoint string,
-	mapper datatype.Mapper,
-	name,
-	typeName string,
-	interval time.Duration,
-	timeout time.Duration,
-	backoff int,
-) (*Reader, error) {
+// New exposes expvastic's own metrics.
+// It returns and error on the following occasions:
+//
+//   Condition      |  Error
+//   ---------------|-------------
+//   name == ""     | ErrEmptyName
+//   typeName == "" | ErrEmptyTypeName
+//   backoff < 5    | ErrLowBackoffValue
+//
+func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name, typeName string, interval time.Duration, timeout time.Duration, backoff int) (*Reader, error) {
 	if name == "" {
 		return nil, reader.ErrEmptyName
 	}
@@ -108,8 +106,7 @@ func NewReader(
 	return w, nil
 }
 
-// Read begins reading from the target.
-// It sends an error back to the engine if it can't read from metrics provider
+// Read send the metrics back. The error is usually nil.
 func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
 	if r.endpoint != IgnoredEndpoint {
 		// To support the tests

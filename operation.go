@@ -5,9 +5,7 @@
 package expvastic
 
 import (
-	"context"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/arsham/expvastic/communication"
@@ -21,8 +19,6 @@ import (
 // Start begins pulling the data from DataReaders and chips them to the DataRecorder.
 // When the context is cancelled or timed out, the engine abandons its operations.
 func (e *Engine) Start() {
-	var wg sync.WaitGroup
-	wg.Add(1)
 	e.log.Infof("starting with %d readers", len(e.readers))
 
 	go func() {
@@ -32,50 +28,39 @@ func (e *Engine) Start() {
 		}
 	}()
 
-	e.startReaders(e.ctx)
-
-LOOP:
-	for {
-		select {
-		case job := <-e.readerJobs:
-			// sending the payload
-			go e.shipToRecorder(job)
-
-		case <-e.ctx.Done():
-			e.log.Debug(contextCanceled)
-			wg.Done()
-			break LOOP
-		}
-	}
-	wg.Wait()
-}
-
-func (e *Engine) startReaders(ctx context.Context) {
 	e.redmu.RLock()
 	readers := e.readers
 	e.redmu.RUnlock()
 	for _, red := range readers {
-		expReaders.Add(1)
-
-		go func(red reader.DataReader) {
-			ticker := time.NewTicker(red.Interval())
-			e.log.Debugf("started reader: %s", red.Name())
-
-		LOOP:
-			for {
-				select {
-				case <-ticker.C:
-					// [1] job's life cycle starts here...
-					e.log.Debugf("issuing job to: %s", red.Name())
-					go e.issueReaderJob(red)
-
-				case <-ctx.Done():
-					e.log.Debug("context has been cancelled, end of startReaders method")
-					break LOOP
-				}
-			}
-		}(red)
+		e.wg.Add(1)
+		go e.readerEventLoop(red)
 	}
+
+	e.wg.Wait()
+}
+
+// readerEventLoop starts readers event loop. It handles the recordings
+func (e *Engine) readerEventLoop(red reader.DataReader) {
+	expReaders.Add(1)
+	ticker := time.NewTicker(red.Interval())
+	e.log.Debugf("started reader: %s", red.Name())
+LOOP:
+	for {
+		select {
+		case <-ticker.C:
+			// [1] job's life cycle starts here...
+			e.log.Debugf("issuing job to: %s", red.Name())
+			go e.issueReaderJob(red)
+
+		case job := <-e.readerJobs:
+			go e.shipToRecorder(job)
+
+		case <-e.ctx.Done():
+			e.log.Debug(contextCanceled)
+			break LOOP
+		}
+	}
+	e.wg.Done()
 }
 
 func (e *Engine) issueReaderJob(red reader.DataReader) {
@@ -118,7 +103,9 @@ func (e *Engine) issueReaderJob(red reader.DataReader) {
 }
 
 func (e *Engine) shipToRecorder(result *reader.ReadJobResult) {
-	payload := datatype.JobResultDataTypes(result.Res, result.Mapper)
+	res := make([]byte, len(result.Res))
+	copy(res, result.Res)
+	payload := datatype.JobResultDataTypes(res, result.Mapper.Copy())
 	if payload.Error() != nil {
 		erroredJobs.Add(1)
 		e.log.Warnf("error in payload: %s", payload.Error())

@@ -6,10 +6,13 @@ package datatype
 
 import "github.com/antonholmquist/jason"
 
-// JobResultDataTypes generates a list of DataType and puts them inside the DataContainer
 // TODO: bypass the operation that won't be converted in any way. They are not supposed to be read
 // and converted back.
 // TODO: this operation can happen only once. Lazy load the thing.
+
+// JobResultDataTypes generates a list of DataType and puts them inside the DataContainer.
+// It returns errors if unmarshaling is unsuccessful or ErrUnidentifiedJason when the container
+// ends up empty.
 func JobResultDataTypes(b []byte, mapper Mapper) DataContainer {
 	obj, err := jason.NewObjectFromBytes(b)
 	if err != nil {
@@ -21,10 +24,10 @@ func JobResultDataTypes(b []byte, mapper Mapper) DataContainer {
 		expUnidentifiedJSON.Add(1)
 		return &Container{Err: ErrUnidentifiedJason}
 	}
-	return NewContainer(payload)
+	return New(payload)
 }
 
-// FromJason returns an instance of DataType from jason value
+// FromJason returns an instance of DataType from a jason value.
 func FromJason(key string, value jason.Value) (DataType, error) {
 	var (
 		err error

@@ -7,15 +7,11 @@ package expvastic_test
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"time"
 
 	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/lib"
-	reader_testing "github.com/arsham/expvastic/reader/testing"
-	recorder_testing "github.com/arsham/expvastic/recorder/testing"
 )
 
 func ExampleEngine_sendingJobs() {
@@ -23,34 +19,22 @@ func ExampleEngine_sendingJobs() {
 	ctx, cancel := context.WithCancel(context.Background())
 	recorded := make(chan string)
 
-	redTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		desire := `{"the key": "is the value!"}`
-		io.WriteString(w, desire)
-	}))
-	defer redTs.Close()
-
-	recTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		recorded <- "Job was recorded"
 	}))
-	defer recTs.Close()
+	defer ts.Close()
 
-	red, err := reader_testing.NewSimpleReader(log, redTs.URL, "reader_example", "typeName", time.Second, time.Second, 5) //for testing
-	if err != nil {
-		panic(err)
-	}
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "reader_example", recTs.URL, "intexName", time.Second, 5)
-	if err != nil {
-		panic(err)
-	}
+	red, redTearDown := getReader(log)
+	defer redTearDown()
+	rec := getRecorder(ctx, log, ts.URL)
 
-	e, err := expvastic.NewWithReadRecorder(ctx, log, rec, red)
+	e, err := expvastic.New(ctx, log, rec, red)
 	done := make(chan struct{})
 	go func() {
 		e.Start()
 		done <- struct{}{}
 	}()
 	fmt.Println("Engine creation success:", err == nil)
-
 	fmt.Println(<-recorded)
 
 	cancel()

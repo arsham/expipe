@@ -34,7 +34,7 @@ func testRecorderErrorsOnUnavailableEndpoint(t *testing.T, rec recorder.DataReco
 func testRecorderBacksOffOnEndpointGone(t *testing.T, rec recorder.DataRecorder, teardown func()) {
 	ctx := context.Background()
 	teardown()
-	p := datatype.NewContainer([]datatype.DataType{})
+	p := datatype.New([]datatype.DataType{})
 	payload := &recorder.RecordJob{
 		ID:        communication.NewJobID(),
 		Payload:   p,

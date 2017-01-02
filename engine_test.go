@@ -39,7 +39,7 @@ func TestNewWithReadRecorder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e, err := expvastic.NewWithReadRecorder(ctx, log, rec, red, red2)
+	e, err := expvastic.New(ctx, log, rec, red, red2)
 	if err != expvastic.ErrDuplicateRecorderName {
 		t.Error("want error, got nil")
 	}
@@ -79,7 +79,7 @@ func TestEngineSendJob(t *testing.T) {
 		return nil
 	}
 
-	e, err := expvastic.NewWithReadRecorder(ctx, log, rec, red)
+	e, err := expvastic.New(ctx, log, rec, red)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -142,7 +142,7 @@ func TestEngineMultiReader(t *testing.T) {
 		reds[i] = red
 	}
 
-	e, err := expvastic.NewWithReadRecorder(ctx, log, rec, reds...)
+	e, err := expvastic.New(ctx, log, rec, reds...)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -173,7 +173,7 @@ func TestEngineNewWithConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e, err := expvastic.NewWithConfig(ctx, log, rec, red)
+	e, err := expvastic.WithConfig(ctx, log, rec, red)
 	if err != reader.ErrEmptyName {
 		t.Errorf("want ErrEmptyReaderName, got (%v)", err)
 	}
@@ -185,7 +185,7 @@ func TestEngineNewWithConfig(t *testing.T) {
 	rec, _ = recorder_testing.NewMockConfig("recorder_example", log, "nowhere", time.Hour, 5, "index")
 	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 5)
 
-	e, err = expvastic.NewWithConfig(ctx, log, rec, red)
+	e, err = expvastic.WithConfig(ctx, log, rec, red)
 	if e != nil {
 		t.Errorf("want nil, got (%v)", e)
 	}
@@ -198,7 +198,7 @@ func TestEngineNewWithConfig(t *testing.T) {
 	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 5)
 	red2, _ := reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 5)
 	rec, _ = recorder_testing.NewMockConfig("recorder_example", log, "http://127.0.0.1:9200", time.Hour, 5, "index")
-	e, err = expvastic.NewWithConfig(ctx, log, rec, red, red2)
+	e, err = expvastic.WithConfig(ctx, log, rec, red, red2)
 	if err == nil {
 		t.Error("want error, got nil")
 	}

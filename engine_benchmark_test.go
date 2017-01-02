@@ -7,6 +7,8 @@ package expvastic_test
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -57,6 +59,8 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 		{100, 100, 100, 100, 1000},
 		{1000, 1000, 1000, 1000, 1000},
 	}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer ts.Close()
 	log := lib.DiscardLogger()
 	log.Level = logrus.ErrorLevel
 	for _, bc := range bcs {
@@ -64,9 +68,12 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 		name := fmt.Sprintf("Benchmark-%d_%d_%d_%d_(r:%d)", bc.readChanBuff, bc.readResChanBuff, bc.recChanBuff, bc.recResChan, bc.readers)
 
 		// Setting the intervals to an hour so the benchmark can issue jobs
-		rec, _ := recorder_testing.NewSimpleRecorder(ctx, log, "reacorder_example", "http://127.0.0.1", "intexName", time.Hour, 5)
-		reds := makeReaders(ctx, bc.readers, log, "http://127.0.0.1")
-		e, _ := expvastic.NewWithReadRecorder(ctx, log, rec, reds...)
+		rec, _ := recorder_testing.NewSimpleRecorder(ctx, log, "reacorder_example", ts.URL, "intexName", time.Hour, 5)
+		reds, err := makeReaders(ctx, bc.readers, log, ts.URL)
+		if err != nil {
+			b.Fatal(err)
+		}
+		e, _ := expvastic.New(ctx, log, rec, reds...)
 
 		done := make(chan struct{})
 		go func(done chan struct{}) {
@@ -90,7 +97,7 @@ func benchmarkEngine(ctx context.Context, reds []reader.DataReader, b *testing.B
 	}
 }
 
-func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url string) []reader.DataReader {
+func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url string) ([]reader.DataReader, error) {
 	reds := make([]reader.DataReader, count)
 	readFunc := func(m *reader_testing.SimpleReader) func(ctx context.Context) (*reader.ReadJobResult, error) {
 		return func(job context.Context) (*reader.ReadJobResult, error) {
@@ -107,9 +114,12 @@ func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url str
 	}
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("reader_%d", i)
-		red, _ := reader_testing.NewSimpleReader(log, url, name, "example_type", time.Hour, time.Hour, 10)
+		red, err := reader_testing.NewSimpleReader(log, url, name, "example_type", time.Hour, time.Hour, 10)
+		if err != nil {
+			return nil, err
+		}
 		red.ReadFunc = readFunc(red)
 		reds[i] = red
 	}
-	return reds
+	return reds, nil
 }

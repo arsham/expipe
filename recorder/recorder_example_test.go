@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package testing
+package recorder_test
 
 import (
 	"context"
@@ -12,13 +12,11 @@ import (
 	"time"
 
 	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/recorder"
+	"github.com/arsham/expvastic/recorder/testing"
 )
 
-func ExampleSimpleRecorder() {
-	var err error
-	log := lib.DiscardLogger()
+func ExampleDataRecorder() {
 	ctx := context.Background()
 	receivedPayload := make(chan string)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,8 +24,8 @@ func ExampleSimpleRecorder() {
 	}))
 	defer ts.Close()
 
-	rec, _ := NewSimpleRecorder(ctx, log, "reader_example", ts.URL, "intexName", time.Second, 5)
-	payload := datatype.NewContainer([]datatype.DataType{
+	rec := testing.GetRecorder(ctx, ts.URL)
+	payload := datatype.New([]datatype.DataType{
 		datatype.StringType{Key: "key", Value: "value"},
 	})
 	job := &recorder.RecordJob{
@@ -35,10 +33,9 @@ func ExampleSimpleRecorder() {
 		IndexName: "my index",
 		Time:      time.Now(),
 	}
-	// Issuing a job
+
 	go func() {
-		err = rec.Record(ctx, job)
-		// Lets check the errors
+		err := rec.Record(ctx, job)
 		if err != nil {
 			panic("Wasn't expecting any errors")
 		}
@@ -46,8 +43,7 @@ func ExampleSimpleRecorder() {
 	fmt.Println(<-receivedPayload)
 	fmt.Println("No errors reported")
 
-	// Issuing another job
-	go rec.Record(ctx, job)
+	go rec.Record(ctx, job) // Issuing another job
 	fmt.Println(<-receivedPayload)
 
 	// Output:

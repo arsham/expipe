@@ -109,6 +109,14 @@ func TestGetKnownReaderKeyTypes(t *testing.T) {
     `)),
 			value: "expvar",
 		},
+		{
+			input: bytes.NewBuffer([]byte(`
+    readers:
+        reader1:
+            type: self
+    `)),
+			value: "self",
+		},
 	}
 
 	for i, tc := range tcs {

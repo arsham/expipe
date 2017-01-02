@@ -29,6 +29,7 @@ func (e errMsg) Error() string { return string(e) }
 // the entries might have been stacked, we need to iterate over.
 func inspectLogs(entries []*logrus.Entry, niddle string) (all string, found bool) {
 	var res []string
+
 	for _, field := range entries {
 		if strings.Contains(field.Message, niddle) {
 			return "", true

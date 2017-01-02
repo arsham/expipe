@@ -35,7 +35,8 @@ type ConfMap struct {
 	Recorders map[string]RecorderConf
 
 	// Routes contains a map of recorder names to a list of readers.
-	// map["rec1"][]string{"red1", "red2"}: means whatever is read from red1 and red2, will be shipped to rec1.
+	// map["rec1"][]string{"red1", "red2"}: means whatever is read
+	// from red1 and red2, will be shipped to rec1.
 	Routes map[string][]string
 }
 
@@ -53,7 +54,7 @@ func checkSettingsSect(log *logrus.Logger, v *viper.Viper) error {
 }
 
 // LoadYAML loads the settings from the configuration file.
-// It returns the errors coming from readers/recorders. Please
+// It returns any errors returned from readers/recorders. Please
 // refer to their documentations.
 func LoadYAML(log *logrus.Logger, v *viper.Viper) (*ConfMap, error) {
 	var (
