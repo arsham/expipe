@@ -11,9 +11,15 @@ import (
 	"github.com/arsham/expvastic/communication"
 )
 
+// This example shows how to create a new job from a context.
+func ExampleNewReadJob() {
+	job := communication.NewReadJob(context.Background())
+	_ = job
+}
+
 // This example shows how to pass a jobID around and how to
 // get the ID back.
-func ExampleJobValue() {
+func ExampleJobValue_fromJob() {
 	job := communication.NewReadJob(context.Background())
 	// pass the job around....
 	jobID := communication.JobValue(job)

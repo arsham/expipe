@@ -3,8 +3,10 @@
 // License that can be found in the LICENSE file.
 
 // Package self contains codes for recording expvastic's own metrics.
-// Here is a list of currently collected metrics:
 //
+// Collected metrics
+//
+// This list will grow in time:
 //      ElasticSearch Var Name    | expvastic var name
 //      ----------------------------------------------
 //      Recorders                 | expRecorders

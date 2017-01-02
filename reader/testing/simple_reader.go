@@ -35,15 +35,7 @@ type SimpleReader struct {
 }
 
 // NewSimpleReader is a reader for using in tests
-func NewSimpleReader(
-	log logrus.FieldLogger,
-	endpoint string,
-	name,
-	typeName string,
-	interval,
-	timeout time.Duration,
-	backoff int,
-) (*SimpleReader, error) {
+func NewSimpleReader(log logrus.FieldLogger, endpoint string, name, typeName string, interval, timeout time.Duration, backoff int) (*SimpleReader, error) {
 	if name == "" {
 		return nil, reader.ErrEmptyName
 	}

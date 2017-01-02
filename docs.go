@@ -9,7 +9,9 @@
 //
 // At the heart of this package, there is Engine. It acts like a glue between multiple Readers and a Recorder. Messages are transferred in a package called DataContainer, which is a list of DataType objects.
 //
-// Here an example configuration, save it somewhere (let's call it expvastic.yml for now):
+// Example configuration
+//
+// Save it somewhere (let's call it expvastic.yml for now):
 //
 //    settings:
 //        log_level: info

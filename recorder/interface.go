@@ -6,6 +6,8 @@
 // guaranteed to be json marshallable. Any objects that implements the DataRecorder
 // interface can be used in this system.
 //
+// Important Notes
+//
 // Recorders should ping their endpoint upon creation to make sure they can access.
 // Otherwise they should return an error indicating they cannot start.
 //
@@ -23,6 +25,9 @@ import (
 // DataRecorder receives a payload for shipping data to a repository.
 // The repository should have the concept of index/database and type/table
 // abstractions. See ElasticSearch for more information.
+//
+// Notes
+//
 // Recorders should not change the index name coming in the payload unless
 // they have a valid reason. The engine might add a date to this index name
 // if the user has specified in the configuration file.

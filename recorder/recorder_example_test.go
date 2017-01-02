@@ -16,6 +16,7 @@ import (
 	"github.com/arsham/expvastic/recorder/testing"
 )
 
+// This example shows when a record job is issued, the recorder hits the endpoint.
 func ExampleDataRecorder() {
 	ctx := context.Background()
 	receivedPayload := make(chan string)

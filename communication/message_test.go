@@ -18,13 +18,6 @@ func TestContextKey(t *testing.T) {
 	}
 }
 
-func TestJobID(t *testing.T) {
-	id := NewJobID()
-	if !strings.Contains(id.String(), id.String()) {
-		t.Errorf("want %s in the jobID, got (%s)", id.String(), id.String())
-	}
-}
-
 func TestNewReadJob(t *testing.T) {
 	ctx := context.Background()
 	job := NewReadJob(ctx)

@@ -15,6 +15,7 @@ import (
 	reader "github.com/arsham/expvastic/reader/testing"
 )
 
+// This example shows the reader hits the endpoint when the Read method is called.
 func ExampleDataReader_read() {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

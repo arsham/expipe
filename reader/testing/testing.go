@@ -6,8 +6,9 @@
 // with all the necessary mocks and call the proper methods.
 // You should always default a zero value on the return.
 //
-// For example:
+// Example
 //
+// In this example you set-up your reader to be tested in this suit:
 //    func TestReaderCommunication(t *testing.T) {
 //        reader_test.TestReaderCommunication(t, func(testCase int) (reader.DataReader, string, func()) {
 //            testMessage := `{"the key": "is the value!"}`
@@ -28,7 +29,9 @@
 // The test suit will pick it up and does all the tests.
 // If you don't provide a test case, it will fail on that particular test.
 //
-// IMPORTANT: you need to write the edge cases if they are not covered in this section.
+// Important Note
+//
+// You need to write the edge cases if they are not covered in this section.
 package testing
 
 import (

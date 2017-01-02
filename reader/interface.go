@@ -6,6 +6,8 @@
 // can be used in this system. The job should provide a byte slice that is JSON unmarshallable, otherwise
 // the data will be rejected.
 //
+// Important Notes
+//
 // Readers should ping their endpoint upon creation to make sure they can read from. Otherwise they should return
 // ErrEndpointNotAvailable error indicating they cannot start.
 //
@@ -24,6 +26,9 @@ import (
 
 // DataReader receives job requests to read from the target. It returns
 // an error if the data cannot be read or the connection is refused.
+//
+// Notes
+//
 // Readers should not intercept the engine's decision on the TypeName,
 // unless they have a valid reason.
 type DataReader interface {
