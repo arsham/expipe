@@ -11,11 +11,25 @@ import (
 	"time"
 
 	"github.com/arsham/expvastic/communication"
-	"github.com/arsham/expvastic/reader"
 )
 
 // testReaderReceivesJob is a test helper to test the reader can receive jobs
-func testReaderReceivesJob(t *testing.T, red reader.DataReader) {
+func testReaderReceivesJob(t *testing.T, cons Constructor) {
+	cons.SetName("the name")
+	cons.SetTypename("my type")
+	cons.SetEndpoint(cons.TestServer().URL)
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+
+	red, err := cons.Object()
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
+	err = red.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 	done := make(chan struct{})
 	errChan := make(chan string)
@@ -61,7 +75,22 @@ func testReaderReceivesJob(t *testing.T, red reader.DataReader) {
 }
 
 // testReaderReturnsSameID is a test helper to test the reader returns the same ID in the response
-func testReaderReturnsSameID(t *testing.T, red reader.DataReader) {
+func testReaderReturnsSameID(t *testing.T, cons Constructor) {
+	cons.SetName("the name")
+	cons.SetTypename("my type")
+	cons.SetEndpoint(cons.TestServer().URL)
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+	red, err := cons.Object()
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
+	err = red.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	done := make(chan struct{})
 	errChan := make(chan string)
 	fatalChan := make(chan string)

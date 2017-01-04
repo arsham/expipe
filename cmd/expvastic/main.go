@@ -10,8 +10,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime"
-	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
@@ -38,8 +36,6 @@ var (
 	interval          = flag.Duration("int", time.Second, "Interval between pulls from the target")
 	timeout           = flag.Duration("timeout", 30*time.Second, "Communication time-outs to both reader and recorder")
 	backoff           = flag.Int("backoff", 15, "After this amount, it will give up accessing unresponsive endpoints") // TODO: implement!
-	cpuprofile        = flag.String("cpuprof", "", "./expvastic -c expvastic -cpuprof=cpu.out")
-	memprofile        = flag.String("memprof", "", "./expvastic -c expvastic -memprof=mem.out")
 	// ExitCommand is used for replacing during tests.
 	ExitCommand = func(msg string) {
 		log.Fatalf(msg)
@@ -53,19 +49,6 @@ func main() {
 		done      chan struct{}
 	)
 	flag.Parse()
-	if *cpuprofile != "" {
-		cpuFile, err := os.Create(*cpuprofile)
-		if err != nil {
-			ExitCommand(fmt.Sprintf("creating CPU profile: %s", err))
-			return
-		}
-		if err := pprof.StartCPUProfile(cpuFile); err != nil {
-			ExitCommand(fmt.Sprintf("starting CPU profile: %s", err))
-			return
-		}
-		defer cpuFile.Close()
-		defer pprof.StopCPUProfile()
-	}
 
 	if *confFile == "" {
 		log = lib.GetLogger(*debugLevel)
@@ -91,19 +74,6 @@ func main() {
 		}
 	}
 
-	if *memprofile != "" {
-		memFile, err := os.Create(*memprofile)
-		if err != nil {
-			ExitCommand(fmt.Sprintf("creating memory profile: %s", err))
-			return
-		}
-		runtime.GC()
-		if err := pprof.WriteHeapProfile(memFile); err != nil {
-			ExitCommand(fmt.Sprintf("writing memory profile: %s", err))
-			return
-		}
-		memFile.Close()
-	}
 	if shallStartEngines {
 		<-done
 	}

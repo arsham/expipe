@@ -21,6 +21,7 @@ type Config struct {
 	SelfTypeName string `mapstructure:"type_name"`
 	SelfInterval string `mapstructure:"interval"`
 	SelfBackoff  int    `mapstructure:"backoff"`
+	SelfEndpoint string // this is for testing purposes and you are not supposed to set it
 	mapper       datatype.Mapper
 
 	interval time.Duration
@@ -49,11 +50,9 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 	c.interval = inter
 	c.log = log
 	c.name = name
+	c.SelfEndpoint = "http://127.0.0.1:9200"
 	return &c, nil
 }
-
-// IgnoredEndpoint is used for testing
-var IgnoredEndpoint = "http://127.0.0.1:9200"
 
 // NewInstance instantiates a SelfReader
 func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
@@ -67,7 +66,7 @@ func (c *Config) Name() string { return c.name }
 func (c *Config) TypeName() string { return c.SelfTypeName }
 
 // Endpoint returns the endpoint
-func (c *Config) Endpoint() string { return IgnoredEndpoint }
+func (c *Config) Endpoint() string { return c.SelfEndpoint }
 
 // RoutePath returns the routepath
 func (c *Config) RoutePath() string { return "" }

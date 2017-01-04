@@ -28,6 +28,7 @@ func getReader(log logrus.FieldLogger) (reader.DataReader, func()) {
 	if err != nil {
 		panic(err)
 	}
+	red.Pinged = true
 	return red, func() {
 		ts.Close()
 	}
@@ -38,5 +39,6 @@ func getRecorder(ctx context.Context, log logrus.FieldLogger, url string) record
 	if err != nil {
 		panic(err)
 	}
+	rec.Pinged = true
 	return rec
 }

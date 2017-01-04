@@ -15,7 +15,22 @@ import (
 )
 
 // testRecorderReceivesPayload tests the recorder receives the payload correctly.
-func testRecorderReceivesPayload(ctx context.Context, t *testing.T, rec recorder.DataRecorder) {
+func testRecorderReceivesPayload(t *testing.T, cons Constructor) {
+	ctx := context.Background()
+	cons.SetName("the name")
+	cons.SetIndexName("my_index")
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+	cons.SetEndpoint(cons.TestServer().URL)
+
+	rec, err := cons.Object()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = rec.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
 	p := datatype.New([]datatype.DataType{})
 	payload := &recorder.RecordJob{
 		ID:        communication.NewJobID(),
@@ -39,17 +54,32 @@ func testRecorderReceivesPayload(ctx context.Context, t *testing.T, rec recorder
 }
 
 // testRecorderSendsResult tests the recorder send the results to the endpoint.
-func testRecorderSendsResult(ctx context.Context, t *testing.T, rec recorder.DataRecorder) {
+func testRecorderSendsResult(t *testing.T, cons Constructor) {
+	ctx := context.Background()
+	cons.SetName("the name")
+	cons.SetIndexName("index_name")
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+	cons.SetEndpoint(cons.TestServer().URL)
+
+	rec, err := cons.Object()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = rec.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
 	p := datatype.New([]datatype.DataType{&datatype.StringType{Key: "test", Value: "test"}})
 	payload := &recorder.RecordJob{
 		ID:        communication.NewJobID(),
 		Payload:   p,
-		IndexName: "my index",
-		TypeName:  "my type",
+		IndexName: "my_index",
+		TypeName:  "my_type",
 		Time:      time.Now(),
 	}
 
-	err := rec.Record(ctx, payload)
+	err = rec.Record(ctx, payload)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}

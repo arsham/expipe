@@ -6,146 +6,118 @@ package elasticsearch_test
 
 import (
 	"context"
-	"errors"
-	"net/url"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/datatype"
+	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/recorder"
 	"github.com/arsham/expvastic/recorder/elasticsearch"
 	recorder_testing "github.com/arsham/expvastic/recorder/testing"
-	"github.com/olivere/elastic"
 )
 
-func isTravis() bool {
-	return os.Getenv("TRAVIS") != ""
-}
+var (
+	log        logrus.FieldLogger
+	testServer *httptest.Server
+)
 
-func destroyIndex(t *testing.T, endpoint, indexName string) {
-	log := lib.DiscardLogger()
-	addr := elastic.SetURL(endpoint)
-	logger := elastic.SetErrorLog(log)
-	timeout := time.Second
-
-	client, err := elastic.NewClient(
-		addr,
-		logger,
-		elastic.SetHealthcheckTimeoutStartup(timeout),
-		elastic.SetSnifferTimeout(timeout),
-		elastic.SetHealthcheckTimeout(timeout),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	_, _, err = client.Ping(endpoint).Do(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = client.DeleteIndex(indexName).Do(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func setupWithURL(t *testing.T, URL string, indexName string) (ctx context.Context, rec *elasticsearch.Recorder, err error) {
-	log := lib.DiscardLogger()
-	ctx = context.Background()
-
-	timeout := 10 * time.Millisecond
-	if isTravis() {
-		timeout = 10 * time.Second
-	}
-
-	rec, err = elasticsearch.New(ctx, log, "reader_example", URL, indexName, timeout, 5)
-	return ctx, rec, err
-}
-
-func setup(t *testing.T) (ctx context.Context, rec *elasticsearch.Recorder, teardown func(), err error) {
-	endpoint := "http://127.0.0.1:9200"
-	indexName := "expvastic_test"
-	ctx, rec, err = setupWithURL(t, endpoint, indexName)
-	return ctx, rec, func() {
-		destroyIndex(t, endpoint, indexName)
-	}, err
-}
-
-func TestRecorderCommunication(t *testing.T) {
-	recorder_testing.TestRecorderCommunication(t, func(testCase int) (context.Context, recorder.DataRecorder, error, func()) {
-		switch testCase {
-		case recorder_testing.RecorderReceivesPayloadTestCase:
-			ctx, rec, teardown, err := setup(t)
-			return ctx, rec, err, teardown
-
-		case recorder_testing.RecorderSendsResultTestCase:
-			ctx, rec, teardown, err := setup(t)
-			return ctx, rec, err, teardown
-
-		case recorder_testing.RecorderClosesTestCase:
-			ctx, rec, teardown, err := setup(t)
-			return ctx, rec, err, teardown
-
-		default:
-			return nil, nil, nil, nil
+func TestMain(m *testing.M) {
+	log = lib.DiscardLogger()
+	var host, url, port string
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/_nodes/http" {
+			// sniffing
+			w.Write([]byte(fmt.Sprintf(`{
+  "_nodes": {
+    "total": 1,
+    "successful": 1,
+    "failed": 0
+  },
+  "cluster_name": "elasticsearch",
+  "nodes": {
+    "P2CLuttqTw-UaiqMYwEkeA": {
+      "name": "P2CLutt",
+      "transport_address": "%s:9300",
+      "host": "%s",
+      "ip": "%s",
+      "version": "5.0.1",
+      "build_hash": "080bb47",
+      "roles": [
+        "master",
+        "data",
+        "ingest"
+      ],
+      "http": {
+        "bound_address": [
+          "[::]:%s"
+        ],
+        "publish_address": "%s",
+        "max_content_length_in_bytes": 104857600
+      }
+    }
+  }
+}`, host, host, host, port, url)))
+		} else if len(r.URL.Path) > 5 {
+			// recording
+			w.Write([]byte(`{"_index":"my_index","_type":"my type","_id":"AVlzOSs-sx0uWYTCQCzC","_version":1,"result":"created","_shards":{"total":2,"successful":1,"failed":0},"created":true}`))
+		} else if r.URL.Path == "/" {
+			// pinging
+			w.Write([]byte(`{"name" : "P2CLutt", "cluster_name" : "elasticsearch", "cluster_uuid" : "MEhShuk2R9aUgnnX_Qk2bw", "version" : {"number" : "5.0.1", "build_hash" : "080bb47", "build_date" : "2016-11-11T22:08:49.812Z", "build_snapshot" : false, "lucene_version" : "6.2.1"}, "tagline" : "You Know, for Search"}`))
 		}
 	})
+
+	testServer = httptest.NewServer(handler)
+	url = strings.Split(testServer.URL, "//")[1]
+	host, port = strings.Split(url, ":")[0], strings.Split(url, ":")[1]
+	exitCode := m.Run()
+	testServer.Close()
+	os.Exit(exitCode)
 }
 
-func TestElasticsearchRecorderConstruction(t *testing.T) {
-	recorder_testing.TestRecorderConstruction(t, func(testCase int, name, endpoint, indexName string, timeout time.Duration, backoff int) (recorder.DataRecorder, error) {
-		switch testCase {
-		case recorder_testing.RecorderConstructionCasesTestCase:
-			log := lib.DiscardLogger()
-			rec, err := elasticsearch.New(context.Background(), log, name, endpoint, indexName, timeout, backoff)
-			destroyIndex(t, endpoint, indexName)
-			return rec, err
-
-		case recorder_testing.RecorderErrorsOnInvalidEndpointTestCase:
-			log := lib.DiscardLogger()
-			return elasticsearch.New(context.Background(), log, name, endpoint, indexName, timeout, backoff)
-
-		default:
-			return nil, nil
-		}
-	})
+type Construct struct {
+	name      string
+	indexName string
+	endpoint  string
+	interval  time.Duration
+	timeout   time.Duration
+	backoff   int
 }
 
-func TestElasticsearchRecorderEndpointManeuvers(t *testing.T) {
-	recorder_testing.TestRecorderEndpointManeuvers(t, func(testCase int) (context.Context, recorder.DataRecorder, error, func()) {
-		switch testCase {
-		case recorder_testing.RecorderErrorsOnUnavailableEndpointTestCase:
-			var err error
-			log := lib.DiscardLogger()
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (c *Construct) SetName(name string)                { c.name = name }
+func (c *Construct) SetIndexName(indexName string)      { c.indexName = indexName }
+func (c *Construct) SetEndpoint(endpoint string)        { c.endpoint = endpoint }
+func (c *Construct) SetInterval(interval time.Duration) { c.interval = interval }
+func (c *Construct) SetTimeout(timeout time.Duration)   { c.timeout = timeout }
+func (c *Construct) SetBackoff(backoff int)             { c.backoff = backoff }
+func (c *Construct) TestServer() *httptest.Server       { return testServer }
+func (c *Construct) Object() (recorder.DataRecorder, error) {
+	return elasticsearch.New(context.Background(), log, c.name, c.endpoint, c.indexName, c.timeout, c.backoff)
+}
 
-			timeout := 1 * time.Millisecond
-			if isTravis() {
-				timeout = 10 * time.Second
-			}
+func (c *Construct) ValidEndpoints() []string {
+	return []string{
+		"http://192.168.1.1:9200",
+		"http://127.0.0.1:9200",
+		"http://localhost:9200",
+		"http://localhost.localdomain:9200",
+	}
+}
 
-			rec, err := elasticsearch.New(ctx, log, "d", "http://nowherelocalhost", "d", timeout, 5)
-			return ctx, rec, err, func() {
-				cancel()
-			}
+func (c *Construct) InvalidEndpoints() []string {
+	return []string{
+		"http://192.168 .1.1:9200",
+		"http ://127.0.0.1:9200",
+		"http://:9200",
+		":9200",
+		"",
+	}
+}
 
-		case recorder_testing.RecorderBacksOffOnEndpointGoneTestCase:
-			ctx, rec, teardown, err := setup(t)
-			rec.SetRecordFunc(func(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
-				return &url.Error{Op: "GET", URL: "nowhere", Err: errors.New("getsockopt: connection refused")}
-			})
-			return ctx, rec, err, func() {
-				teardown()
-			}
-
-		default:
-			return nil, nil, nil, nil
-		}
-	})
+func TestElasticsearch(t *testing.T) {
+	recorder_testing.TestRecorder(t, &Construct{})
 }

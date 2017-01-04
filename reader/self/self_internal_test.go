@@ -6,6 +6,8 @@ package self
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -17,7 +19,8 @@ import (
 // The other test goes through a normal path, we need to test the actual path
 func TestSelfReaderReadsExpvar(t *testing.T) {
 	log := lib.DiscardLogger()
-	typeName := "my type"
+	ts := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	typeName := "my_type"
 	mapper := datatype.DefaultMapper()
 	red := &Reader{
 		name:     "self",
@@ -26,9 +29,15 @@ func TestSelfReaderReadsExpvar(t *testing.T) {
 		log:      log,
 		interval: time.Hour,
 		timeout:  time.Hour,
-		endpoint: IgnoredEndpoint,
+		endpoint: ts.URL,
 		backoff:  5,
+		testMode: true, // so we can ping, then we will make it false
 	}
+	err := red.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
+	red.testMode = false // set it so it goes through the normal mode
 	job := communication.NewReadJob(context.Background())
 	res, err := red.Read(job)
 	if err != nil {

@@ -20,12 +20,19 @@ import (
 func ExampleDataRecorder() {
 	ctx := context.Background()
 	receivedPayload := make(chan string)
+	pinged := false
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !pinged {
+			pinged = true
+			return
+		}
 		receivedPayload <- "I have received the payload!"
 	}))
 	defer ts.Close()
 
 	rec := testing.GetRecorder(ctx, ts.URL)
+	rec.Ping()
+	fmt.Println("Pinging successful")
 	payload := datatype.New([]datatype.DataType{
 		datatype.StringType{Key: "key", Value: "value"},
 	})
@@ -48,6 +55,7 @@ func ExampleDataRecorder() {
 	fmt.Println(<-receivedPayload)
 
 	// Output:
+	// Pinging successful
 	// I have received the payload!
 	// No errors reported
 	// I have received the payload!

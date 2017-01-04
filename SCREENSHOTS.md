@@ -3,29 +3,44 @@
 ### Table of Contents
 
 1. [Memory Usage](#memory-usage)
+  * [Three Apps](#three-apps)
+  * [Expvastic Memory Usage](#expvastic-memory-usage)
+  * [Expvastic Stack In Use](#expvastic-stack-in-use)
+  * [Expvastic Total Allocations](#expvastic-total-allocations)
+  * [Expvastic Heap Objects](#expvastic-heap-objects)
+  * [Expvastic Heap Allocations](#expvastic-heap-allocations)
+  * [Expvastic Heap In Use](#expvastic-heap-in-use)
+  * [Expvastic Data Collections](#expvastic-data-collections)
 2. [JSON Tables](#json-tables)
 
 ## Memory Usage
 
-This graph show the memory usage for all applications. The lower blue likes are expvastic's!
+#### Three Apps
+This graph shows memory stats for two apps plus expvastic's own metrics. The goroutine count comes from expvastic as the other two are not exposing these information.
+![Colored](http://i.imgur.com/gTPOCsD.png)
 
-![Colored](http://i.imgur.com/1ohTA3Q.png)
+#### Expvastic Memory Usage
+This is the same graph as above, notice how we used a lucene query to filter out other apps
+![Colored](http://i.imgur.com/6U2hxlp.png)
 
-This graph shows expvastic's memory consumption under heavy load
+#### Expvastic Stack In Use
+![Colored](http://i.imgur.com/F28MWZY.png)
 
-![Colored](http://i.imgur.com/OsBzWzl.png)
+#### Expvastic Total Allocations
+![Colored](http://i.imgur.com/Tig1k8t.png)
 
-This graph shows 2 applications with example input (at the bottom)
+#### Expvastic Heap Objects
+![Colored](http://i.imgur.com/s8p9br0.png)
 
-![Colored](http://i.imgur.com/Ewndab6.png)
+#### Expvastic Heap Allocations
+![Colored](http://i.imgur.com/U6XEqah.png)
 
-Another view
+#### Expvastic Heap In Use
+![Colored](http://i.imgur.com/I1yY3kN.png)
 
-![Colored](http://i.imgur.com/34kdQe8.png)
+#### Expvastic Data Collections
 
-This graph shows expvastic's data collections
-
-![Colored](http://i.imgur.com/WQwBz9e.png)
+![Colored](http://i.imgur.com/XcjlwlB.png)
 
 ## JSON Tables
 

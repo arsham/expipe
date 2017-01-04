@@ -36,6 +36,10 @@ type DataRecorder interface {
 	// Choose a very simple and unique name.
 	Name() string
 
+	// Ping should ping the endpoint and return nil if was successful.
+	// The Engine will not launch the reader if the ping result is an error.
+	Ping() error
+
 	// IndexName comes from the configuration, but the engine takes over.
 	IndexName() string
 

@@ -1,5 +1,5 @@
 hash: 5f22d461002c265e14a183c57d5c583e94bec62f697ed497b490ab37a029abdc
-updated: 2016-12-30T20:31:48.034969523Z
+updated: 2017-01-06T13:40:15.2820284Z
 imports:
 - name: github.com/antonholmquist/jason
   version: c23cef7eaa75a6a5b8810120e167bd590d8fd2ab
@@ -32,6 +32,10 @@ imports:
   version: 439fbba1f887c286024370cb4f281ba815c4c7d7
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/shurcooL/go
+  version: ecb4791be8860c12288a50b8473ee60392489d36
+  subpackages:
+  - ctxhttp
 - name: github.com/Sirupsen/logrus
   version: d26492970760ca5d33129d2d799e34be5c4782eb
   subpackages:
@@ -43,13 +47,13 @@ imports:
 - name: github.com/spf13/cast
   version: 56a7ecbeb18dde53c6db4bd96b541fd9741b8d44
 - name: github.com/spf13/jwalterweatherman
-  version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
+  version: bccdd23ae5e51bd2b081814db093646c7af3d34d
 - name: github.com/spf13/pflag
   version: 25f8b5b07aece3207895bf19f7ab517eb3b22a40
 - name: github.com/spf13/viper
   version: 5ed0fc31f7f453625df314d8e66b9791e8d13003
 - name: golang.org/x/net
-  version: 8fd7f25955530b92e73e9e1932a41b522b22ccd9
+  version: 905989bd20b7c354fd28a61074eed1c8f49ebc89
   subpackages:
   - context
   - context/ctxhttp
@@ -58,7 +62,7 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: fd889fe3a20f4878f5f47672fd3ca5b86db005e2
+  version: 44f4f658a783b0cee41fe0a23b8fc91d9c120558
   subpackages:
   - transform
   - unicode/norm

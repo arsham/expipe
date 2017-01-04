@@ -15,6 +15,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/recorder"
+	"github.com/shurcooL/go/ctxhttp"
 )
 
 // SimpleRecorder is designed to be used in tests
@@ -29,10 +30,23 @@ type SimpleRecorder struct {
 	strike     int
 	Smu        sync.RWMutex
 	RecordFunc func(context.Context, *recorder.RecordJob) error
+	Pinged     bool
 }
 
 // NewSimpleRecorder returns a SimpleRecorder instance
 func NewSimpleRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*SimpleRecorder, error) {
+	if name == "" {
+		return nil, recorder.ErrEmptyName
+	}
+
+	if indexName == "" {
+		return nil, recorder.ErrEmptyIndexName
+	}
+
+	if strings.ContainsAny(indexName, ` "*\<|,>/?`) {
+		return nil, recorder.ErrInvalidIndexName(indexName)
+	}
+
 	if backoff < 5 {
 		return nil, recorder.ErrLowBackoffValue(backoff)
 	}
@@ -40,6 +54,7 @@ func NewSimpleRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoi
 	if err != nil {
 		return nil, recorder.ErrInvalidEndpoint(endpoint)
 	}
+
 	w := &SimpleRecorder{
 		name:      name,
 		endpoint:  url,
@@ -51,8 +66,31 @@ func NewSimpleRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoi
 	return w, nil
 }
 
+// Ping pings the endpoint and return nil if was successful.
+func (s *SimpleRecorder) Ping() error {
+	if s.Pinged {
+		// In tests, we have a strict policy on channels. Therefore if it
+		// is already pinged, we won't bother.
+
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
+	defer cancel()
+	_, err := ctxhttp.Head(ctx, nil, s.endpoint)
+	if err != nil {
+		return recorder.ErrEndpointNotAvailable{Endpoint: s.endpoint, Err: err}
+	}
+	s.Pinged = true
+	return nil
+
+}
+
 // Record calls the RecordFunc if exists, otherwise continues as normal
 func (s *SimpleRecorder) Record(ctx context.Context, job *recorder.RecordJob) error {
+	if !s.Pinged {
+		return recorder.ErrPingNotCalled
+	}
+
 	s.Smu.RLock()
 	if s.RecordFunc != nil {
 		s.Smu.RUnlock()

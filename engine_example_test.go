@@ -27,8 +27,10 @@ func ExampleEngine_sendingJobs() {
 	red, redTearDown := getReader(log)
 	defer redTearDown()
 	rec := getRecorder(ctx, log, ts.URL)
-
 	e, err := expvastic.New(ctx, log, rec, red)
+	if err != nil {
+		panic(err)
+	}
 	done := make(chan struct{})
 	go func() {
 		e.Start()

@@ -36,6 +36,10 @@ type DataReader interface {
 	// Choose a very simple and unique name.
 	Name() string
 
+	// Ping should ping the endpoint and return nil if was successful.
+	// The Engine will not launch the reader if the ping result is an error.
+	Ping() error
+
 	// When the context is timed-out or cancelled, the reader should return.
 	Read(context.Context) (*ReadJobResult, error)
 

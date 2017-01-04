@@ -24,6 +24,8 @@ func ExampleDataReader_read() {
 	defer ts.Close()
 
 	red := reader.GetReader(ts.URL) // this is a mocked version, but the example's principals stays the same.
+	err := red.Ping()
+	fmt.Println("Ping errors:", err)
 
 	job := communication.NewReadJob(context.Background())
 	res, err := red.Read(job) // Issuing a job
@@ -35,6 +37,7 @@ func ExampleDataReader_read() {
 	fmt.Println("Result is:", string(res.Res))
 
 	// Output:
+	// Ping errors: <nil>
 	// No errors reported
 	// Result is: {"the key": "is the value!"}
 }

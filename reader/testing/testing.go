@@ -2,40 +2,24 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package testing is a test suit for readers. They should instantiate their objects
-// with all the necessary mocks and call the proper methods.
-// You should always default a zero value on the return.
+// Package testing is a test suit for readers. They should provide
+// an object that implements the Constructor interface then run:
 //
-// Example
+//    import reader_test "github.com/arsham/expvastic/reader/testing"
 //
-// In this example you set-up your reader to be tested in this suit:
-//    func TestReaderCommunication(t *testing.T) {
-//        reader_test.TestReaderCommunication(t, func(testCase int) (reader.DataReader, string, func()) {
-//            testMessage := `{"the key": "is the value!"}`
-//
-//            switch testCase {
-//            case reader_test.ReaderReceivesJobTestCase:
-//                red, teardown := setup(testMessage)
-//                return red, testMessage, teardown
-//
-//            case ...:
-//
-//            default:
-//                return nil, "", nil
-//            }
-//        })
+//    func TestExpvar(t *testing.T) {
+//    	reader_testing.TestReader(t, &Construct{})
 //    }
 //
 // The test suit will pick it up and does all the tests.
-// If you don't provide a test case, it will fail on that particular test.
 //
 // Important Note
 //
 // You need to write the edge cases if they are not covered in this section.
+//
 package testing
 
 import (
-	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -43,80 +27,69 @@ import (
 	"github.com/arsham/expvastic/reader"
 )
 
-const (
-	// ReaderReceivesJobTestCase invokes TestReaderReceivesJob test.
-	ReaderReceivesJobTestCase = iota
+// Constructor is an interface for setting up an object for testing.
+type Constructor interface {
+	// SetName is for setting the Name
+	SetName(string)
 
-	// ReaderReturnsSameIDTestCase invokes TestReaderReturnsSameID test.
-	ReaderReturnsSameIDTestCase
+	// SetTypename is for setting the Typename
+	SetTypename(string)
 
-	// ReaderErrorsOnEndpointDisapearsTestCase invokes TestReaderErrorsOnEndpointDisapears test.
-	ReaderErrorsOnEndpointDisapearsTestCase
+	// SetEndpoint is for setting the Endpoint
+	SetEndpoint(string)
 
-	// ReaderBacksOffOnEndpointGoneTestCase invokes TestReaderBacksOffOnEndpointGone test.
-	ReaderBacksOffOnEndpointGoneTestCase
-)
+	// SetInterval is for setting the Interval
+	SetInterval(time.Duration)
 
-type setupFunc func(
-	name string,
-	typeName string,
-	endpoint string,
-	interval time.Duration,
-	timeout time.Duration,
-	backoff int,
-) (reader.DataReader, error)
+	// SetTimeout is for setting the Timeout
+	SetTimeout(time.Duration)
 
-// TestReaderConstruction runs all essential tests on object construction.
-func TestReaderConstruction(t *testing.T, setup setupFunc) {
-	name := "the name"
-	typeName := "my type"
-	endpoint := "http://127.0.0.1:9200"
-	interval := time.Hour
-	timeout := time.Hour
-	backoff := 5
+	// SetBackoff is for setting the Backoff
+	SetBackoff(int)
 
-	testShowNotChangeTheInput(t, setup, name, typeName, endpoint, interval, timeout, backoff)
-	testEndpointCheck(t, setup, name, typeName, endpoint, interval, timeout, backoff)
-	testNameCheck(t, setup, name, typeName, endpoint, interval, timeout, backoff)
-	testBackoffCheck(t, setup, name, typeName, endpoint, interval, timeout, backoff)
+	// TestServer should return a ready to use test server
+	TestServer() *httptest.Server
+
+	// Object should return the instantiated object
+	Object() (reader.DataReader, error)
 }
 
-// TestReaderCommunication runs all essential tests
-func TestReaderCommunication(t *testing.T, setup func(testCase int) (red reader.DataReader, testMessage string, teardown func())) {
-	t.Run("TestReaderReceivesJob", func(t *testing.T) {
-		red, _, _ := setup(ReaderReceivesJobTestCase)
-		if red == nil {
-			t.Fatal("You should implement ReaderReceivesJobTestCase")
-		}
-		testReaderReceivesJob(t, red)
+// TestReader runs all essential tests on object construction.
+func TestReader(t *testing.T, cons Constructor) {
+	t.Run("ShowNotChangeTheInput", func(t *testing.T) {
+		testShowNotChangeTheInput(t, cons)
+	})
+	t.Run("NameCheck", func(t *testing.T) {
+		testNameCheck(t, cons)
+	})
+	t.Run("BackoffCheck", func(t *testing.T) {
+		testBackoffCheck(t, cons)
+	})
+	t.Run("EndpointCheck", func(t *testing.T) {
+		testEndpointCheck(t, cons)
 	})
 
-	t.Run("TestReaderReturnsSameID", func(t *testing.T) {
-		red, _, _ := setup(ReaderReturnsSameIDTestCase)
-		if red == nil {
-			t.Fatal("You should implement ReaderReturnsSameIDTestCase")
-		}
-		testReaderReturnsSameID(t, red)
-	})
-}
-
-// TestReaderEndpointManeuvers runs all tests regarding the endpoint changing state.
-func TestReaderEndpointManeuvers(t *testing.T, setup func(testCase int, endpoint string) (red reader.DataReader, err error)) {
-	t.Run("TestReaderErrorsOnEndpointDisapears", func(t *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-		red, err := setup(ReaderErrorsOnEndpointDisapearsTestCase, ts.URL)
-		if red == nil {
-			t.Fatal("You should implement ReaderErrorsOnEndpointDisapearsTestCase")
-		}
-		testReaderErrorsOnEndpointDisapears(t, ts, red, err)
+	t.Run("ReceivesJob", func(t *testing.T) {
+		testReaderReceivesJob(t, cons)
 	})
 
-	t.Run("TestReaderBacksOffOnEndpointGone", func(t *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-		red, err := setup(ReaderBacksOffOnEndpointGoneTestCase, ts.URL)
-		if red == nil {
-			t.Fatal("You should implement ReaderBacksOffOnEndpointGoneTestCase")
-		}
-		testReaderBacksOffOnEndpointGone(t, ts, red, err)
+	t.Run("ReturnsSameID", func(t *testing.T) {
+		testReaderReturnsSameID(t, cons)
+	})
+
+	t.Run("PingingEndpoint", func(t *testing.T) {
+		pingingEndpoint(t, cons)
+	})
+
+	t.Run("ErrorsOnEndpointDisapears", func(t *testing.T) {
+		testReaderErrorsOnEndpointDisapears(t, cons)
+	})
+
+	t.Run("BacksOffOnEndpointGone", func(t *testing.T) {
+		testReaderBacksOffOnEndpointGone(t, cons)
+	})
+
+	t.Run("ReadingReturnsErrorIfNotPingedYet", func(t *testing.T) {
+		testReadingReturnsErrorIfNotPingedYet(t, cons)
 	})
 }

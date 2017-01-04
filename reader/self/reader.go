@@ -12,7 +12,6 @@
 //      Readers                   | expReaders
 //      Read Jobs                 | readJobs
 //      Record Jobs               | recordJobs
-//      Errored Jobs              | erroredJobs
 //      Records Distributed       | recordsDistributed
 //      DataType Objects          | datatypeObjs
 //      DataType Objects Errors   | datatypeErrs
@@ -40,6 +39,7 @@ import (
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
+	"github.com/shurcooL/go/ctxhttp"
 )
 
 // Reader reads from expvastic own application's metric information.
@@ -55,6 +55,8 @@ type Reader struct {
 	strike   int
 	quit     chan struct{}
 	endpoint string
+	pinged   bool
+	testMode bool // this is for internal tests and you should not set it to true
 }
 
 // New exposes expvastic's own metrics.
@@ -79,10 +81,6 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name, 
 	if err != nil {
 		return nil, reader.ErrInvalidEndpoint(endpoint)
 	}
-	_, err = http.Head(url)
-	if err != nil {
-		return nil, reader.ErrEndpointNotAvailable{Endpoint: url, Err: err}
-	}
 
 	if typeName == "" {
 		return nil, reader.ErrEmptyTypeName
@@ -91,7 +89,6 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name, 
 	if backoff < 5 {
 		return nil, reader.ErrLowBackoffValue(backoff)
 	}
-
 	log = log.WithField("engine", "expvastic")
 	w := &Reader{
 		name:     name,
@@ -107,13 +104,28 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name, 
 	return w, nil
 }
 
+// Ping pings the endpoint and return nil if was successful.
+func (r *Reader) Ping() error {
+	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
+	defer cancel()
+	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
+	if err != nil {
+		return reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
+	}
+	r.pinged = true
+	return nil
+}
+
 // Read send the metrics back. The error is usually nil.
 func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
-	if r.endpoint != IgnoredEndpoint {
+	if !r.pinged {
+		return nil, reader.ErrPingNotCalled
+	}
+
+	if r.testMode {
 		// To support the tests
 		return r.readMetricsFromURL(job)
 	}
-
 	id := communication.JobValue(job)
 	buf := new(bytes.Buffer) // construct a json encoder and pass it
 	fmt.Fprintf(buf, "{\n")
@@ -151,11 +163,14 @@ func (r *Reader) Interval() time.Duration { return r.interval }
 // Timeout returns the timeout
 func (r *Reader) Timeout() time.Duration { return r.timeout }
 
+// SetTestMode sets the mode to testing for testing purposes
+// This is because the way self works
+func (r *Reader) SetTestMode() { r.testMode = true }
+
 func (r *Reader) readMetricsFromURL(job context.Context) (*reader.ReadJobResult, error) {
 	if r.strike > r.backoff {
 		return nil, reader.ErrBackoffExceeded
 	}
-
 	id := communication.JobValue(job)
 	resp, err := http.Get(r.endpoint)
 	if err != nil {
@@ -163,6 +178,7 @@ func (r *Reader) readMetricsFromURL(job context.Context) (*reader.ReadJobResult,
 			if strings.Contains(v.Error(), "getsockopt: connection refused") {
 				r.strike++
 			}
+			err = reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
 		}
 		r.log.WithField("reader", "self").
 			WithField("ID", id).

@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"context"
 	"expvar"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -40,6 +39,7 @@ type Reader struct {
 	timeout  time.Duration
 	backoff  int
 	strike   int
+	pinged   bool
 }
 
 // New creates the worker and sets up its channels.
@@ -67,10 +67,6 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name s
 	if err != nil {
 		return nil, reader.ErrInvalidEndpoint(endpoint)
 	}
-	_, err = http.Head(url)
-	if err != nil {
-		return nil, reader.ErrEndpointNotAvailable{Endpoint: url, Err: err}
-	}
 
 	if typeName == "" {
 		return nil, reader.ErrEmptyTypeName
@@ -85,7 +81,7 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name s
 		name:     name,
 		typeName: typeName,
 		mapper:   mapper,
-		endpoint: endpoint,
+		endpoint: url,
 		log:      log,
 		timeout:  timeout,
 		interval: interval,
@@ -94,9 +90,24 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name s
 	return w, nil
 }
 
+// Ping pings the endpoint and return nil if was successful.
+func (r *Reader) Ping() error {
+	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
+	defer cancel()
+	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
+	if err != nil {
+		return reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
+	}
+	r.pinged = true
+	return nil
+}
+
 // Read begins reading from the target.
 // It returns an error back to the engine if it can't read from metrics provider.
 func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
+	if !r.pinged {
+		return nil, reader.ErrPingNotCalled
+	}
 	if r.strike > r.backoff {
 		return nil, reader.ErrBackoffExceeded
 	}
@@ -108,6 +119,7 @@ func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
 			if strings.Contains(v.Error(), "getsockopt: connection refused") {
 				r.strike++
 			}
+			err = reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
 		}
 		r.log.WithField("reader", "expvar_reader").
 			WithField("name", r.Name()).

@@ -228,3 +228,23 @@ func TestMapCopy(t *testing.T) {
 		t.Fatalf("want (%v), got (%v)", m, c)
 	}
 }
+
+func TestMapConvertMockCopy(t *testing.T) {
+	t.Parallel()
+	// ty := map[string]memType{"second": "third"}
+	m := &MapConvertMock{
+		GCTypes:     []string{"first"},
+		MemoryTypes: map[string]MemTypeMock{"second": {"third"}},
+	}
+	c := m.Copy()
+	cc, ok := c.(*MapConvertMock)
+	if !ok {
+		t.Fatalf("want MapConvertMock, got (%T)", c)
+	}
+	if m == c {
+		t.Error("wasn't copied")
+	}
+	if !reflect.DeepEqual(cc, m) {
+		t.Fatalf("want (%v), got (%v)", m, c)
+	}
+}

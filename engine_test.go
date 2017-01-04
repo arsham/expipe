@@ -7,10 +7,14 @@ package expvastic_test
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
@@ -22,19 +26,31 @@ import (
 
 // TODO: test engine closes readers when recorder goes out of scope
 
+var (
+	log        logrus.FieldLogger
+	testServer *httptest.Server
+)
+
+func TestMain(m *testing.M) {
+	log = lib.DiscardLogger()
+	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	exitCode := m.Run()
+	testServer.Close()
+	os.Exit(exitCode)
+}
+
 func TestNewWithReadRecorder(t *testing.T) {
-	log := lib.DiscardLogger()
 	ctx := context.Background()
 
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "a", "http://127.0.0.1:9200", "aa", time.Hour, 5)
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "a", testServer.URL, "aa", time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_testing.NewSimpleReader(log, "http://127.0.0.1:9200", "a", "dd", time.Hour, time.Hour, 5)
+	red, err := reader_testing.NewSimpleReader(log, testServer.URL, "a", "dd", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	red2, err := reader_testing.NewSimpleReader(log, "http://127.0.0.1:9200", "a", "dd", time.Hour, time.Hour, 5)
+	red2, err := reader_testing.NewSimpleReader(log, testServer.URL, "a", "dd", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,10 +66,9 @@ func TestNewWithReadRecorder(t *testing.T) {
 
 func TestEngineSendJob(t *testing.T) {
 	var recorderID communication.JobID
-	log := lib.DiscardLogger()
 	ctx, cancel := context.WithCancel(context.Background())
 
-	red, err := reader_testing.NewSimpleReader(log, "http://127.0.0.1:9200", "reader_example", "example_type", time.Hour, time.Hour, 5)
+	red, err := reader_testing.NewSimpleReader(log, testServer.URL, "reader_example", "example_type", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +83,7 @@ func TestEngineSendJob(t *testing.T) {
 		return resp, nil
 	}
 
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_example", "http://127.0.0.1:9200", "intexName", time.Hour, 5)
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_example", testServer.URL, "intexName", time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +114,6 @@ func TestEngineSendJob(t *testing.T) {
 
 func TestEngineMultiReader(t *testing.T) {
 	count := 10
-	log := lib.DiscardLogger()
 	ctx, cancel := context.WithCancel(context.Background())
 	IDs := make([]string, count)
 	idChan := make(chan communication.JobID)
@@ -111,7 +125,7 @@ func TestEngineMultiReader(t *testing.T) {
 		}(id)
 	}
 
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_example", "http://127.0.0.1:9200", "intexName", time.Hour, 5)
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_example", testServer.URL, "intexName", time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +140,7 @@ func TestEngineMultiReader(t *testing.T) {
 	for i := 0; i < count; i++ {
 
 		name := fmt.Sprintf("reader_example_%d", i)
-		red, err := reader_testing.NewSimpleReader(log, "http://127.0.0.1:9200", name, "example_type", time.Hour, time.Hour, 5)
+		red, err := reader_testing.NewSimpleReader(log, testServer.URL, name, "example_type", time.Hour, time.Hour, 5)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -162,7 +176,6 @@ func TestEngineMultiReader(t *testing.T) {
 
 func TestEngineNewWithConfig(t *testing.T) {
 	ctx := context.Background()
-	log := lib.DiscardLogger()
 
 	red, err := reader_testing.NewMockConfig("", "reader_example", log, "nowhere", "/still/nowhere", time.Hour, time.Hour, 5)
 	if err != nil {
@@ -183,7 +196,7 @@ func TestEngineNewWithConfig(t *testing.T) {
 
 	// triggering recorder errors
 	rec, _ = recorder_testing.NewMockConfig("recorder_example", log, "nowhere", time.Hour, 5, "index")
-	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 5)
+	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
 
 	e, err = expvastic.WithConfig(ctx, log, rec, red)
 	if e != nil {
@@ -195,15 +208,77 @@ func TestEngineNewWithConfig(t *testing.T) {
 		t.Errorf("want ErrInvalidEndpoint, got (%v)", err)
 	}
 
-	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 5)
-	red2, _ := reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, "http://127.0.0.1:9200", "/still/nowhere", time.Hour, time.Hour, 5)
-	rec, _ = recorder_testing.NewMockConfig("recorder_example", log, "http://127.0.0.1:9200", time.Hour, 5, "index")
+	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
+	red2, _ := reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
+	rec, _ = recorder_testing.NewMockConfig("recorder_example", log, testServer.URL, time.Hour, 5, "index")
 	e, err = expvastic.WithConfig(ctx, log, rec, red, red2)
 	if err == nil {
 		t.Error("want error, got nil")
 	}
 	if err != expvastic.ErrDuplicateRecorderName {
 		t.Errorf("want ErrDuplicateRecorderName, got (%v)", err)
+	}
+	if e != nil {
+		t.Errorf("want (nil), got (%v)", e)
+	}
+}
+
+func TestEngineErrorsIfReaderNotPinged(t *testing.T) {
+	ctx := context.Background()
+	redServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	recServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	defer recServer.Close()
+	redServer.Close() // making sure no one else is got this random port at this time
+
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "a", recServer.URL, "aa", time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red, err := reader_testing.NewSimpleReader(log, redServer.URL, "a", "dd", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e, err := expvastic.New(ctx, log, rec, red)
+	if err == nil {
+		t.Error("want ErrPing, got nil")
+	}
+
+	if _, ok := err.(interface {
+		Ping()
+	}); !ok {
+		t.Errorf("want ErrPing, got (%v)", err)
+	}
+	if e != nil {
+		t.Errorf("want (nil), got (%v)", e)
+	}
+}
+
+func TestEngineErrorsIfRecorderNotPinged(t *testing.T) {
+	ctx := context.Background()
+	redServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	recServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	recServer.Close() // making sure no one else is got this random port at this time
+	defer redServer.Close()
+
+	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "a", recServer.URL, "aa", time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red, err := reader_testing.NewSimpleReader(log, redServer.URL, "a", "dd", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e, err := expvastic.New(ctx, log, rec, red)
+	if err == nil {
+		t.Error("want ErrPing, got nil")
+	}
+
+	if _, ok := err.(interface {
+		Ping()
+	}); !ok {
+		t.Errorf("want ErrPing, got (%v)", err)
 	}
 	if e != nil {
 		t.Errorf("want (nil), got (%v)", e)

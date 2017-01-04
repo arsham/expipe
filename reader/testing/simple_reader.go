@@ -7,7 +7,6 @@ package testing
 import (
 	"bytes"
 	"context"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -32,6 +31,7 @@ type SimpleReader struct {
 	backoff  int
 	strike   int
 	ReadFunc func(context.Context) (*reader.ReadJobResult, error)
+	Pinged   bool
 }
 
 // NewSimpleReader is a reader for using in tests
@@ -47,10 +47,6 @@ func NewSimpleReader(log logrus.FieldLogger, endpoint string, name, typeName str
 	url, err := lib.SanitiseURL(endpoint)
 	if err != nil {
 		return nil, reader.ErrInvalidEndpoint(endpoint)
-	}
-	_, err = http.Head(url)
-	if err != nil {
-		return nil, reader.ErrEndpointNotAvailable{Endpoint: url, Err: err}
 	}
 
 	if typeName == "" {
@@ -74,21 +70,44 @@ func NewSimpleReader(log logrus.FieldLogger, endpoint string, name, typeName str
 	return w, nil
 }
 
+// Ping pings the endpoint and return nil if was successful.
+func (s *SimpleReader) Ping() error {
+	if s.Pinged {
+		// In tests, we have a strict policy on channels. Therefore if it
+		// is already pinged, we won't bother.
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
+	defer cancel()
+	_, err := ctxhttp.Head(ctx, nil, s.endpoint)
+	if err != nil {
+		return reader.ErrEndpointNotAvailable{Endpoint: s.endpoint, Err: err}
+	}
+	s.Pinged = true
+	return nil
+}
+
 // Read executes the ReadFunc if defined, otherwise continues normally
-func (m *SimpleReader) Read(job context.Context) (*reader.ReadJobResult, error) {
-	if m.strike > m.backoff {
+func (s *SimpleReader) Read(job context.Context) (*reader.ReadJobResult, error) {
+	if !s.Pinged {
+		return nil, reader.ErrPingNotCalled
+	}
+
+	if s.strike > s.backoff {
 		return nil, reader.ErrBackoffExceeded
 	}
-	if m.ReadFunc != nil {
-		return m.ReadFunc(job)
+	if s.ReadFunc != nil {
+		return s.ReadFunc(job)
 	}
 	id := communication.JobValue(job)
-	resp, err := ctxhttp.Get(job, nil, m.endpoint)
+	resp, err := ctxhttp.Get(job, nil, s.endpoint)
 	if err != nil {
 		if v, ok := err.(*url.Error); ok {
 			if strings.Contains(v.Error(), "getsockopt: connection refused") {
-				m.strike++
+				s.strike++
 			}
+			err = reader.ErrEndpointNotAvailable{Endpoint: s.endpoint, Err: err}
 		}
 		return nil, err
 	}
@@ -99,23 +118,23 @@ func (m *SimpleReader) Read(job context.Context) (*reader.ReadJobResult, error) 
 		ID:       id,
 		Time:     time.Now(),
 		Res:      buf.Bytes(),
-		TypeName: m.TypeName(),
-		Mapper:   m.Mapper(),
+		TypeName: s.TypeName(),
+		Mapper:   s.Mapper(),
 	}
 	return res, nil
 }
 
 // Name returns the name
-func (m *SimpleReader) Name() string { return m.name }
+func (s *SimpleReader) Name() string { return s.name }
 
 // TypeName returns the type name
-func (m *SimpleReader) TypeName() string { return m.typeName }
+func (s *SimpleReader) TypeName() string { return s.typeName }
 
 // Mapper returns the mapper
-func (m *SimpleReader) Mapper() datatype.Mapper { return m.mapper }
+func (s *SimpleReader) Mapper() datatype.Mapper { return s.mapper }
 
 // Interval returns the interval
-func (m *SimpleReader) Interval() time.Duration { return m.interval }
+func (s *SimpleReader) Interval() time.Duration { return s.interval }
 
 // Timeout returns the timeout
-func (m *SimpleReader) Timeout() time.Duration { return m.timeout }
+func (s *SimpleReader) Timeout() time.Duration { return s.timeout }

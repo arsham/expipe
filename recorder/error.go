@@ -19,6 +19,9 @@ var (
 	// ErrBackoffExceeded is the error when the endpoint's absence has exceeded the backoff value.
 	// It is not strictly an error, it is however a pointer to an error in the past.
 	ErrBackoffExceeded = fmt.Errorf("endpoint gone too long")
+
+	// ErrPingNotCalled is the error if the caller calls the record without pinging.
+	ErrPingNotCalled = fmt.Errorf("the caller forgot to ask me pinging")
 )
 
 // ErrInvalidEndpoint is the error when the endpoint is not a valid url
@@ -69,4 +72,13 @@ type ErrEndpointNotAvailable struct {
 func (ErrEndpointNotAvailable) EndpointNotAvailable() {}
 func (e ErrEndpointNotAvailable) Error() string {
 	return fmt.Sprintf("endpoint (%s) not available: %s", e.Endpoint, e.Err)
+}
+
+// ErrInvalidIndexName is the error when the index name is invalid.
+type ErrInvalidIndexName string
+
+// InvalidIndexName defines the behaviour of the error
+func (ErrInvalidIndexName) InvalidIndexName() {}
+func (e ErrInvalidIndexName) Error() string {
+	return fmt.Sprintf("Index name (%s) is not valid", string(e))
 }

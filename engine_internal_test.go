@@ -6,6 +6,8 @@ package expvastic
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -20,6 +22,17 @@ import (
 	"github.com/arsham/expvastic/recorder"
 	recorder_testing "github.com/arsham/expvastic/recorder/testing"
 )
+
+var (
+	log        logrus.FieldLogger
+	testServer *httptest.Server
+)
+
+func init() {
+	log = lib.DiscardLogger()
+	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	// testServer.Close()
+}
 
 type errMsg string
 
@@ -39,15 +52,19 @@ func inspectLogs(entries []*logrus.Entry, niddle string) (all string, found bool
 	return strings.Join(res, ", "), false
 }
 
-func withReaders(ctx context.Context, log logrus.FieldLogger) *Engine {
-	rec, _ := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_test", "http://127.0.0.1:9200", "indexName", time.Hour, 5)
+func withRecorder(ctx context.Context, log logrus.FieldLogger) (*Engine, error) {
+	rec, _ := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_test", testServer.URL, "indexName", time.Hour, 5)
+	err := rec.Ping()
+	if err != nil {
+		return nil, err
+	}
 	return &Engine{
 		name:       "test_engine",
 		ctx:        ctx,
 		log:        log,
 		recorder:   rec,
 		readerJobs: make(chan *reader.ReadJobResult),
-	}
+	}, nil
 }
 
 func TestEventLoopCatchesReaderError(t *testing.T) {
@@ -55,11 +72,15 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 	log.Level = logrus.ErrorLevel
 
 	ctx, cancel := context.WithCancel(context.Background())
-	e := withReaders(ctx, log)
-	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", "reader_name", "typeName", time.Millisecond, time.Millisecond, 5)
+	e, err := withRecorder(ctx, log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond, 5)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
+	red.Ping()
 
 	e.setReaders([]reader.DataReader{red})
 
@@ -103,11 +124,15 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 	log := lib.DiscardLogger()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	e := withReaders(ctx, log)
-	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", "reader_name", "typeName", time.Millisecond, time.Millisecond, 5)
+	e, err := withRecorder(ctx, log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Millisecond, time.Millisecond, 5)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
+	red.Ping()
 	e.setReaders([]reader.DataReader{red})
 	job := communication.NewReadJob(ctx)
 	jobID := communication.JobValue(job)
@@ -160,12 +185,18 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 	log.Level = logrus.DebugLevel
 
 	ctx, cancel := context.WithCancel(context.Background())
-	e := withReaders(ctx, log)
-	red1, err := reader_test.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", "reader_name", "typeName", time.Hour, time.Hour, 5)
+	e, err := withRecorder(ctx, log)
 	if err != nil {
 		t.Fatal(err)
 	}
-	red2, _ := reader_test.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", "reader2_name", "typeName", time.Hour, time.Hour, 5)
+	red1, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red1.Ping()
+
+	red2, _ := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader2_name", "typeName", time.Hour, time.Hour, 5)
+	red2.Ping()
 	red1.ReadFunc = func(job context.Context) (*reader.ReadJobResult, error) { return nil, nil }
 	red2.ReadFunc = func(job context.Context) (*reader.ReadJobResult, error) { return nil, nil }
 
@@ -192,8 +223,11 @@ func TestEventLoopClosingContext(t *testing.T) {
 	log.Level = logrus.DebugLevel
 
 	ctx, cancel := context.WithCancel(context.Background())
-	e := withReaders(ctx, log)
-	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", "reader_name", "typeName", time.Hour, time.Hour, 5)
+	e, err := withRecorder(ctx, log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
@@ -226,15 +260,20 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 	log.Level = logrus.DebugLevel
 
 	ctx, cancel := context.WithCancel(context.Background())
-	e := withReaders(ctx, log)
-	red1, err := reader_test.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", "reader1_name", "typeName", time.Hour, time.Hour, 5)
+	e, err := withRecorder(ctx, log)
 	if err != nil {
 		t.Fatal(err)
 	}
-	red2, err := reader_test.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", "reader2_name", "typeName", time.Hour, time.Hour, 5)
+	red1, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader1_name", "typeName", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
+	red1.Ping()
+	red2, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader2_name", "typeName", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red2.Ping()
 	e.setReaders([]reader.DataReader{red1, red2})
 
 	job1 := communication.NewReadJob(ctx)
@@ -322,11 +361,15 @@ func TestStartReadersTicking(t *testing.T) {
 	log := lib.DiscardLogger()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	e := withReaders(ctx, log)
-	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), "http://127.0.0.1:9200", "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond, 5)
+	e, err := withRecorder(ctx, log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond, 5)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
+	red.Ping()
 	e.setReaders([]reader.DataReader{red})
 
 	recorded := make(chan struct{})

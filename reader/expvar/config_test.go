@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader/expvar"
 	"github.com/spf13/viper"
 )
@@ -23,7 +22,6 @@ func TestLoadExpvarSuccess(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
-	log := lib.DiscardLogger()
 
 	input := bytes.NewBuffer([]byte(`
     readers:
@@ -69,7 +67,6 @@ func TestLoadExpvarSuccess(t *testing.T) {
 func TestLoadExpvarErrors(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
-	log := lib.DiscardLogger()
 	v.SetConfigType("yaml")
 	tcs := []struct {
 		input *bytes.Buffer
@@ -166,7 +163,7 @@ func TestLoadExpvarErrors(t *testing.T) {
 		})
 	}
 
-	c, err := expvar.NewConfig(log, "", "example_type", "http://127.0.0.1:9200", "/debug/vars", 2*time.Second, 3*time.Second, 15, "")
+	c, err := expvar.NewConfig(log, "", "example_type", testServer.URL, "/debug/vars", 2*time.Second, 3*time.Second, 15, "")
 	if err == nil {
 		t.Error("want error, got nil")
 	}
@@ -178,7 +175,6 @@ func TestLoadExpvarErrors(t *testing.T) {
 func TestNewInstance(t *testing.T) {
 	v := viper.New()
 	v.SetConfigType("yaml")
-	log := lib.DiscardLogger()
 	cwd, _ := os.Getwd()
 	file, err := ioutil.TempFile(cwd, "yaml")
 	if err != nil {
@@ -196,7 +192,7 @@ func TestNewInstance(t *testing.T) {
 	input := bytes.NewBuffer([]byte(fmt.Sprintf(`
     readers:
         reader1:
-            endpoint: http://127.0.0.1:9200
+            endpoint: %s
             type_name: example_type
             routepath: /debug/vars
             interval: 2s
@@ -204,7 +200,7 @@ func TestNewInstance(t *testing.T) {
             log_level: info
             backoff: 15
             map_file: %s
-    `, path.Base(file.Name()))))
+    `, testServer.URL, path.Base(file.Name()))))
 
 	v.ReadConfig(input)
 	c, err := expvar.FromViper(v, log, "reader1", "readers.reader1")

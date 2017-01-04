@@ -89,3 +89,16 @@ func TestErrParseTimeOut(t *testing.T) {
 		t.Errorf("want (%s) in error, got (%s)", err.Error(), e.Error())
 	}
 }
+
+func TestErrInvalidIndexName(t *testing.T) {
+	indexName := "thumb is not an index finger"
+	e := recorder.ErrInvalidIndexName(indexName)
+	if _, ok := interface{}(e).(interface {
+		InvalidIndexName()
+	}); !ok {
+		t.Errorf("want ErrInvalidIndexName, got (%T)", e)
+	}
+	if !strings.Contains(e.Error(), indexName) {
+		t.Errorf("want (%s) in error, got (%s)", indexName, e.Error())
+	}
+}

@@ -37,6 +37,10 @@ func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	err = rec.Ping()
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	for n := 0; n < b.N; n++ {
 		job := &recorder.RecordJob{

@@ -9,6 +9,8 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"testing"
@@ -118,12 +120,14 @@ func TestNewInstance(t *testing.T) {
 	newName := file.Name() + ".yml"
 	os.Rename(oldName, newName)
 	defer os.Remove(newName)
+	ts := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 
 	input := bytes.NewBuffer([]byte(fmt.Sprintf(`
     readers:
         reader1:
             type_name: self
             interval: 2s
+            timeout: 2s
             backoff: 15
             map_file: %s
     `, path.Base(file.Name()))))
@@ -133,13 +137,17 @@ func TestNewInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("want no errors, got (%v)", err)
 	}
-
+	c.SelfEndpoint = ts.URL
 	r, err := c.NewInstance(context.Background())
 	if err != nil {
 		t.Errorf("want nil, got (%v)", err)
 	}
 	if r == nil {
-		t.Error("want reader, got nil")
+		t.Fatal("want reader, got nil")
+	}
+	err = r.Ping()
+	if err != nil {
+		t.Fatal(err)
 	}
 	if r.Mapper() == nil {
 		t.Error("want mapper, got nil")

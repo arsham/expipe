@@ -6,7 +6,9 @@ package testing
 
 import (
 	"context"
+	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,19 +16,90 @@ import (
 	"github.com/arsham/expvastic/reader"
 )
 
+// pingingEndpoint is a helper to test the reader errors when the endpoint goes away.
+func pingingEndpoint(t *testing.T, cons Constructor) {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	ts.Close()
+	cons.SetName("the name")
+	cons.SetTypename("my type")
+	cons.SetEndpoint(ts.URL)
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+	red, err := cons.Object()
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
+
+	if err := red.Ping(); err == nil {
+		t.Error("expected error, got nil")
+	}
+
+	if err := red.Ping(); err == nil {
+		t.Errorf("expected an error, got nil")
+	} else if _, ok := err.(interface {
+		EndpointNotAvailable()
+	}); !ok {
+		t.Errorf("want ErrInvalidEndpoint, got (%v)", err)
+	}
+
+	unavailableEndpoint := "http://nowhere.localhost.localhost"
+	cons.SetEndpoint(unavailableEndpoint)
+	red, _ = cons.Object()
+
+	if err = red.Ping(); err == nil {
+		t.Fatal("expected ErrEndpointNotAvailable, got nil")
+	}
+	if _, ok := err.(interface {
+		EndpointNotAvailable()
+	}); !ok {
+		t.Errorf("expected ErrEndpointNotAvailable, got (%v)", err)
+	}
+
+	if !strings.Contains(err.Error(), unavailableEndpoint) {
+		t.Errorf("expected (%s) be in the error message, got (%v)", unavailableEndpoint, err)
+	}
+}
+
 // testReaderErrorsOnEndpointDisapears is a helper to test the reader errors when the endpoint goes away.
-func testReaderErrorsOnEndpointDisapears(t *testing.T, ts *httptest.Server, red reader.DataReader, err error) {
-	var res *reader.ReadJobResult
+func testReaderErrorsOnEndpointDisapears(t *testing.T, cons Constructor) {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	cons.SetName("the name")
+	cons.SetTypename("my type")
+	cons.SetEndpoint(ts.URL)
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+	red, err := cons.Object()
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
+
+	err = red.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts.Close()
 	ctx := context.Background()
 	done := make(chan struct{})
-	ts.Close()
 	go func() {
 		result, err := red.Read(communication.NewReadJob(ctx))
 		if err == nil {
-			t.Errorf("want error, got (%s)", err)
+			t.Error("want error, got nil")
+			return
+		}
+		if _, ok := err.(interface {
+			EndpointNotAvailable()
+		}); !ok {
+			t.Errorf("want ErrEndpointNotAvailable, got (%v)", err)
+		}
+		if !strings.Contains(err.Error(), ts.URL) {
+			t.Errorf("want (%s) in error message, got (%s)", ts.URL, err)
 		}
 		if result != nil {
-			t.Errorf("didn't expect to receive a data back, got (%v)", res)
+			t.Errorf("didn't expect to receive a data back, got (%v)", result)
 		}
 		close(done)
 	}()
@@ -39,9 +112,26 @@ func testReaderErrorsOnEndpointDisapears(t *testing.T, ts *httptest.Server, red 
 }
 
 // testReaderBacksOffOnEndpointGone is a helper to test the reader backs off when the endpoint goes away.
-func testReaderBacksOffOnEndpointGone(t *testing.T, ts *httptest.Server, red reader.DataReader, err error) {
-	ctx := context.Background()
+func testReaderBacksOffOnEndpointGone(t *testing.T, cons Constructor) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	cons.SetName("the name")
+	cons.SetTypename("my type")
+	cons.SetEndpoint(ts.URL)
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+	red, err := cons.Object()
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
+
+	err = red.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
 	ts.Close()
+
+	ctx := context.Background()
 	backedOff := false
 	job := communication.NewReadJob(ctx)
 	// We don't know the backoff amount set in the reader, so we try 100 times until it closes.
@@ -67,5 +157,31 @@ func testReaderBacksOffOnEndpointGone(t *testing.T, ts *httptest.Server, red rea
 		// good one!
 	case <-time.After(20 * time.Millisecond):
 		t.Error("expected the recorder to be gone")
+	}
+}
+
+// testReadingReturnsErrorIfNotPingedYet is a helper to test the reader returns an error
+// if the caller hasn't called the Ping() method.
+func testReadingReturnsErrorIfNotPingedYet(t *testing.T, cons Constructor) {
+	ctx := context.Background()
+	cons.SetName("the name")
+	cons.SetTypename("my type")
+	cons.SetEndpoint(cons.TestServer().URL)
+	cons.SetInterval(time.Second)
+	cons.SetTimeout(time.Second)
+	cons.SetBackoff(5)
+	red, err := cons.Object()
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
+
+	job := communication.NewReadJob(ctx)
+
+	res, err := red.Read(job)
+	if err != reader.ErrPingNotCalled {
+		t.Errorf("want ErrHasntCalledPing, got (%v)", err)
+	}
+	if res != nil {
+		t.Errorf("want an empty result, got (%v)", err)
 	}
 }

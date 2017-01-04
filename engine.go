@@ -17,9 +17,6 @@ import (
 	"github.com/arsham/expvastic/recorder"
 )
 
-// ErrDuplicateRecorderName is for when there are two recorders with the same name.
-var ErrDuplicateRecorderName = fmt.Errorf("recorder name cannot be reused")
-
 var (
 	numGoroutines   = expvar.NewInt("Number Of Goroutines")
 	expReaders      = expvar.NewInt("Readers")
@@ -71,11 +68,19 @@ func New(ctx context.Context, log logrus.FieldLogger, rec recorder.DataRecorder,
 	readerNames := make([]string, len(reds))
 	seenNames := make(map[string]struct{}, len(reds))
 
+	err := rec.Ping()
+	if err != nil {
+		return nil, ErrPing{Name: rec.Name(), Err: err}
+	}
+
 	for i, red := range reds {
 		if _, ok := seenNames[red.Name()]; ok {
 			return nil, ErrDuplicateRecorderName
 		}
-
+		err := red.Ping()
+		if err != nil {
+			return nil, ErrPing{Name: red.Name(), Err: err}
+		}
 		seenNames[red.Name()] = struct{}{}
 		readerNames[i] = red.Name()
 	}

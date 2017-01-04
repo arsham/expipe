@@ -13,8 +13,21 @@ import (
 	"github.com/arsham/expvastic/reader"
 )
 
-func testShowNotChangeTheInput(t *testing.T, setup setupFunc, name string, typeName string, endpoint string, interval time.Duration, timeout time.Duration, backoff int) {
-	red, err := setup(name, endpoint, typeName, interval, timeout, backoff)
+func testShowNotChangeTheInput(t *testing.T, cons Constructor) {
+	name := "the name"
+	typeName := "my type"
+	endpoint := cons.TestServer().URL
+	interval := time.Hour
+	timeout := time.Hour
+	backoff := 5
+	cons.SetName(name)
+	cons.SetTypename(typeName)
+	cons.SetEndpoint(endpoint)
+	cons.SetInterval(interval)
+	cons.SetTimeout(timeout)
+	cons.SetBackoff(backoff)
+
+	red, err := cons.Object()
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
@@ -33,8 +46,16 @@ func testShowNotChangeTheInput(t *testing.T, setup setupFunc, name string, typeN
 	}
 }
 
-func testNameCheck(t *testing.T, setup setupFunc, name string, typeName string, endpoint string, interval time.Duration, timeout time.Duration, backoff int) {
-	red, err := setup("", endpoint, typeName, interval, timeout, backoff)
+func testNameCheck(t *testing.T, cons Constructor) {
+	name := "the name"
+	typeName := "my type"
+	cons.SetName("")
+	cons.SetTypename(typeName)
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+
+	red, err := cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("expected nil, got (%#v)", red)
 	}
@@ -42,8 +63,10 @@ func testNameCheck(t *testing.T, setup setupFunc, name string, typeName string, 
 		t.Errorf("expected ErrEmptyName, got (%v)", err)
 	}
 
+	cons.SetName(name)
+	cons.SetTypename("")
 	// TypeName Check
-	red, err = setup(name, endpoint, "", interval, timeout, backoff)
+	red, err = cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("expected nil, got (%#v)", red)
 	}
@@ -52,8 +75,14 @@ func testNameCheck(t *testing.T, setup setupFunc, name string, typeName string, 
 	}
 }
 
-func testBackoffCheck(t *testing.T, setup setupFunc, name string, typeName string, endpoint string, interval time.Duration, timeout time.Duration, backoff int) {
-	red, err := setup(name, endpoint, typeName, interval, timeout, 3)
+func testBackoffCheck(t *testing.T, cons Constructor) {
+	cons.SetName("the name")
+	cons.SetTypename("my type")
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(3)
+
+	red, err := cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("expected nil, got (%#v)", red)
 	}
@@ -70,9 +99,15 @@ func testBackoffCheck(t *testing.T, setup setupFunc, name string, typeName strin
 	}
 }
 
-func testEndpointCheck(t *testing.T, setup setupFunc, name string, typeName string, endpoint string, interval time.Duration, timeout time.Duration, backoff int) {
+func testEndpointCheck(t *testing.T, cons Constructor) {
+	cons.SetName("the name")
+	cons.SetTypename("my type")
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+	cons.SetEndpoint("")
 
-	red, err := setup(name, "", typeName, interval, timeout, backoff)
+	red, err := cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("expected nil, got (%v)", red)
 	}
@@ -81,7 +116,8 @@ func testEndpointCheck(t *testing.T, setup setupFunc, name string, typeName stri
 	}
 
 	const invalidEndpoint = "this is invalid"
-	red, err = setup(name, invalidEndpoint, typeName, interval, timeout, backoff)
+	cons.SetEndpoint(invalidEndpoint)
+	red, err = cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("expected nil, got (%v)", red)
 	}
@@ -92,22 +128,5 @@ func testEndpointCheck(t *testing.T, setup setupFunc, name string, typeName stri
 	}
 	if !strings.Contains(err.Error(), invalidEndpoint) {
 		t.Errorf("expected (%s) be in the error message, got (%v)", invalidEndpoint, err)
-	}
-
-	unavailableEndpoint := "http://nowhere.localhost.localhost"
-	red, err = setup(name, unavailableEndpoint, typeName, interval, timeout, backoff)
-	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("expected nil, got (%v)", red)
-	}
-	if err == nil {
-		t.Fatal("expected ErrEndpointNotAvailable, got nil")
-	}
-	if _, ok := err.(interface {
-		EndpointNotAvailable()
-	}); !ok {
-		t.Errorf("expected ErrEndpointNotAvailable, got (%v)", err)
-	}
-	if !strings.Contains(err.Error(), unavailableEndpoint) {
-		t.Errorf("expected (%s) be in the error message, got (%v)", unavailableEndpoint, err)
 	}
 }
