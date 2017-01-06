@@ -22,6 +22,7 @@ import (
 	"github.com/arsham/expvastic/recorder"
 	recorder_testing "github.com/arsham/expvastic/recorder/testing"
 	"github.com/arsham/expvastic/token"
+	"github.com/pkg/errors"
 )
 
 // TODO: test engine closes readers when recorder goes out of scope
@@ -55,12 +56,12 @@ func TestNewWithReadRecorder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e, err := expvastic.New(ctx, log, rec, red, red2)
-	if err != expvastic.ErrDuplicateRecorderName {
-		t.Error("want error, got nil")
+	e, err := expvastic.New(ctx, log, rec, map[string]reader.DataReader{red.Name(): red, red2.Name(): red2})
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
 	}
-	if e != nil {
-		t.Errorf("want (nil), got (%v)", e)
+	if e == nil {
+		t.Error("want Engine, got nil")
 	}
 }
 
@@ -94,7 +95,7 @@ func TestEngineSendJob(t *testing.T) {
 		return nil
 	}
 
-	e, err := expvastic.New(ctx, log, rec, red)
+	e, err := expvastic.New(ctx, log, rec, map[string]reader.DataReader{red.Name(): red})
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -136,7 +137,7 @@ func TestEngineMultiReader(t *testing.T) {
 		return nil
 	}
 
-	reds := make([]reader.DataReader, count)
+	reds := make(map[string]reader.DataReader, count)
 	for i := 0; i < count; i++ {
 
 		name := fmt.Sprintf("reader_example_%d", i)
@@ -153,10 +154,10 @@ func TestEngineMultiReader(t *testing.T) {
 			}
 			return resp, nil
 		}
-		reds[i] = red
+		reds[red.Name()] = red
 	}
 
-	e, err := expvastic.New(ctx, log, rec, reds...)
+	e, err := expvastic.New(ctx, log, rec, reds)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -187,7 +188,7 @@ func TestEngineNewWithConfig(t *testing.T) {
 	}
 
 	e, err := expvastic.WithConfig(ctx, log, rec, red)
-	if err != reader.ErrEmptyName {
+	if errors.Cause(err) != reader.ErrEmptyName {
 		t.Errorf("want ErrEmptyReaderName, got (%v)", err)
 	}
 	if e != nil {
@@ -202,7 +203,7 @@ func TestEngineNewWithConfig(t *testing.T) {
 	if e != nil {
 		t.Errorf("want nil, got (%v)", e)
 	}
-	if _, ok := err.(interface {
+	if _, ok := errors.Cause(err).(interface {
 		InvalidEndpoint()
 	}); !ok {
 		t.Errorf("want ErrInvalidEndpoint, got (%v)", err)
@@ -212,14 +213,11 @@ func TestEngineNewWithConfig(t *testing.T) {
 	red2, _ := reader_testing.NewConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
 	rec, _ = recorder_testing.NewConfig("recorder_example", log, testServer.URL, time.Hour, 5, "index")
 	e, err = expvastic.WithConfig(ctx, log, rec, red, red2)
-	if err == nil {
-		t.Error("want error, got nil")
+	if err != nil {
+		t.Errorf("want nil, got (%v)", err)
 	}
-	if err != expvastic.ErrDuplicateRecorderName {
-		t.Errorf("want ErrDuplicateRecorderName, got (%v)", err)
-	}
-	if e != nil {
-		t.Errorf("want (nil), got (%v)", e)
+	if e == nil {
+		t.Errorf("want Engine, got (%v)", e)
 	}
 }
 
@@ -239,7 +237,7 @@ func TestEngineErrorsIfReaderNotPinged(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e, err := expvastic.New(ctx, log, rec, red)
+	e, err := expvastic.New(ctx, log, rec, map[string]reader.DataReader{red.Name(): red})
 	if err == nil {
 		t.Error("want ErrPing, got nil")
 	}
@@ -270,7 +268,7 @@ func TestEngineErrorsIfRecorderNotPinged(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e, err := expvastic.New(ctx, log, rec, red)
+	e, err := expvastic.New(ctx, log, rec, map[string]reader.DataReader{red.Name(): red})
 	if err == nil {
 		t.Error("want ErrPing, got nil")
 	}
@@ -282,5 +280,220 @@ func TestEngineErrorsIfRecorderNotPinged(t *testing.T) {
 	}
 	if e != nil {
 		t.Errorf("want (nil), got (%v)", e)
+	}
+}
+
+func TestEngineOnlyErrorsIfAllReadersNotPinged(t *testing.T) {
+	ctx := context.Background()
+	deadServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	liveServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	defer liveServer.Close()
+	deadServer.Close() // making sure no one else is got this random port at this time
+
+	rec, err := recorder_testing.New(ctx, log, "a", liveServer.URL, "aa", time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red1, err := reader_testing.New(log, liveServer.URL, "a", "dd", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	red2, err := reader_testing.New(log, deadServer.URL, "b", "ddb", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e, err := expvastic.New(ctx, log, rec, map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
+	if err != nil {
+		t.Errorf("want nil, got (%v)", err)
+	}
+
+	if e == nil {
+		t.Error("want Engine, got nil")
+	}
+
+	// now the engine should error
+	red1, err = reader_testing.New(log, deadServer.URL, "c", "ddc", time.Hour, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err = expvastic.New(ctx, log, rec, map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
+	if err == nil {
+		t.Error("want ErrPing, got nil")
+	}
+
+	if _, ok := err.(interface {
+		Ping()
+	}); !ok {
+		t.Errorf("want ErrPing, got (%v)", err)
+	}
+	if e != nil {
+		t.Errorf("want (nil), got (%v)", e)
+	}
+}
+
+func TestEngineShutsDownOnAllReadersGoOutOfScope(t *testing.T) {
+	t.Parallel()
+	stopReader1 := false
+	stopReader2 := false
+	readerInterval := time.Millisecond * 10
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	red1, err := reader_testing.New(log, testServer.URL, "reader1_example", "example_type", readerInterval, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	red2, err := reader_testing.New(log, testServer.URL, "reader2_example", "example_type", readerInterval, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	red1.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+		if stopReader1 {
+			return nil, reader.ErrBackoffExceeded
+		}
+		resp := &reader.Result{
+			ID:       token.NewUID(),
+			Content:  []byte(`{"devil":666}`),
+			TypeName: red1.TypeName(),
+			Mapper:   red1.Mapper(),
+		}
+		return resp, nil
+	}
+
+	red2.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+		if stopReader2 {
+			return nil, reader.ErrBackoffExceeded
+		}
+		resp := &reader.Result{
+			ID:       token.NewUID(),
+			Content:  []byte(`{"devil":666}`),
+			TypeName: red2.TypeName(),
+			Mapper:   red2.Mapper(),
+		}
+		return resp, nil
+	}
+
+	rec, err := recorder_testing.New(ctx, log, "recorder_example", testServer.URL, "intexName", time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error { return nil }
+
+	e, err := expvastic.New(ctx, log, rec, map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cleanExit := make(chan struct{})
+	go func() {
+		e.Start()
+		cleanExit <- struct{}{}
+	}()
+
+	// check the engine is working correctly with one reader
+	time.Sleep(readerInterval * 3) // making sure it reads at least once
+	stopReader1 = true
+	time.Sleep(readerInterval * 2) // making sure the engine is not falling over
+
+	select {
+	case <-cleanExit:
+		t.Fatal("expected the engine continue")
+	case <-time.After(readerInterval * 2):
+	}
+
+	time.Sleep(readerInterval * 2)
+	stopReader2 = true
+
+	select {
+	case <-cleanExit:
+	case <-time.After(5 * time.Second):
+		t.Error("expected the engine to quit")
+	}
+}
+
+func TestEngineShutsDownOnRecorderGoOutOfScope(t *testing.T) {
+	t.Parallel()
+	stopRecorder := false
+	readerInterval := time.Millisecond * 10
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	red, err := reader_testing.New(log, testServer.URL, "reader_example", "example_type", time.Millisecond*50, time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	red.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+		resp := &reader.Result{
+			ID:       token.NewUID(),
+			Content:  []byte(`{"devil":666}`),
+			TypeName: red.TypeName(),
+			Mapper:   red.Mapper(),
+		}
+		return resp, nil
+	}
+
+	rec, err := recorder_testing.New(ctx, log, "recorder_example", testServer.URL, "intexName", time.Hour, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
+		if stopRecorder {
+			return reader.ErrBackoffExceeded
+		}
+		return nil
+	}
+
+	e, err := expvastic.New(ctx, log, rec, map[string]reader.DataReader{red.Name(): red})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cleanExit := make(chan struct{})
+	go func() {
+		e.Start()
+		cleanExit <- struct{}{}
+	}()
+
+	// check the engine is working correctly with one reader
+	time.Sleep(readerInterval * 3) // making sure it reads at least once
+	stopRecorder = true
+	time.Sleep(readerInterval * 2) // making sure the engine is not falling over
+
+	select {
+	case <-cleanExit:
+	case <-time.After(5 * time.Second):
+		t.Error("expected the engine to quit")
+	}
+}
+
+func TestEngineWithConfigFailsOnNilReaderConf(t *testing.T) {
+	ctx := context.Background()
+
+	rec, err := recorder_testing.NewConfig("recorder_example", log, "nowhere", time.Hour, 5, "index")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e, err := expvastic.WithConfig(ctx, log, rec)
+	if errors.Cause(err) != expvastic.ErrNoReader {
+		t.Errorf("want ErrNoReader, got (%v)", err)
+	}
+	if e != nil {
+		t.Errorf("want nil, got (%v)", e)
+	}
+
+	e, err = expvastic.WithConfig(ctx, log, rec, nil)
+	if errors.Cause(err) != expvastic.ErrNoReader {
+		t.Errorf("want ErrNoReader, got (%v)", err)
+	}
+	if e != nil {
+		t.Errorf("want nil, got (%v)", e)
 	}
 }

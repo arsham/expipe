@@ -9,7 +9,6 @@ package elasticsearch
 import (
 	"context"
 	"expvar"
-	"fmt"
 	"strings"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/recorder"
 	"github.com/olivere/elastic"
+	"github.com/pkg/errors"
 )
 
 var elasticsearchRecords = expvar.NewInt("ElasticSearch Records")
@@ -108,20 +108,20 @@ func (r *Recorder) Ping() error {
 	_, _, err = r.client.Ping(r.endpoint).Do(ctx)
 	if err != nil {
 		if ctx.Err() != nil {
-			return fmt.Errorf("Timeout: %s - %s", ctx.Err(), err)
+			return errors.Wrapf(err, "timeout: %s", ctx.Err())
 		}
-		return fmt.Errorf("Ping failed: %s", err)
+		return errors.Wrap(err, "ping failed")
 	}
 
 	exists, err := r.client.IndexExists(r.indexName).Do(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "querying index")
 	}
 
 	if !exists {
 		_, err := r.client.CreateIndex(r.indexName).Do(ctx)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "create index: %s", r.indexName)
 		}
 	}
 	r.pinged = true
@@ -141,8 +141,10 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, r.Timeout())
 	defer cancel()
+
 	err := r.record(ctx, job.TypeName, job.Time, job.Payload)
 	if err != nil {
+		err = errors.Cause(err)
 		if err == elastic.ErrNoClient {
 			r.strike++
 			err = recorder.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
@@ -167,7 +169,7 @@ func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.T
 		BodyString(payload).
 		Do(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "record payload")
 	}
 	elasticsearchRecords.Add(1)
 	return ctx.Err()

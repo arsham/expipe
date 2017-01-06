@@ -49,8 +49,9 @@ go install ./cmd/expvastic
 You also need elasticsearch and kibana, here is a couple of docker images you can start with:
 
 ```bash
-docker run -d --restart always --name expvastic -p 9200:9200 --ulimit nofile=98304:98304 -v "/path/to/somewhere/expvastic":/usr/share/elasticsearch/data elasticsearch
-docker run -d --restart always --name kibana -p 80:5601 --link expvastic:elasticsearch -p 5601:5601 kibana
+docker volume create expvastic
+docker run -d --name expvastic --restart always --ulimit nofile=98304:98304 -v expvastic:/usr/share/elasticsearch/data -e ES_JAVA_OPTS='-Xms10G -Xmx10G' -e "xpack.security.enabled=false" -e "xpack.monitoring.enabled=true" -e "xpack.graph.enabled=true" -e "xpack.watcher.enabled=false" -p 9200:9200 -e "http.cors.enabled=true" -e 'http.cors.allow-origin=*' docker.elastic.co/elasticsearch/elasticsearch:5.4.2
+docker run -d --name kibana --restart always -p 80:5601 --link expvastic:elasticsearch docker.elastic.co/kibana/kibana:5.4.2
 ```
 
 ## Kibana

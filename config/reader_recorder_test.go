@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/arsham/expvastic/lib"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -35,7 +36,7 @@ func TestTypeCheckErrors(t *testing.T) {
 		val *notSpecifiedErr
 		ok  bool
 	)
-	if val, ok = err.(*notSpecifiedErr); !ok {
+	if val, ok = errors.Cause(err).(*notSpecifiedErr); !ok {
 		t.Fatalf("want notSpecifiedErr, got (%v)", err)
 	}
 
@@ -54,7 +55,7 @@ func TestTypeCheckErrors(t *testing.T) {
 	v.ReadConfig(input)
 	_, err = LoadYAML(log, v)
 
-	if val, ok = err.(*notSpecifiedErr); !ok {
+	if val, ok = errors.Cause(err).(*notSpecifiedErr); !ok {
 		t.Fatalf("want notSpecifiedErr, got (%v)", err)
 	}
 

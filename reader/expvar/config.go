@@ -6,7 +6,6 @@ package expvar
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -61,18 +61,18 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 	)
 	err := v.UnmarshalKey(key, &c)
 	if err != nil {
-		return nil, fmt.Errorf("decoding config: %s", err)
+		return nil, errors.Wrap(err, "decoding config")
 	}
 	c.name = name
 	c.log = log
 
 	if interval, err = time.ParseDuration(c.EXPInterval); err != nil {
-		return nil, fmt.Errorf("parse interval (%v): %s", c.EXPInterval, err)
+		return nil, errors.Wrapf(err, "parse interval (%v)", c.EXPInterval)
 	}
 	c.interval = interval
 
 	if timeout, err = time.ParseDuration(c.EXPTimeout); err != nil {
-		return nil, fmt.Errorf("parse timeout: %s", err)
+		return nil, errors.Wrap(err, "parse timeout")
 	}
 	c.timeout = timeout
 
@@ -125,7 +125,7 @@ func withConfig(c *Config) (*Config, error) {
 func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
 	endpoint, err := url.Parse(c.Endpoint())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "new config")
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
 	return New(c.Logger(), endpoint.String(), c.mapper, c.Name(), c.EXPTypeName, c.Interval(), c.Timeout(), c.Backoff())

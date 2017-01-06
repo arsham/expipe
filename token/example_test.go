@@ -12,7 +12,7 @@ import (
 )
 
 // This example shows how to create a new job from a context.
-func ExampleNewReadJob() {
+func ExampleNew() {
 	job := token.New(context.Background())
 	fmt.Println(job)
 }

@@ -18,24 +18,24 @@ import (
 	recorder_testing "github.com/arsham/expvastic/recorder/testing"
 )
 
-func getReader(log logrus.FieldLogger) (reader.DataReader, func()) {
+func getReader(log logrus.FieldLogger) (map[string]reader.DataReader, func()) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		desire := `{"the key": "is the value!"}`
 		io.WriteString(w, desire)
 	}))
 
-	red, err := reader_testing.New(log, ts.URL, "reader_example", "typeName", time.Second, time.Second, 5) //for testing
+	red, err := reader_testing.New(log, ts.URL, "reader_example", "typeName", time.Millisecond*100, time.Millisecond*100, 5) //for testing
 	if err != nil {
 		panic(err)
 	}
 	red.Pinged = true
-	return red, func() {
+	return map[string]reader.DataReader{red.Name(): red}, func() {
 		ts.Close()
 	}
 }
 
 func getRecorder(ctx context.Context, log logrus.FieldLogger, url string) recorder.DataRecorder {
-	rec, err := recorder_testing.New(ctx, log, "reader_example", url, "intexName", time.Second, 5)
+	rec, err := recorder_testing.New(ctx, log, "reader_example", url, "intexName", time.Millisecond*100, 5)
 	if err != nil {
 		panic(err)
 	}

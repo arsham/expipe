@@ -1,14 +1,14 @@
 hash: 5f22d461002c265e14a183c57d5c583e94bec62f697ed497b490ab37a029abdc
-updated: 2017-01-06T13:40:15.2820284Z
+updated: 2017-09-21T13:24:11.345738678+01:00
 imports:
 - name: github.com/antonholmquist/jason
   version: c23cef7eaa75a6a5b8810120e167bd590d8fd2ab
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
 - name: github.com/fsnotify/fsnotify
-  version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
+  version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/hashicorp/hcl
-  version: 80e628d796135357b3d2e33a985c666b9f35eee1
+  version: 68e816d1c783414e79bc65b3994d9ab6b0a722ab
   subpackages:
   - hcl/ast
   - hcl/parser
@@ -19,58 +19,58 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/magiconair/properties
-  version: 9c47895dc1ce54302908ab8a43385d1f5df2c11c
+  version: 8d7837e64d3c1ee4e54a880c5a920ab4316fc90a
 - name: github.com/mitchellh/mapstructure
-  version: bfdb1a85537d60bc7e954e600c250219ea497417
+  version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/namsral/flag
   version: 71ceffbeb0ba60fccc853971bb3ed4d7d90bfd04
 - name: github.com/olivere/elastic
-  version: b272fab42387a42585235d56f8c6b53b13ddfb7d
-- name: github.com/pelletier/go-buffruneio
-  version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
+  version: 75b071e35066bfb592a0d770e4cd1e5a5e45edf0
 - name: github.com/pelletier/go-toml
-  version: 439fbba1f887c286024370cb4f281ba815c4c7d7
+  version: 1d6b12b7cb290426e27e6b4e38b89fcda3aeef03
+- name: github.com/pkg/errors
+  version: 2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/shurcooL/go
-  version: ecb4791be8860c12288a50b8473ee60392489d36
+  version: c661e953e604ba4a84a3c4e458462a481bd6ce72
   subpackages:
   - ctxhttp
 - name: github.com/Sirupsen/logrus
-  version: d26492970760ca5d33129d2d799e34be5c4782eb
+  version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
   subpackages:
   - hooks/test
 - name: github.com/spf13/afero
-  version: 90dd71edc4d0a8b3511dc12ea15d617d03be09e0
+  version: ee1bd8ee15a1306d1f9201acc41ef39cd9f99a1b
   subpackages:
   - mem
 - name: github.com/spf13/cast
-  version: 56a7ecbeb18dde53c6db4bd96b541fd9741b8d44
+  version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/jwalterweatherman
-  version: bccdd23ae5e51bd2b081814db093646c7af3d34d
+  version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
 - name: github.com/spf13/pflag
-  version: 25f8b5b07aece3207895bf19f7ab517eb3b22a40
+  version: 7aff26db30c1be810f9de5038ec5ef96ac41fd7c
 - name: github.com/spf13/viper
-  version: 5ed0fc31f7f453625df314d8e66b9791e8d13003
+  version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
 - name: golang.org/x/net
-  version: 905989bd20b7c354fd28a61074eed1c8f49ebc89
+  version: b60f3a92103dfd93dfcb900ec77c6d0643510868
   subpackages:
   - context
   - context/ctxhttp
 - name: golang.org/x/sys
-  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
+  version: b6e1ae21643682ce023deb8d152024597b0e9bb4
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: 44f4f658a783b0cee41fe0a23b8fc91d9c120558
+  version: 1cbadb444a806fd9430d14ad08967ed91da4fa0a
   subpackages:
   - transform
   - unicode/norm
 - name: gopkg.in/olivere/elastic.v5
-  version: b272fab42387a42585235d56f8c6b53b13ddfb7d
+  version: 75b071e35066bfb592a0d770e4cd1e5a5e45edf0
   subpackages:
-  - backoff
+  - config
   - uritemplates
 - name: gopkg.in/yaml.v2
-  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
 testImports: []

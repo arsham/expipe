@@ -123,7 +123,7 @@ routes:
         recorders:
             - elastic_0
             - elastic_1
-
+```
 Expvastic creates three engines like so:
 
 ```
@@ -147,7 +147,6 @@ memory_bytes:                   # These values will be transoformed from bytes
     memstats.Alloc: gb          # To GB
 
 ```
-
 
 ## Testing
 
