@@ -13,13 +13,6 @@ install:
   - go get github.com/Masterminds/glide
   - go get github.com/mattn/goveralls
 
-before_script:
-  - mkdir -p /tmp/elasticsearch/config
-  - cp -r bin/config/* /tmp/elasticsearch/config/
-  - sudo sysctl -w vm.max_map_count=262144
-  - docker run --rm --privileged=true -p 9200:9200 -p 9300:9300 -v "/tmp/elasticsearch/config:/usr/share/elasticsearch/config" -e ES_JAVA_OPTS='-Xms1g -Xmx1g' elasticsearch:5.1.1 elasticsearch >& /dev/null &
-  - sleep 15
-
 script:
   - glide install
   - go test $(glide nv)
