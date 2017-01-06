@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/token"
 )
 
 var count = 0
@@ -39,12 +39,12 @@ func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
 	}))
 	defer ts.Close()
 
-	red, err := NewSimpleReader(log, ts.URL, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond, 100)
+	red, err := New(log, ts.URL, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond, 100)
 	if err != nil {
 		b.Fatal(err)
 	}
 
 	for n := 0; n < b.N; n++ {
-		red.Read(communication.NewReadJob(ctx))
+		red.Read(token.New(ctx))
 	}
 }

@@ -24,7 +24,7 @@ func getReader(log logrus.FieldLogger) (reader.DataReader, func()) {
 		io.WriteString(w, desire)
 	}))
 
-	red, err := reader_testing.NewSimpleReader(log, ts.URL, "reader_example", "typeName", time.Second, time.Second, 5) //for testing
+	red, err := reader_testing.New(log, ts.URL, "reader_example", "typeName", time.Second, time.Second, 5) //for testing
 	if err != nil {
 		panic(err)
 	}
@@ -35,7 +35,7 @@ func getReader(log logrus.FieldLogger) (reader.DataReader, func()) {
 }
 
 func getRecorder(ctx context.Context, log logrus.FieldLogger, url string) recorder.DataRecorder {
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "reader_example", url, "intexName", time.Second, 5)
+	rec, err := recorder_testing.New(ctx, log, "reader_example", url, "intexName", time.Second, 5)
 	if err != nil {
 		panic(err)
 	}

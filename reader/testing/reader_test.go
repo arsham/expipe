@@ -47,7 +47,7 @@ func (c *Construct) SetTimeout(timeout time.Duration)   { c.timeout = timeout }
 func (c *Construct) SetBackoff(backoff int)             { c.backoff = backoff }
 func (c *Construct) TestServer() *httptest.Server       { return testServer }
 func (c *Construct) Object() (reader.DataReader, error) {
-	return reader_test.NewSimpleReader(log, c.endpoint, c.name, c.typeName, c.interval, c.timeout, c.backoff)
+	return reader_test.New(log, c.endpoint, c.name, c.typeName, c.interval, c.timeout, c.backoff)
 }
 
 func TestSimpleReader(t *testing.T) {

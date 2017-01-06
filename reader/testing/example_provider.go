@@ -11,9 +11,9 @@ import (
 )
 
 // GetReader provides a SimpleReader for using in the example.
-func GetReader(url string) *SimpleReader {
+func GetReader(url string) *Reader {
 	log := lib.DiscardLogger()
-	red, err := NewSimpleReader(log, url, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond, 10)
+	red, err := New(log, url, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond, 10)
 	if err != nil {
 		panic(err)
 	}

@@ -51,7 +51,7 @@ func (c *Construct) SetTimeout(timeout time.Duration)   { c.timeout = timeout }
 func (c *Construct) SetBackoff(backoff int)             { c.backoff = backoff }
 func (c *Construct) TestServer() *httptest.Server       { return testServer }
 func (c *Construct) Object() (recorder.DataRecorder, error) {
-	return recorder_test.NewSimpleRecorder(context.Background(), log, c.name, c.endpoint, c.indexName, c.timeout, c.backoff)
+	return recorder_test.New(context.Background(), log, c.name, c.endpoint, c.indexName, c.timeout, c.backoff)
 }
 
 func (c *Construct) ValidEndpoints() []string {

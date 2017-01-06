@@ -2,14 +2,11 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package recorder contains logic to record data into a database. The job is
-// guaranteed to be json marshallable. Any objects that implements the DataRecorder
+// Package recorder contains logic to record data into a database. The payload is
+// guaranteed to be json marshallable. Any types that implements the DataRecorder
 // interface can be used in this system.
 //
 // Important Notes
-//
-// Recorders should ping their endpoint upon creation to make sure they can access.
-// Otherwise they should return an error indicating they cannot start.
 //
 // When the context is cancelled, the recorder should finish its job and return.
 package recorder
@@ -18,8 +15,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/token"
 )
 
 // DataRecorder receives a payload for shipping data to a repository.
@@ -46,19 +43,19 @@ type DataRecorder interface {
 	// Timeout is required by the Engine so it can read the time-outs.
 	Timeout() time.Duration
 
-	// The recorder should record the RecordJob and report any errors happened.
+	// The recorder should record the Job and report the errors.
 	// When the context is timed-out or cancelled, the recorder should return
 	// with the context's error.
-	Record(context.Context, *RecordJob) error
+	Record(context.Context, *Job) error
 }
 
-// RecordJob is sent with a context and a payload to be recorded.
+// Job is sent with a context and a payload to be recorded.
 // If the TypeName and IndexName are different than the previous one, the recorder
 // should use the ones engine provides. If any errors occurred, recorders should
 // return the error on Read return value.
-type RecordJob struct {
+type Job struct {
 	// ID is the job ID generated at the time the payload was generated.
-	ID communication.JobID
+	ID token.ID
 
 	// Payload has a Bytes() method for returning the data.
 	// It is guaranteed to be json marshallable.

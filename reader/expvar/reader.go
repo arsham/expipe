@@ -16,10 +16,10 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expvastic/token"
 	"golang.org/x/net/context/ctxhttp"
 )
 
@@ -50,7 +50,6 @@ type Reader struct {
 //   name == ""           | ErrEmptyName
 //   endpoint == ""       | ErrEmptyEndpoint
 //   Invalid endpoint     | ErrInvalidEndpoint
-//   Unavailable endpoint | ErrEndpointNotAvailable
 //   typeName == ""       | ErrEmptyTypeName
 //   backoff < 5          | ErrLowBackoffValue
 //
@@ -91,6 +90,7 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name s
 }
 
 // Ping pings the endpoint and return nil if was successful.
+// It returns an ErrEndpointNotAvailable if the endpoint id unavailable.
 func (r *Reader) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
@@ -103,15 +103,15 @@ func (r *Reader) Ping() error {
 }
 
 // Read begins reading from the target.
-// It returns an error back to the engine if it can't read from metrics provider.
-func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
+// It returns an error back to the engine if it can't read from metrics provider,
+// Ping() is not called or the endpoint has been unresponsive too many times.
+func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if !r.pinged {
 		return nil, reader.ErrPingNotCalled
 	}
 	if r.strike > r.backoff {
 		return nil, reader.ErrBackoffExceeded
 	}
-	id := communication.JobValue(job)
 	resp, err := ctxhttp.Get(job, nil, r.endpoint)
 
 	if err != nil {
@@ -123,7 +123,7 @@ func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
 		}
 		r.log.WithField("reader", "expvar_reader").
 			WithField("name", r.Name()).
-			WithField("ID", id).
+			WithField("ID", job.ID()).
 			Debugf("%s: error making request: %v", r.name, err)
 		return nil, err
 	}
@@ -134,10 +134,10 @@ func (r *Reader) Read(job context.Context) (*reader.ReadJobResult, error) {
 		return nil, err
 	}
 
-	res := &reader.ReadJobResult{
-		ID:       id,
+	res := &reader.Result{
+		ID:       job.ID(),
 		Time:     time.Now(), // It is sensible to record the time now
-		Res:      buf.Bytes(),
+		Content:  buf.Bytes(),
 		TypeName: r.TypeName(),
 		Mapper:   r.Mapper(),
 	}

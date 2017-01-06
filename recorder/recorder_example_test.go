@@ -36,7 +36,7 @@ func ExampleDataRecorder() {
 	payload := datatype.New([]datatype.DataType{
 		datatype.StringType{Key: "key", Value: "value"},
 	})
-	job := &recorder.RecordJob{
+	job := &recorder.Job{
 		Payload:   payload,
 		IndexName: "my index",
 		Time:      time.Now(),

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
+	"github.com/arsham/expvastic/token"
 )
 
 // testReaderReceivesJob is a test helper to test the reader can receive jobs
@@ -35,7 +35,7 @@ func testReaderReceivesJob(t *testing.T, cons Constructor) {
 	errChan := make(chan string)
 	fatalChan := make(chan string)
 	go func() {
-		result, err := red.Read(communication.NewReadJob(ctx))
+		result, err := red.Read(token.New(ctx))
 		if err != nil {
 			errChan <- fmt.Sprintf("want nil, got (%v)", err)
 			return
@@ -52,7 +52,7 @@ func testReaderReceivesJob(t *testing.T, cons Constructor) {
 			errChan <- "expecting TypeName, got empty string"
 			return
 		}
-		if result.Res == nil {
+		if result.Content == nil {
 			errChan <- "expecting Res, got nil"
 			return
 		}
@@ -96,7 +96,7 @@ func testReaderReturnsSameID(t *testing.T, cons Constructor) {
 	fatalChan := make(chan string)
 	go func() {
 		ctx := context.Background()
-		job := communication.NewReadJob(ctx)
+		job := token.New(ctx)
 		result, err := red.Read(job)
 		if err != nil {
 			errChan <- fmt.Sprintf("want nil, got (%v)", err)
@@ -104,8 +104,8 @@ func testReaderReturnsSameID(t *testing.T, cons Constructor) {
 		if result == nil {
 			fatalChan <- "expecting results, got nil"
 		}
-		if result.ID != communication.JobValue(job) {
-			errChan <- fmt.Sprintf("want (%v), got (%v)", communication.JobValue(job), result.ID)
+		if result.ID != job.ID() {
+			errChan <- fmt.Sprintf("want (%v), got (%v)", job.ID(), result.ID)
 		}
 
 		close(done)

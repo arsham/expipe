@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expvastic/token"
 )
 
 // pingingEndpoint is a helper to test the reader errors when the endpoint goes away.
@@ -85,7 +85,7 @@ func testReaderErrorsOnEndpointDisapears(t *testing.T, cons Constructor) {
 	ctx := context.Background()
 	done := make(chan struct{})
 	go func() {
-		result, err := red.Read(communication.NewReadJob(ctx))
+		result, err := red.Read(token.New(ctx))
 		if err == nil {
 			t.Error("want error, got nil")
 			return
@@ -133,7 +133,7 @@ func testReaderBacksOffOnEndpointGone(t *testing.T, cons Constructor) {
 
 	ctx := context.Background()
 	backedOff := false
-	job := communication.NewReadJob(ctx)
+	job := token.New(ctx)
 	// We don't know the backoff amount set in the reader, so we try 100 times until it closes.
 	for i := 0; i < 100; i++ {
 		_, err := red.Read(job)
@@ -175,7 +175,7 @@ func testReadingReturnsErrorIfNotPingedYet(t *testing.T, cons Constructor) {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
 
-	job := communication.NewReadJob(ctx)
+	job := token.New(ctx)
 
 	res, err := red.Read(job)
 	if err != reader.ErrPingNotCalled {

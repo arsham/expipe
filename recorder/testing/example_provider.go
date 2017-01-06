@@ -12,9 +12,9 @@ import (
 )
 
 // GetRecorder provides a SimpleRecorder for using in the example.
-func GetRecorder(ctx context.Context, url string) *SimpleRecorder {
+func GetRecorder(ctx context.Context, url string) *Recorder {
 	log := lib.DiscardLogger()
-	rec, err := NewSimpleRecorder(ctx, log, "reader_example", url, "intexName", time.Second, 5)
+	rec, err := New(ctx, log, "reader_example", url, "intexName", time.Second, 5)
 	if err != nil {
 		panic(err)
 	}

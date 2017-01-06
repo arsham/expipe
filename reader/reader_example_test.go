@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/arsham/expvastic/communication"
 	reader "github.com/arsham/expvastic/reader/testing"
+	"github.com/arsham/expvastic/token"
 )
 
 // This example shows the reader hits the endpoint when the Read method is called.
@@ -27,14 +27,14 @@ func ExampleDataReader_read() {
 	err := red.Ping()
 	fmt.Println("Ping errors:", err)
 
-	job := communication.NewReadJob(context.Background())
+	job := token.New(context.Background())
 	res, err := red.Read(job) // Issuing a job
 
 	if err == nil { // Lets check the errors
 		fmt.Println("No errors reported")
 	}
 
-	fmt.Println("Result is:", string(res.Res))
+	fmt.Println("Result is:", string(res.Content))
 
 	// Output:
 	// Ping errors: <nil>

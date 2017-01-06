@@ -12,15 +12,15 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expvastic/token"
 	"golang.org/x/net/context/ctxhttp"
 )
 
-// SimpleReader is useful for testing purposes.
-type SimpleReader struct {
+// Reader is useful for testing purposes.
+type Reader struct {
 	name     string
 	typeName string
 	endpoint string
@@ -30,12 +30,12 @@ type SimpleReader struct {
 	timeout  time.Duration
 	backoff  int
 	strike   int
-	ReadFunc func(context.Context) (*reader.ReadJobResult, error)
+	ReadFunc func(*token.Context) (*reader.Result, error)
 	Pinged   bool
 }
 
-// NewSimpleReader is a reader for using in tests
-func NewSimpleReader(log logrus.FieldLogger, endpoint string, name, typeName string, interval, timeout time.Duration, backoff int) (*SimpleReader, error) {
+// New is a reader for using in tests
+func New(log logrus.FieldLogger, endpoint string, name, typeName string, interval, timeout time.Duration, backoff int) (*Reader, error) {
 	if name == "" {
 		return nil, reader.ErrEmptyName
 	}
@@ -57,7 +57,7 @@ func NewSimpleReader(log logrus.FieldLogger, endpoint string, name, typeName str
 		return nil, reader.ErrLowBackoffValue(backoff)
 	}
 
-	w := &SimpleReader{
+	w := &Reader{
 		name:     name,
 		typeName: typeName,
 		endpoint: url,
@@ -71,7 +71,7 @@ func NewSimpleReader(log logrus.FieldLogger, endpoint string, name, typeName str
 }
 
 // Ping pings the endpoint and return nil if was successful.
-func (s *SimpleReader) Ping() error {
+func (s *Reader) Ping() error {
 	if s.Pinged {
 		// In tests, we have a strict policy on channels. Therefore if it
 		// is already pinged, we won't bother.
@@ -89,7 +89,7 @@ func (s *SimpleReader) Ping() error {
 }
 
 // Read executes the ReadFunc if defined, otherwise continues normally
-func (s *SimpleReader) Read(job context.Context) (*reader.ReadJobResult, error) {
+func (s *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if !s.Pinged {
 		return nil, reader.ErrPingNotCalled
 	}
@@ -100,7 +100,6 @@ func (s *SimpleReader) Read(job context.Context) (*reader.ReadJobResult, error) 
 	if s.ReadFunc != nil {
 		return s.ReadFunc(job)
 	}
-	id := communication.JobValue(job)
 	resp, err := ctxhttp.Get(job, nil, s.endpoint)
 	if err != nil {
 		if v, ok := err.(*url.Error); ok {
@@ -114,10 +113,10 @@ func (s *SimpleReader) Read(job context.Context) (*reader.ReadJobResult, error) 
 	defer resp.Body.Close()
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(resp.Body)
-	res := &reader.ReadJobResult{
-		ID:       id,
+	res := &reader.Result{
+		ID:       job.ID(),
 		Time:     time.Now(),
-		Res:      buf.Bytes(),
+		Content:  buf.Bytes(),
 		TypeName: s.TypeName(),
 		Mapper:   s.Mapper(),
 	}
@@ -125,16 +124,16 @@ func (s *SimpleReader) Read(job context.Context) (*reader.ReadJobResult, error) 
 }
 
 // Name returns the name
-func (s *SimpleReader) Name() string { return s.name }
+func (s *Reader) Name() string { return s.name }
 
 // TypeName returns the type name
-func (s *SimpleReader) TypeName() string { return s.typeName }
+func (s *Reader) TypeName() string { return s.typeName }
 
 // Mapper returns the mapper
-func (s *SimpleReader) Mapper() datatype.Mapper { return s.mapper }
+func (s *Reader) Mapper() datatype.Mapper { return s.mapper }
 
 // Interval returns the interval
-func (s *SimpleReader) Interval() time.Duration { return s.interval }
+func (s *Reader) Interval() time.Duration { return s.interval }
 
 // Timeout returns the timeout
-func (s *SimpleReader) Timeout() time.Duration { return s.timeout }
+func (s *Reader) Timeout() time.Duration { return s.timeout }

@@ -42,11 +42,10 @@ type Recorder struct {
 //   Condition            |  Error
 //   ---------------------|-------------
 //   Invalid endpoint     | ErrInvalidEndpoint
-//   Unavailable endpoint | ErrEndpointNotAvailable
-//   Ping errors          | Timeout/Ping failed
 //   backoff < 5          | ErrLowBackoffValue
-//
-// It also errors if it can't create the index.
+//   Empty name           | ErrEmptyName
+//   Invalid IndexName    | ErrInvalidIndexName
+//   Empty IndexName      | ErrEmptyIndexName
 //
 func New(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*Recorder, error) {
 	if name == "" {
@@ -81,7 +80,16 @@ func New(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName 
 }
 
 // Ping should ping the endpoint and report if was successful.
-func (r *Recorder) Ping() (err error) {
+// It returns and error on the following occasions:
+//
+//   Condition            |  Error
+//   ---------------------|-------------
+//   Unavailable endpoint | ErrEndpointNotAvailable
+//   Ping errors          | Timeout/Ping failed
+//   Index creation       | elasticsearch's errors
+//
+func (r *Recorder) Ping() error {
+	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	addr := elastic.SetURL(r.endpoint)
@@ -120,9 +128,11 @@ func (r *Recorder) Ping() (err error) {
 	return nil
 }
 
-// Record returns an error if the endpoint responds in errors. It stops receiving jobs when the
-// endpoint's absence has exceeded the backoff value.
-func (r *Recorder) Record(ctx context.Context, job *recorder.RecordJob) error {
+// Record returns an error if the endpoint responds in errors. It stops
+// receiving jobs when the endpoint's absence has exceeded the backoff value.
+// It returns an error if the ping is not called or the endpoint
+// is not responding too many times.
+func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 	if !r.pinged {
 		return recorder.ErrPingNotCalled
 	}
@@ -146,8 +156,9 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.RecordJob) error {
 	return nil
 }
 
-// record ships the kv data to elasticsearch. It calls the recordFunc if exists, otherwise continues as normal.
-// Although this doesn't change the state of the Client, it is a part of its behaviour
+// record ships the kv data to elasticsearch. It calls the recordFunc if exists,
+// otherwise continues as normal.
+// Although this doesn't change the state of the Client, it is a part of its behaviour.
 func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
 	payload := string(list.Bytes(timestamp))
 	_, err := r.client.Index().

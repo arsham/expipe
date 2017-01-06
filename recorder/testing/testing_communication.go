@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/recorder"
+	"github.com/arsham/expvastic/token"
 )
 
 // testRecorderReceivesPayload tests the recorder receives the payload correctly.
@@ -32,8 +32,8 @@ func testRecorderReceivesPayload(t *testing.T, cons Constructor) {
 		t.Fatal(err)
 	}
 	p := datatype.New([]datatype.DataType{})
-	payload := &recorder.RecordJob{
-		ID:        communication.NewJobID(),
+	payload := &recorder.Job{
+		ID:        token.NewUID(),
 		Payload:   p,
 		IndexName: "my index",
 		TypeName:  "my type",
@@ -71,8 +71,8 @@ func testRecorderSendsResult(t *testing.T, cons Constructor) {
 		t.Fatal(err)
 	}
 	p := datatype.New([]datatype.DataType{&datatype.StringType{Key: "test", Value: "test"}})
-	payload := &recorder.RecordJob{
-		ID:        communication.NewJobID(),
+	payload := &recorder.Job{
+		ID:        token.NewUID(),
 		Payload:   p,
 		IndexName: "my_index",
 		TypeName:  "my_type",

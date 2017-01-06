@@ -8,10 +8,10 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
+	"github.com/arsham/expvastic/token"
 )
 
 // This file contains the operation section of the engine and its event loop.
@@ -69,12 +69,12 @@ func (e *Engine) issueReaderJob(red reader.DataReader) {
 	timeout := red.Timeout() + time.Duration(10*time.Second)
 	timer := time.NewTimer(timeout)
 	done := make(chan struct{})
-	job := communication.NewReadJob(e.ctx)
+	job := token.New(e.ctx)
 
 	go func() {
 		res, err := red.Read(job)
 		if err != nil {
-			e.log.WithField("ID", communication.JobValue(job)).WithField("name", red.Name()).Error(err)
+			e.log.WithField("ID", job.ID()).WithField("name", red.Name()).Error(err)
 			return
 		}
 		e.readerJobs <- res
@@ -102,9 +102,9 @@ func (e *Engine) issueReaderJob(red reader.DataReader) {
 	}
 }
 
-func (e *Engine) shipToRecorder(result *reader.ReadJobResult) {
-	res := make([]byte, len(result.Res))
-	copy(res, result.Res)
+func (e *Engine) shipToRecorder(result *reader.Result) {
+	res := make([]byte, len(result.Content))
+	copy(res, result.Content)
 	payload := datatype.JobResultDataTypes(res, result.Mapper.Copy())
 	if payload.Error() != nil {
 		erroredJobs.Add(1)
@@ -114,7 +114,7 @@ func (e *Engine) shipToRecorder(result *reader.ReadJobResult) {
 	recordJobs.Add(1)
 	timeout := e.recorder.Timeout() + time.Duration(10*time.Second)
 	timer := time.NewTimer(timeout)
-	recPayload := &recorder.RecordJob{
+	recPayload := &recorder.Job{
 		ID:        result.ID,
 		Payload:   payload,
 		IndexName: e.recorder.IndexName(),

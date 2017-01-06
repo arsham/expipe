@@ -14,11 +14,11 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
 	reader_testing "github.com/arsham/expvastic/reader/testing"
 	recorder_testing "github.com/arsham/expvastic/recorder/testing"
+	"github.com/arsham/expvastic/token"
 )
 
 func BenchmarkEngineSingle(b *testing.B) {
@@ -68,7 +68,7 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 		name := fmt.Sprintf("Benchmark-%d_%d_%d_%d_(r:%d)", bc.readChanBuff, bc.readResChanBuff, bc.recChanBuff, bc.recResChan, bc.readers)
 
 		// Setting the intervals to an hour so the benchmark can issue jobs
-		rec, _ := recorder_testing.NewSimpleRecorder(ctx, log, "reacorder_example", ts.URL, "intexName", time.Hour, 5)
+		rec, _ := recorder_testing.New(ctx, log, "reacorder_example", ts.URL, "intexName", time.Hour, 5)
 		reds, err := makeReaders(ctx, bc.readers, log, ts.URL)
 		if err != nil {
 			b.Fatal(err)
@@ -92,20 +92,19 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 func benchmarkEngine(ctx context.Context, reds []reader.DataReader, b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		for _, red := range reds {
-			red.Read(communication.NewReadJob(ctx))
+			red.Read(token.New(ctx))
 		}
 	}
 }
 
 func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url string) ([]reader.DataReader, error) {
 	reds := make([]reader.DataReader, count)
-	readFunc := func(m *reader_testing.SimpleReader) func(ctx context.Context) (*reader.ReadJobResult, error) {
-		return func(job context.Context) (*reader.ReadJobResult, error) {
-			id := communication.JobValue(job)
-			res := &reader.ReadJobResult{
-				ID:       id,
+	readFunc := func(m *reader_testing.Reader) func(job *token.Context) (*reader.Result, error) {
+		return func(job *token.Context) (*reader.Result, error) {
+			res := &reader.Result{
+				ID:       job.ID(),
 				Time:     time.Now(),
-				Res:      []byte(``),
+				Content:  []byte(``),
 				TypeName: m.TypeName(),
 				Mapper:   m.Mapper(),
 			}
@@ -114,7 +113,7 @@ func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url str
 	}
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("reader_%d", i)
-		red, err := reader_testing.NewSimpleReader(log, url, name, "example_type", time.Hour, time.Hour, 10)
+		red, err := reader_testing.New(log, url, name, "example_type", time.Hour, time.Hour, 10)
 		if err != nil {
 			return nil, err
 		}

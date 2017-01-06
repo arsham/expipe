@@ -15,12 +15,12 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/Sirupsen/logrus/hooks/test"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
 	reader_test "github.com/arsham/expvastic/reader/testing"
 	"github.com/arsham/expvastic/recorder"
 	recorder_testing "github.com/arsham/expvastic/recorder/testing"
+	"github.com/arsham/expvastic/token"
 )
 
 var (
@@ -53,7 +53,7 @@ func inspectLogs(entries []*logrus.Entry, niddle string) (all string, found bool
 }
 
 func withRecorder(ctx context.Context, log logrus.FieldLogger) (*Engine, error) {
-	rec, _ := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_test", testServer.URL, "indexName", time.Hour, 5)
+	rec, _ := recorder_testing.New(ctx, log, "recorder_test", testServer.URL, "indexName", time.Hour, 5)
 	err := rec.Ping()
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func withRecorder(ctx context.Context, log logrus.FieldLogger) (*Engine, error) 
 		ctx:        ctx,
 		log:        log,
 		recorder:   rec,
-		readerJobs: make(chan *reader.ReadJobResult),
+		readerJobs: make(chan *reader.Result),
 	}, nil
 }
 
@@ -76,7 +76,7 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond, 5)
+	red, err := reader_test.New(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond, 5)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 	recorded := make(chan struct{})
 
 	// Testing the engine catches errors
-	red.ReadFunc = func(job context.Context) (*reader.ReadJobResult, error) {
+	red.ReadFunc = func(job *token.Context) (*reader.Result, error) {
 		recorded <- struct{}{}
 		return nil, errMsg
 	}
@@ -128,29 +128,29 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Millisecond, time.Millisecond, 5)
+	red, err := reader_test.New(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Millisecond, time.Millisecond, 5)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
 	red.Ping()
 	e.setReaders([]reader.DataReader{red})
-	job := communication.NewReadJob(ctx)
-	jobID := communication.JobValue(job)
+	job := token.New(ctx)
+	jobID := job.ID()
 	recorded := make(chan struct{})
 
 	// testing engine send the payload to the recorder
-	red.ReadFunc = func(job context.Context) (*reader.ReadJobResult, error) {
-		resp := &reader.ReadJobResult{
+	red.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+		resp := &reader.Result{
 			ID:       jobID,
-			Res:      []byte(`{"devil":666}`),
+			Content:  []byte(`{"devil":666}`),
 			TypeName: red.TypeName(),
 			Mapper:   red.Mapper(),
 		}
 		return resp, nil
 	}
 
-	rec := e.recorder.(*recorder_testing.SimpleRecorder)
-	rec.RecordFunc = func(ctx context.Context, job *recorder.RecordJob) error {
+	rec := e.recorder.(*recorder_testing.Recorder)
+	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if job.ID != jobID {
 			t.Errorf("want (%s), got (%s)", jobID, job.ID)
 		}
@@ -189,21 +189,21 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red1, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Hour, time.Hour, 5)
+	red1, err := reader_test.New(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
 	red1.Ping()
 
-	red2, _ := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader2_name", "typeName", time.Hour, time.Hour, 5)
+	red2, _ := reader_test.New(lib.DiscardLogger(), testServer.URL, "reader2_name", "typeName", time.Hour, time.Hour, 5)
 	red2.Ping()
-	red1.ReadFunc = func(job context.Context) (*reader.ReadJobResult, error) { return nil, nil }
-	red2.ReadFunc = func(job context.Context) (*reader.ReadJobResult, error) { return nil, nil }
+	red1.ReadFunc = func(job *token.Context) (*reader.Result, error) { return nil, nil }
+	red2.ReadFunc = func(job *token.Context) (*reader.Result, error) { return nil, nil }
 
 	e.setReaders([]reader.DataReader{red1, red2})
 
-	rec := e.recorder.(*recorder_testing.SimpleRecorder)
-	rec.RecordFunc = func(context.Context, *recorder.RecordJob) error { return nil }
+	rec := e.recorder.(*recorder_testing.Recorder)
+	rec.RecordFunc = func(context.Context, *recorder.Job) error { return nil }
 
 	done := make(chan struct{})
 	go func() {
@@ -227,7 +227,7 @@ func TestEventLoopClosingContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Hour, time.Hour, 5)
+	red, err := reader_test.New(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
@@ -264,52 +264,50 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red1, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader1_name", "typeName", time.Hour, time.Hour, 5)
+	red1, err := reader_test.New(lib.DiscardLogger(), testServer.URL, "reader1_name", "typeName", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
 	red1.Ping()
-	red2, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader2_name", "typeName", time.Hour, time.Hour, 5)
+	red2, err := reader_test.New(lib.DiscardLogger(), testServer.URL, "reader2_name", "typeName", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
 	red2.Ping()
 	e.setReaders([]reader.DataReader{red1, red2})
 
-	job1 := communication.NewReadJob(ctx)
-	job2 := communication.NewReadJob(ctx)
+	job1 := token.New(ctx)
+	job2 := token.New(ctx)
 	recorded := make(chan struct{})
 
 	// testing engine send the payloads to the recorder
-	red1.ReadFunc = func(ctx context.Context) (*reader.ReadJobResult, error) {
-		resp := &reader.ReadJobResult{
-			ID:       communication.JobValue(ctx),
-			Res:      []byte(`{"devil":666}`),
+	red1.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+		resp := &reader.Result{
+			ID:       job.ID(),
+			Content:  []byte(`{"devil":666}`),
 			TypeName: red1.TypeName(),
 			Mapper:   red1.Mapper(),
 		}
 		return resp, nil
 	}
 
-	red2.ReadFunc = func(ctx context.Context) (*reader.ReadJobResult, error) {
-		resp := &reader.ReadJobResult{
-			ID:       communication.JobValue(ctx),
-			Res:      []byte(`{"beelzebub":666}`),
+	red2.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+		resp := &reader.Result{
+			ID:       job.ID(),
+			Content:  []byte(`{"beelzebub":666}`),
 			TypeName: red2.TypeName(),
 			Mapper:   red2.Mapper(),
 		}
 		return resp, nil
 	}
 
-	rec := e.recorder.(*recorder_testing.SimpleRecorder)
-	rec.RecordFunc = func(ctx context.Context, job *recorder.RecordJob) error {
-		jobID1 := communication.JobValue(job1)
-		jobID2 := communication.JobValue(job2)
-		if job.ID != jobID1 && job.ID != jobID2 {
-			t.Errorf("want one of (%s, %s), got (%s)", jobID1, jobID2, job.ID)
+	rec := e.recorder.(*recorder_testing.Recorder)
+	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
+		if job.ID != job1.ID() && job.ID != job2.ID() {
+			t.Errorf("want one of (%s, %s), got (%s)", job1.ID(), job2.ID(), job.ID)
 		}
-		if job.ID != jobID1 && job.ID != jobID2 {
-			t.Errorf("want one of (%s, %s), got (%s)", jobID1, jobID2, job.ID)
+		if job.ID != job1.ID() && job.ID != job2.ID() {
+			t.Errorf("want one of (%s, %s), got (%s)", job1.ID(), job2.ID(), job.ID)
 		}
 		recorded <- struct{}{}
 		recorded <- struct{}{}
@@ -365,7 +363,7 @@ func TestStartReadersTicking(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.NewSimpleReader(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond, 5)
+	red, err := reader_test.New(lib.DiscardLogger(), testServer.URL, "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond, 5)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
@@ -376,7 +374,7 @@ func TestStartReadersTicking(t *testing.T) {
 
 	// Testing the engine ticks and sends a job request to the reader
 	// There is no need for the actual job
-	red.ReadFunc = func(ctx context.Context) (*reader.ReadJobResult, error) {
+	red.ReadFunc = func(*token.Context) (*reader.Result, error) {
 		recorded <- struct{}{} // important, otherwise the test might not be valid
 		return nil, errMsg("blah blah")
 	}

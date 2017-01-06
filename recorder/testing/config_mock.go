@@ -12,8 +12,8 @@ import (
 	"github.com/arsham/expvastic/recorder"
 )
 
-// MockConfig holds the necessary configuration for setting up an elasticsearch reader endpoint.
-type MockConfig struct {
+// Config holds the necessary configuration for setting up an elasticsearch reader endpoint.
+type Config struct {
 	MockName      string
 	MockEndpoint  string
 	MockTimeout   time.Duration
@@ -22,9 +22,9 @@ type MockConfig struct {
 	MockLogger    logrus.FieldLogger
 }
 
-// NewMockConfig returns a mocked object
-func NewMockConfig(name string, log logrus.FieldLogger, endpoint string, timeout time.Duration, backoff int, indexName string) (*MockConfig, error) {
-	return &MockConfig{
+// NewConfig returns a mocked object
+func NewConfig(name string, log logrus.FieldLogger, endpoint string, timeout time.Duration, backoff int, indexName string) (*Config, error) {
+	return &Config{
 		MockName:      name,
 		MockEndpoint:  endpoint,
 		MockTimeout:   timeout,
@@ -35,27 +35,27 @@ func NewMockConfig(name string, log logrus.FieldLogger, endpoint string, timeout
 }
 
 // NewInstance returns a mocked object
-func (m *MockConfig) NewInstance(ctx context.Context) (recorder.DataRecorder, error) {
-	return NewSimpleRecorder(ctx, m.Logger(), m.Name(), m.Endpoint(), m.IndexName(), m.Timeout(), m.Backoff())
+func (m *Config) NewInstance(ctx context.Context) (recorder.DataRecorder, error) {
+	return New(ctx, m.Logger(), m.Name(), m.Endpoint(), m.IndexName(), m.Timeout(), m.Backoff())
 }
 
 // Name is the mocked version
-func (m *MockConfig) Name() string { return m.MockName }
+func (m *Config) Name() string { return m.MockName }
 
 // IndexName is the mocked version
-func (m *MockConfig) IndexName() string { return m.MockIndexName }
+func (m *Config) IndexName() string { return m.MockIndexName }
 
 // Endpoint is the mocked version
-func (m *MockConfig) Endpoint() string { return m.MockEndpoint }
+func (m *Config) Endpoint() string { return m.MockEndpoint }
 
 // RoutePath is the mocked version
-func (m *MockConfig) RoutePath() string { return "" }
+func (m *Config) RoutePath() string { return "" }
 
 // Timeout is the mocked version
-func (m *MockConfig) Timeout() time.Duration { return m.MockTimeout }
+func (m *Config) Timeout() time.Duration { return m.MockTimeout }
 
 // Logger is the mocked version
-func (m *MockConfig) Logger() logrus.FieldLogger { return m.MockLogger }
+func (m *Config) Logger() logrus.FieldLogger { return m.MockLogger }
 
 // Backoff is the mocked version
-func (m *MockConfig) Backoff() int { return m.MockBackoff }
+func (m *Config) Backoff() int { return m.MockBackoff }

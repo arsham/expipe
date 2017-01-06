@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/token"
 )
 
 // The other test goes through a normal path, we need to test the actual path
@@ -38,7 +38,7 @@ func TestSelfReaderReadsExpvar(t *testing.T) {
 		t.Fatal(err)
 	}
 	red.testMode = false // set it so it goes through the normal mode
-	job := communication.NewReadJob(context.Background())
+	job := token.New(context.Background())
 	res, err := red.Read(job)
 	if err != nil {
 		t.Fatalf("want nil, got (%s)", err)
@@ -46,8 +46,8 @@ func TestSelfReaderReadsExpvar(t *testing.T) {
 	if res == nil {
 		t.Fatal("want result, got nil")
 	}
-	if res.ID != communication.JobValue(job) {
-		t.Errorf("want (%s), got (%s)", res.ID, communication.JobValue(job))
+	if res.ID != job.ID() {
+		t.Errorf("want (%s), got (%s)", res.ID, job.ID())
 	}
 	if res.TypeName != typeName {
 		t.Errorf("want (%s), got (%s)", typeName, res.TypeName)
@@ -56,7 +56,7 @@ func TestSelfReaderReadsExpvar(t *testing.T) {
 		t.Errorf("want (%s), got (%s)", typeName, res.TypeName)
 	}
 
-	container := datatype.JobResultDataTypes(res.Res, mapper)
+	container := datatype.JobResultDataTypes(res.Content, mapper)
 	if container.Len() == 0 {
 		t.Error("empty container")
 	}

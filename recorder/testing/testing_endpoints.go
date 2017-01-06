@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/recorder"
+	"github.com/arsham/expvastic/token"
 )
 
 // testRecorderErrorsOnUnavailableEndpoint tests the recorder errors for bad URL.
@@ -63,8 +63,8 @@ func testRecorderBacksOffOnEndpointGone(t *testing.T, cons Constructor) {
 	}
 	ts.Close()
 	p := datatype.New([]datatype.DataType{})
-	payload := &recorder.RecordJob{
-		ID:        communication.NewJobID(),
+	payload := &recorder.Job{
+		ID:        token.NewUID(),
 		Payload:   p,
 		IndexName: "my index",
 		TypeName:  "my type",
@@ -113,8 +113,8 @@ func testRecordingReturnsErrorIfNotPingedYet(t *testing.T, cons Constructor) {
 		t.Fatal(err)
 	}
 	p := datatype.New([]datatype.DataType{})
-	payload := &recorder.RecordJob{
-		ID:        communication.NewJobID(),
+	payload := &recorder.Job{
+		ID:        token.NewUID(),
 		Payload:   p,
 		IndexName: "my index",
 		TypeName:  "my type",

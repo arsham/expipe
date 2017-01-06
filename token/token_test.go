@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package communication
+package token
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 func TestContextKey(t *testing.T) {
 	msg := "the key"
-	key := contextKey(msg)
+	key := tokenKey(msg)
 	if !strings.Contains(key.String(), msg) {
 		t.Errorf("want %s in the key, got (%s)", msg, key.String())
 	}
@@ -20,16 +20,16 @@ func TestContextKey(t *testing.T) {
 
 func TestNewReadJob(t *testing.T) {
 	ctx := context.Background()
-	job := NewReadJob(ctx)
-	jobID, ok := job.Value(messageID).(JobID)
+	job := New(ctx)
+	jobID, ok := job.Value(tokenID).(ID)
 	if !ok {
-		t.Fatalf("want type of JobID, got (%v)", job.Value(messageID))
+		t.Fatalf("want type of JobID, got (%v)", job.Value(tokenID))
 	}
-	if jobID != JobValue(job) {
-		t.Errorf("want (%s), got (%s)", jobID, JobValue(job))
+	if jobID != job.ID() {
+		t.Errorf("want (%s), got (%s)", jobID, job.ID())
 	}
-	switch job.Value(messageID).(type) {
-	case JobID:
+	switch job.Value(tokenID).(type) {
+	case ID:
 		if jobID.String() == "" {
 			t.Error("job id is empty")
 		}

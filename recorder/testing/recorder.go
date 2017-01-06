@@ -18,8 +18,8 @@ import (
 	"github.com/shurcooL/go/ctxhttp"
 )
 
-// SimpleRecorder is designed to be used in tests
-type SimpleRecorder struct {
+// Recorder is designed to be used in tests.
+type Recorder struct {
 	name       string
 	endpoint   string
 	indexName  string
@@ -29,12 +29,12 @@ type SimpleRecorder struct {
 	backoff    int
 	strike     int
 	Smu        sync.RWMutex
-	RecordFunc func(context.Context, *recorder.RecordJob) error
+	RecordFunc func(context.Context, *recorder.Job) error
 	Pinged     bool
 }
 
-// NewSimpleRecorder returns a SimpleRecorder instance
-func NewSimpleRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*SimpleRecorder, error) {
+// New returns a Recorder instance.
+func New(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*Recorder, error) {
 	if name == "" {
 		return nil, recorder.ErrEmptyName
 	}
@@ -55,7 +55,7 @@ func NewSimpleRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoi
 		return nil, recorder.ErrInvalidEndpoint(endpoint)
 	}
 
-	w := &SimpleRecorder{
+	w := &Recorder{
 		name:      name,
 		endpoint:  url,
 		indexName: indexName,
@@ -67,7 +67,7 @@ func NewSimpleRecorder(ctx context.Context, log logrus.FieldLogger, name, endpoi
 }
 
 // Ping pings the endpoint and return nil if was successful.
-func (s *SimpleRecorder) Ping() error {
+func (s *Recorder) Ping() error {
 	if s.Pinged {
 		// In tests, we have a strict policy on channels. Therefore if it
 		// is already pinged, we won't bother.
@@ -86,7 +86,7 @@ func (s *SimpleRecorder) Ping() error {
 }
 
 // Record calls the RecordFunc if exists, otherwise continues as normal
-func (s *SimpleRecorder) Record(ctx context.Context, job *recorder.RecordJob) error {
+func (s *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 	if !s.Pinged {
 		return recorder.ErrPingNotCalled
 	}
@@ -116,10 +116,10 @@ func (s *SimpleRecorder) Record(ctx context.Context, job *recorder.RecordJob) er
 }
 
 // Name returns the name
-func (s *SimpleRecorder) Name() string { return s.name }
+func (s *Recorder) Name() string { return s.name }
 
 // IndexName returns the indexname
-func (s *SimpleRecorder) IndexName() string { return s.indexName }
+func (s *Recorder) IndexName() string { return s.indexName }
 
 // Timeout returns the timeout
-func (s *SimpleRecorder) Timeout() time.Duration { return s.timeout }
+func (s *Recorder) Timeout() time.Duration { return s.timeout }

@@ -16,12 +16,12 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic"
-	"github.com/arsham/expvastic/communication"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
 	reader_testing "github.com/arsham/expvastic/reader/testing"
 	"github.com/arsham/expvastic/recorder"
 	recorder_testing "github.com/arsham/expvastic/recorder/testing"
+	"github.com/arsham/expvastic/token"
 )
 
 // TODO: test engine closes readers when recorder goes out of scope
@@ -42,15 +42,15 @@ func TestMain(m *testing.M) {
 func TestNewWithReadRecorder(t *testing.T) {
 	ctx := context.Background()
 
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "a", testServer.URL, "aa", time.Hour, 5)
+	rec, err := recorder_testing.New(ctx, log, "a", testServer.URL, "aa", time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_testing.NewSimpleReader(log, testServer.URL, "a", "dd", time.Hour, time.Hour, 5)
+	red, err := reader_testing.New(log, testServer.URL, "a", "dd", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	red2, err := reader_testing.NewSimpleReader(log, testServer.URL, "a", "dd", time.Hour, time.Hour, 5)
+	red2, err := reader_testing.New(log, testServer.URL, "a", "dd", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,29 +65,29 @@ func TestNewWithReadRecorder(t *testing.T) {
 }
 
 func TestEngineSendJob(t *testing.T) {
-	var recorderID communication.JobID
+	var recorderID token.ID
 	ctx, cancel := context.WithCancel(context.Background())
 
-	red, err := reader_testing.NewSimpleReader(log, testServer.URL, "reader_example", "example_type", time.Hour, time.Hour, 5)
+	red, err := reader_testing.New(log, testServer.URL, "reader_example", "example_type", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	red.ReadFunc = func(ctx context.Context) (*reader.ReadJobResult, error) {
-		recorderID = communication.NewJobID()
-		resp := &reader.ReadJobResult{
+	red.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+		recorderID = token.NewUID()
+		resp := &reader.Result{
 			ID:       recorderID,
-			Res:      []byte(`{"devil":666}`),
+			Content:  []byte(`{"devil":666}`),
 			TypeName: red.TypeName(),
 			Mapper:   red.Mapper(),
 		}
 		return resp, nil
 	}
 
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_example", testServer.URL, "intexName", time.Hour, 5)
+	rec, err := recorder_testing.New(ctx, log, "recorder_example", testServer.URL, "intexName", time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	rec.RecordFunc = func(ctx context.Context, job *recorder.RecordJob) error {
+	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if job.ID != recorderID {
 			t.Errorf("want (%d), got (%s)", recorderID, job.ID)
 		}
@@ -116,20 +116,20 @@ func TestEngineMultiReader(t *testing.T) {
 	count := 10
 	ctx, cancel := context.WithCancel(context.Background())
 	IDs := make([]string, count)
-	idChan := make(chan communication.JobID)
+	idChan := make(chan token.ID)
 	for i := 0; i < count; i++ {
-		id := communication.NewJobID()
+		id := token.NewUID()
 		IDs[i] = id.String()
-		go func(id communication.JobID) {
+		go func(id token.ID) {
 			idChan <- id
 		}(id)
 	}
 
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "recorder_example", testServer.URL, "intexName", time.Hour, 5)
+	rec, err := recorder_testing.New(ctx, log, "recorder_example", testServer.URL, "intexName", time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	rec.RecordFunc = func(ctx context.Context, job *recorder.RecordJob) error {
+	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if !lib.StringInSlice(job.ID.String(), IDs) {
 			t.Errorf("want once of (%s), got (%s)", strings.Join(IDs, ","), job.ID)
 		}
@@ -140,14 +140,14 @@ func TestEngineMultiReader(t *testing.T) {
 	for i := 0; i < count; i++ {
 
 		name := fmt.Sprintf("reader_example_%d", i)
-		red, err := reader_testing.NewSimpleReader(log, testServer.URL, name, "example_type", time.Hour, time.Hour, 5)
+		red, err := reader_testing.New(log, testServer.URL, name, "example_type", time.Hour, time.Hour, 5)
 		if err != nil {
 			t.Fatal(err)
 		}
-		red.ReadFunc = func(ctx context.Context) (*reader.ReadJobResult, error) {
-			resp := &reader.ReadJobResult{
+		red.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+			resp := &reader.Result{
 				ID:       <-idChan,
-				Res:      []byte(`{"devil":666}`),
+				Content:  []byte(`{"devil":666}`),
 				TypeName: red.TypeName(),
 				Mapper:   red.Mapper(),
 			}
@@ -177,11 +177,11 @@ func TestEngineMultiReader(t *testing.T) {
 func TestEngineNewWithConfig(t *testing.T) {
 	ctx := context.Background()
 
-	red, err := reader_testing.NewMockConfig("", "reader_example", log, "nowhere", "/still/nowhere", time.Hour, time.Hour, 5)
+	red, err := reader_testing.NewConfig("", "reader_example", log, "nowhere", "/still/nowhere", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	rec, err := recorder_testing.NewMockConfig("recorder_example", log, "nowhere", time.Hour, 5, "index")
+	rec, err := recorder_testing.NewConfig("recorder_example", log, "nowhere", time.Hour, 5, "index")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,8 +195,8 @@ func TestEngineNewWithConfig(t *testing.T) {
 	}
 
 	// triggering recorder errors
-	rec, _ = recorder_testing.NewMockConfig("recorder_example", log, "nowhere", time.Hour, 5, "index")
-	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
+	rec, _ = recorder_testing.NewConfig("recorder_example", log, "nowhere", time.Hour, 5, "index")
+	red, _ = reader_testing.NewConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
 
 	e, err = expvastic.WithConfig(ctx, log, rec, red)
 	if e != nil {
@@ -208,9 +208,9 @@ func TestEngineNewWithConfig(t *testing.T) {
 		t.Errorf("want ErrInvalidEndpoint, got (%v)", err)
 	}
 
-	red, _ = reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
-	red2, _ := reader_testing.NewMockConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
-	rec, _ = recorder_testing.NewMockConfig("recorder_example", log, testServer.URL, time.Hour, 5, "index")
+	red, _ = reader_testing.NewConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
+	red2, _ := reader_testing.NewConfig("same_name_is_illegal", "reader_example", log, testServer.URL, "/still/nowhere", time.Hour, time.Hour, 5)
+	rec, _ = recorder_testing.NewConfig("recorder_example", log, testServer.URL, time.Hour, 5, "index")
 	e, err = expvastic.WithConfig(ctx, log, rec, red, red2)
 	if err == nil {
 		t.Error("want error, got nil")
@@ -230,11 +230,11 @@ func TestEngineErrorsIfReaderNotPinged(t *testing.T) {
 	defer recServer.Close()
 	redServer.Close() // making sure no one else is got this random port at this time
 
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "a", recServer.URL, "aa", time.Hour, 5)
+	rec, err := recorder_testing.New(ctx, log, "a", recServer.URL, "aa", time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_testing.NewSimpleReader(log, redServer.URL, "a", "dd", time.Hour, time.Hour, 5)
+	red, err := reader_testing.New(log, redServer.URL, "a", "dd", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,11 +261,11 @@ func TestEngineErrorsIfRecorderNotPinged(t *testing.T) {
 	recServer.Close() // making sure no one else is got this random port at this time
 	defer redServer.Close()
 
-	rec, err := recorder_testing.NewSimpleRecorder(ctx, log, "a", recServer.URL, "aa", time.Hour, 5)
+	rec, err := recorder_testing.New(ctx, log, "a", recServer.URL, "aa", time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_testing.NewSimpleReader(log, redServer.URL, "a", "dd", time.Hour, time.Hour, 5)
+	red, err := reader_testing.New(log, redServer.URL, "a", "dd", time.Hour, time.Hour, 5)
 	if err != nil {
 		t.Fatal(err)
 	}

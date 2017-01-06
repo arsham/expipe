@@ -31,10 +31,10 @@ var (
 // When the context times out or cancelled, the engine will close and return.
 type Engine struct {
 	log        logrus.FieldLogger
-	ctx        context.Context            // Will call stop() when this context is cancelled/timed-out. This is a new context from the parent.
-	name       string                     // Name identifier for this engine.
-	recorder   recorder.DataRecorder      // Records to ElasticSearch client.
-	readerJobs chan *reader.ReadJobResult // The results of reader jobs will be streamed here.
+	ctx        context.Context       // Will call stop() when this context is cancelled/timed-out. This is a new context from the parent.
+	name       string                // Name identifier for this engine.
+	recorder   recorder.DataRecorder // Records to ElasticSearch client.
+	readerJobs chan *reader.Result   // The results of reader jobs will be streamed here.
 
 	wg      sync.WaitGroup
 	redmu   sync.RWMutex
@@ -91,7 +91,7 @@ func New(ctx context.Context, log logrus.FieldLogger, rec recorder.DataRecorder,
 	cl := &Engine{
 		name:       engineName,
 		ctx:        ctx,
-		readerJobs: make(chan *reader.ReadJobResult, len(reds)), // TODO: increase this is required
+		readerJobs: make(chan *reader.Result, len(reds)), // TODO: increase this is required
 		recorder:   rec,
 		readers:    reds,
 		log:        log,
