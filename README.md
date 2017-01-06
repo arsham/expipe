@@ -33,7 +33,7 @@ Please refer to golang's [expvar documentation][expvar] for more information.
 
 Screen shots can be found in [this](./SCREENSHOTS.md) document. Here is an example:
 
-![Colored](http://i.imgur.com/34kdQe8.png)
+![Colored](http://i.imgur.com/6U2hxlp.png)
 
 ## Installation
 
