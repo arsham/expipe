@@ -35,7 +35,7 @@ var (
 	typeName          = flag.String("app", "expvastic", "App name, which will be the Elasticsearch type name")
 	interval          = flag.Duration("int", time.Second, "Interval between pulls from the target")
 	timeout           = flag.Duration("timeout", 30*time.Second, "Communication time-outs to both reader and recorder")
-	backoff           = flag.Int("backoff", 15, "After this amount, it will give up accessing unresponsive endpoints") // TODO: implement!
+	backoff           = flag.Int("backoff", 15, "After this amount, it will give up accessing unresponsive endpoints")
 	// ExitCommand is used for replacing during tests.
 	ExitCommand = func(msg string) {
 		log.Fatalf(msg)

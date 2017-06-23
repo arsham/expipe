@@ -123,7 +123,7 @@ routes:
         recorders:
             - elastic_0
             - elastic_1
-
+```
 Expvastic creates three engines like so:
 
 ```
