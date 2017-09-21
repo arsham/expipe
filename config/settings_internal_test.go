@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/arsham/expvastic/lib"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -50,7 +51,7 @@ func TestLoadConfiguration(t *testing.T) {
 		recorders: []string{"recorder_1"},
 	}}
 	_, err := loadConfiguration(v, log, routeMap, readers, recorders)
-	if _, ok := err.(interface {
+	if _, ok := errors.Cause(err).(interface {
 		NotSupported()
 	}); !ok {
 		t.Errorf("want InvalidEndpoint, got (%T)", err)
@@ -59,7 +60,7 @@ func TestLoadConfiguration(t *testing.T) {
 	readers = map[string]string{"reader_1": "expvar"}
 	recorders = map[string]string{"recorder_1": "not_exists"}
 	_, err = loadConfiguration(v, log, routeMap, readers, recorders)
-	if _, ok := err.(interface {
+	if _, ok := errors.Cause(err).(interface {
 		NotSupported()
 	}); !ok {
 		t.Errorf("want InvalidEndpoint, got (%T)", err)

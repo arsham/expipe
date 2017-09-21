@@ -12,6 +12,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/datatype"
 	"github.com/arsham/expvastic/reader"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -36,10 +37,10 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 	)
 	err := v.UnmarshalKey(key, &c)
 	if err != nil {
-		return nil, fmt.Errorf("decoding config: %s", err)
+		return nil, errors.Wrap(err, "decoding config")
 	}
 	if inter, err = time.ParseDuration(c.SelfInterval); err != nil {
-		return nil, fmt.Errorf("parse interval (%v): %s", c.SelfInterval, err)
+		return nil, errors.Wrapf(err, "parse interval (%v)", c.SelfInterval)
 	}
 
 	if c.SelfTypeName == "" {

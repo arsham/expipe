@@ -82,7 +82,7 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 	}
 	red.Ping()
 
-	e.setReaders([]reader.DataReader{red})
+	e.setReaders(map[string]reader.DataReader{red.Name(): red})
 
 	errMsg := errMsg("an error happened")
 	recorded := make(chan struct{})
@@ -133,7 +133,7 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
 	red.Ping()
-	e.setReaders([]reader.DataReader{red})
+	e.setReaders(map[string]reader.DataReader{red.Name(): red})
 	job := token.New(ctx)
 	jobID := job.ID()
 	recorded := make(chan struct{})
@@ -180,7 +180,6 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 }
 
 func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
-	t.Skip("invalid in this branch")
 	log, _ := test.NewNullLogger()
 	log.Level = logrus.DebugLevel
 
@@ -200,7 +199,7 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 	red1.ReadFunc = func(job *token.Context) (*reader.Result, error) { return nil, nil }
 	red2.ReadFunc = func(job *token.Context) (*reader.Result, error) { return nil, nil }
 
-	e.setReaders([]reader.DataReader{red1, red2})
+	e.setReaders(map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
 
 	rec := e.recorder.(*recorder_testing.Recorder)
 	rec.RecordFunc = func(context.Context, *recorder.Job) error { return nil }
@@ -231,7 +230,7 @@ func TestEventLoopClosingContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
-	e.setReaders([]reader.DataReader{red})
+	e.setReaders(map[string]reader.DataReader{red.Name(): red})
 
 	done := make(chan struct{})
 	go func() {
@@ -274,7 +273,7 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 		t.Fatal(err)
 	}
 	red2.Ping()
-	e.setReaders([]reader.DataReader{red1, red2})
+	e.setReaders(map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
 
 	job1 := token.New(ctx)
 	job2 := token.New(ctx)
@@ -368,7 +367,7 @@ func TestStartReadersTicking(t *testing.T) {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
 	red.Ping()
-	e.setReaders([]reader.DataReader{red})
+	e.setReaders(map[string]reader.DataReader{red.Name(): red})
 
 	recorded := make(chan struct{})
 

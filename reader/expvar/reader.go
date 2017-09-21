@@ -20,6 +20,7 @@ import (
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/token"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context/ctxhttp"
 )
 
@@ -131,7 +132,7 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	buf := new(bytes.Buffer)
 	_, err = buf.ReadFrom(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "reading buffer")
 	}
 
 	res := &reader.Result{

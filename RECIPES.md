@@ -148,7 +148,6 @@ memory_bytes:                   # These values will be transoformed from bytes
 
 ```
 
-
 ## Testing
 
 To run the tests for the codes, in the root of the application run:

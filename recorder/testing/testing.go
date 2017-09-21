@@ -80,6 +80,9 @@ func TestRecorder(t *testing.T, cons Constructor) {
 	})
 
 	t.Run("ErrorsOnUnavailableESServer", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("Skipping ErrorsOnUnavailableESServer in short mode")
+		}
 		testRecorderErrorsOnUnavailableEndpoint(t, cons)
 	})
 

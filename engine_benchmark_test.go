@@ -73,7 +73,7 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		e, _ := expvastic.New(ctx, log, rec, reds...)
+		e, _ := expvastic.New(ctx, log, rec, reds)
 
 		done := make(chan struct{})
 		go func(done chan struct{}) {
@@ -89,7 +89,7 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 	}
 }
 
-func benchmarkEngine(ctx context.Context, reds []reader.DataReader, b *testing.B) {
+func benchmarkEngine(ctx context.Context, reds map[string]reader.DataReader, b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		for _, red := range reds {
 			red.Read(token.New(ctx))
@@ -97,8 +97,8 @@ func benchmarkEngine(ctx context.Context, reds []reader.DataReader, b *testing.B
 	}
 }
 
-func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url string) ([]reader.DataReader, error) {
-	reds := make([]reader.DataReader, count)
+func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url string) (map[string]reader.DataReader, error) {
+	reds := make(map[string]reader.DataReader, count)
 	readFunc := func(m *reader_testing.Reader) func(job *token.Context) (*reader.Result, error) {
 		return func(job *token.Context) (*reader.Result, error) {
 			res := &reader.Result{
@@ -118,7 +118,7 @@ func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url str
 			return nil, err
 		}
 		red.ReadFunc = readFunc(red)
-		reds[i] = red
+		reds[red.Name()] = red
 	}
 	return reds, nil
 }

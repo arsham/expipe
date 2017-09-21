@@ -4,19 +4,25 @@
 
 package expvastic
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
-// ErrDuplicateRecorderName is for when there are two recorders with the same name.
-var ErrDuplicateRecorderName = fmt.Errorf("recorder name cannot be reused")
+var (
+	// ErrNoReader is returned when no reader has been provided to the engine
+	ErrNoReader = fmt.Errorf("no reader provided")
+)
 
 // ErrPing is the error when one of readers/recorder has a ping error
-type ErrPing struct {
-	Name string
-	Err  error
-}
+type ErrPing map[string]error
 
 // Ping defines the behaviour of the error
 func (ErrPing) Ping() {}
 func (e ErrPing) Error() string {
-	return fmt.Sprintf("pinging (%s) error: %s", e.Name, e.Err)
+	var msgs []string
+	for name, err := range e {
+		msgs = append(msgs, name+":"+err.Error())
+	}
+	return fmt.Sprintf("pinging error: %s", strings.Join(msgs, "\n"))
 }

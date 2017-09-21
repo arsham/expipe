@@ -6,12 +6,12 @@ package elasticsearch
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/lib"
 	"github.com/arsham/expvastic/recorder"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -48,7 +48,7 @@ func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Confi
 	)
 	err := v.UnmarshalKey(key, &c)
 	if err != nil {
-		return nil, fmt.Errorf("decoding config: %s", err)
+		return nil, errors.Wrap(err, "decoding config")
 	}
 
 	c.name = name

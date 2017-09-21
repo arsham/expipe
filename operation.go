@@ -20,6 +20,7 @@ import (
 // When the context is cancelled or timed out, the engine abandons its operations.
 func (e *Engine) Start() {
 	e.log.Infof("starting with %d readers", len(e.readers))
+	e.shutdown = make(chan struct{})
 
 	go func() {
 		for {
@@ -44,27 +45,52 @@ func (e *Engine) readerEventLoop(red reader.DataReader) {
 	expReaders.Add(1)
 	ticker := time.NewTicker(red.Interval())
 	e.log.Debugf("started reader: %s", red.Name())
+	remove := make(chan string)
 LOOP:
 	for {
 		select {
 		case <-ticker.C:
 			// [1] job's life cycle starts here...
 			e.log.Debugf("issuing job to: %s", red.Name())
-			go e.issueReaderJob(red)
+			waitingReadJobs.Add(1)
+			go e.issueReaderJob(red, remove)
 
 		case job := <-e.readerJobs:
+			// note that the job is not necessarily from current reader as they
+			// all share the same channel (see below).
+			// However it's ok to ship to the recorder as they are ship their
+			// results to the same recorder.
+			waitingRecordJobs.Add(1)
 			go e.shipToRecorder(job)
+
+		case name := <-remove:
+			// this is why we need the name
+			delete(e.readers, name)
+			break LOOP
+
+		case <-e.shutdown:
+			e.log.Debug("shutting down the engine")
+			break LOOP
 
 		case <-e.ctx.Done():
 			e.log.Debug(contextCanceled)
 			break LOOP
 		}
 	}
+
 	e.wg.Done()
 }
 
-func (e *Engine) issueReaderJob(red reader.DataReader) {
+func (e *Engine) issueReaderJob(red reader.DataReader, remove chan string) {
+	defer waitingReadJobs.Add(-1)
 	readJobs.Add(1)
+
+	select {
+	case <-e.shutdown:
+		return //the engine has been already shut down
+	default:
+	}
+
 	// to make sure the reader is behaving.
 	timeout := red.Timeout() + time.Duration(10*time.Second)
 	timer := time.NewTimer(timeout)
@@ -75,6 +101,9 @@ func (e *Engine) issueReaderJob(red reader.DataReader) {
 		res, err := red.Read(job)
 		if err != nil {
 			e.log.WithField("ID", job.ID()).WithField("name", red.Name()).Error(err)
+			if err == reader.ErrBackoffExceeded {
+				remove <- red.Name()
+			}
 			return
 		}
 		e.readerJobs <- res
@@ -103,11 +132,11 @@ func (e *Engine) issueReaderJob(red reader.DataReader) {
 }
 
 func (e *Engine) shipToRecorder(result *reader.Result) {
+	defer waitingRecordJobs.Add(-1)
 	res := make([]byte, len(result.Content))
 	copy(res, result.Content)
 	payload := datatype.JobResultDataTypes(res, result.Mapper.Copy())
 	if payload.Error() != nil {
-		erroredJobs.Add(1)
 		e.log.Warnf("error in payload: %s", payload.Error())
 		return
 	}
@@ -128,6 +157,9 @@ func (e *Engine) shipToRecorder(result *reader.Result) {
 		err := e.recorder.Record(e.ctx, recPayload)
 		if err != nil {
 			e.log.WithField("ID", result.ID).WithField("name", e.recorder.Name()).Error(err)
+			if err == reader.ErrBackoffExceeded {
+				close(e.shutdown)
+			}
 		}
 		close(done)
 	}()

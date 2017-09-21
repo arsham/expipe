@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/arsham/expvastic/lib"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -246,7 +247,7 @@ func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			v.ReadConfig(tc.input)
 			_, err := LoadYAML(log, v)
-			if err.Error() != tc.err.Error() {
+			if errors.Cause(err).Error() != tc.err.Error() {
 				t.Fatalf("want (%v), got (%v)", tc.err, err)
 			}
 		})

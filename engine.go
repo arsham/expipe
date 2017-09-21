@@ -11,19 +11,23 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/config"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
+	"github.com/pkg/errors"
+
+	"github.com/Sirupsen/logrus"
 )
 
 var (
-	numGoroutines   = expvar.NewInt("Number Of Goroutines")
-	expReaders      = expvar.NewInt("Readers")
-	readJobs        = expvar.NewInt("Read Jobs")
-	recordJobs      = expvar.NewInt("Record Jobs")
-	erroredJobs     = expvar.NewInt("Error Jobs")
-	contextCanceled = "context has been cancelled"
+	numGoroutines     = expvar.NewInt("Number Of Goroutines")
+	expReaders        = expvar.NewInt("Readers")
+	readJobs          = expvar.NewInt("Read Jobs")
+	waitingReadJobs   = expvar.NewInt("Waiting Read Jobs")
+	recordJobs        = expvar.NewInt("Record Jobs")
+	waitingRecordJobs = expvar.NewInt("Waiting Record Jobs")
+	erroredJobs       = expvar.NewInt("Error Jobs")
+	contextCanceled   = "context has been cancelled"
 )
 
 // Engine represents an engine that receives information from readers and ships them to a recorder.
@@ -38,51 +42,64 @@ type Engine struct {
 
 	wg      sync.WaitGroup
 	redmu   sync.RWMutex
-	readers []reader.DataReader // List of active readers.
+	readers map[string]reader.DataReader // Map of active readers name to their objects.
+
+	shutdown chan struct{} // if closed, stops all operations and quits the engine
 }
 
 // WithConfig creates an engine by instantiating readers and recorder from the configurations and sends them
 // to the New function.
 func WithConfig(ctx context.Context, log logrus.FieldLogger, recorderConf config.RecorderConf, readers ...config.ReaderConf) (*Engine, error) {
-
-	reds := make([]reader.DataReader, len(readers))
-	for i, redConf := range readers {
+	reds := make(map[string]reader.DataReader) // we don't know if all readers are available
+	for _, redConf := range readers {
+		if redConf == nil {
+			log.Warn("empty reader has been provided")
+			continue
+		}
 		red, err := redConf.NewInstance(ctx)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "new engine with config")
 		}
-		reds[i] = red
+		reds[red.Name()] = red
+	}
+
+	if len(reds) == 0 {
+		return nil, ErrNoReader
 	}
 
 	rec, err := recorderConf.NewInstance(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "new engine with config")
 	}
-	return New(ctx, log, rec, reds...)
+	return New(ctx, log, rec, reds)
 }
 
 // New creates an Engine instance with already set-up reader and recorders.
 // The Engine's work starts from here by streaming all readers payloads to the recorder.
 // Returns an error if there are recorders with the same name, or any of constructions results in errors.
-func New(ctx context.Context, log logrus.FieldLogger, rec recorder.DataRecorder, reds ...reader.DataReader) (*Engine, error) {
+func New(ctx context.Context, log logrus.FieldLogger, rec recorder.DataRecorder, reds map[string]reader.DataReader) (*Engine, error) {
+	failedErrors := make(map[string]error)
+	canDo := false
 	readerNames := make([]string, len(reds))
-	seenNames := make(map[string]struct{}, len(reds))
 
 	err := rec.Ping()
 	if err != nil {
-		return nil, ErrPing{Name: rec.Name(), Err: err}
+		return nil, ErrPing{rec.Name(): err}
 	}
 
-	for i, red := range reds {
-		if _, ok := seenNames[red.Name()]; ok {
-			return nil, ErrDuplicateRecorderName
-		}
+	i := 0
+	for name, red := range reds {
 		err := red.Ping()
 		if err != nil {
-			return nil, ErrPing{Name: red.Name(), Err: err}
+			failedErrors[name] = err
+			continue
 		}
-		seenNames[red.Name()] = struct{}{}
-		readerNames[i] = red.Name()
+		readerNames[i] = name
+		canDo = true
+		i++
+	}
+	if !canDo {
+		return nil, ErrPing(failedErrors)
 	}
 
 	// just to be cute
@@ -101,7 +118,7 @@ func New(ctx context.Context, log logrus.FieldLogger, rec recorder.DataRecorder,
 }
 
 // setReaders is used in tests.
-func (e *Engine) setReaders(readers []reader.DataReader) {
+func (e *Engine) setReaders(readers map[string]reader.DataReader) {
 	e.redmu.Lock()
 	defer e.redmu.Unlock()
 	e.readers = readers

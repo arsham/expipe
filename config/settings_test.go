@@ -14,6 +14,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic/config"
 	"github.com/arsham/expvastic/lib"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -65,7 +66,7 @@ func TestLoadSections(t *testing.T) {
 	v.SetConfigType("yaml")
 
 	notSpec := func(t *testing.T, err error, section string) {
-		if _, ok := err.(interface {
+		if _, ok := errors.Cause(err).(interface {
 			NotSpecified()
 		}); !ok {
 			t.Errorf("expected NotSpecified error, got (%v)", err)

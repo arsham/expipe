@@ -24,8 +24,8 @@ func pingingEndpoint(t *testing.T, cons Constructor) {
 	cons.SetName("the name")
 	cons.SetTypename("my type")
 	cons.SetEndpoint(ts.URL)
-	cons.SetInterval(time.Hour)
-	cons.SetTimeout(time.Hour)
+	cons.SetInterval(time.Millisecond)
+	cons.SetTimeout(time.Millisecond * 100)
 	cons.SetBackoff(5)
 	red, err := cons.Object()
 	if err != nil {
@@ -44,7 +44,7 @@ func pingingEndpoint(t *testing.T, cons Constructor) {
 		t.Errorf("want ErrInvalidEndpoint, got (%v)", err)
 	}
 
-	unavailableEndpoint := "http://nowhere.localhost.localhost"
+	unavailableEndpoint := "http://192.168.255.255"
 	cons.SetEndpoint(unavailableEndpoint)
 	red, _ = cons.Object()
 

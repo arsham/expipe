@@ -12,6 +12,7 @@ import (
 	"github.com/arsham/expvastic/reader/expvar"
 	"github.com/arsham/expvastic/reader/self"
 	"github.com/arsham/expvastic/recorder/elasticsearch"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -80,18 +81,18 @@ func LoadYAML(log *logrus.Logger, v *viper.Viper) (*ConfMap, error) {
 	}
 
 	if readerKeys, err = getReaders(v); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "readerKeys")
 	}
 	if recorderKeys, err = getRecorders(v); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "recorderKeys")
 	}
 
 	if routes, err = getRoutes(v); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "routes")
 	}
 
 	if err = checkAgainstReadRecorders(routes, readerKeys, recorderKeys); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "checkAgainstReadRecorders")
 	}
 
 	return loadConfiguration(v, log, routes, readerKeys, recorderKeys)
@@ -99,12 +100,13 @@ func LoadYAML(log *logrus.Logger, v *viper.Viper) (*ConfMap, error) {
 
 // readers is a map of keyName:typeName
 // typeName is not the recorder's type, it's the extension name, e.g. expvar.
-func getReaders(v *viper.Viper) (readers map[string]string, err error) {
+func getReaders(v *viper.Viper) (map[string]string, error) {
+	readers := make(map[string]string)
+
 	if !v.IsSet("readers") {
 		return nil, newNotSpecifiedErr("readers", "", nil)
 	}
 
-	readers = make(map[string]string)
 	for reader := range v.GetStringMap("readers") {
 		switch rType := v.GetString("readers." + reader + ".type"); rType {
 		case selfReader:
@@ -117,16 +119,17 @@ func getReaders(v *viper.Viper) (readers map[string]string, err error) {
 			return nil, newNotSpecifiedErr(reader, "type", nil)
 		}
 	}
-	return
+	return readers, nil
 }
 
 // recorders is a map of keyName:typeName
 // typeName is not the recorder's type, it's the extension name, e.g. elasticsearch.
-func getRecorders(v *viper.Viper) (recorders map[string]string, err error) {
+func getRecorders(v *viper.Viper) (map[string]string, error) {
+	recorders := make(map[string]string)
+
 	if !v.IsSet("recorders") {
 		return nil, newNotSpecifiedErr("recorders", "", nil)
 	}
-	recorders = make(map[string]string)
 
 	for recorder := range v.GetStringMap("recorders") {
 		switch rType := v.GetString("recorders." + recorder + ".type"); rType {
@@ -138,15 +141,15 @@ func getRecorders(v *viper.Viper) (recorders map[string]string, err error) {
 			return nil, newNotSpecifiedErr(recorder, "type", nil)
 		}
 	}
-	return
+	return recorders, nil
 }
 
-func getRoutes(v *viper.Viper) (routes routeMap, err error) {
+func getRoutes(v *viper.Viper) (routeMap, error) {
+	routes := make(map[string]route)
 	if !v.IsSet("routes") {
 		return nil, newNotSpecifiedErr("routes", "", nil)
 	}
 
-	routes = make(map[string]route)
 	for name := range v.GetStringMap("routes") {
 		rot := route{}
 		for recRedType, list := range v.GetStringMapStringSlice("routes." + name) {
@@ -172,7 +175,7 @@ func getRoutes(v *viper.Viper) (routes routeMap, err error) {
 			return nil, newRoutersErr("recorders", "is empty", nil)
 		}
 	}
-	return
+	return routes, nil
 }
 
 // Checks all apps in routes are mentioned in the readerKeys and recorderKeys.
@@ -203,7 +206,7 @@ func loadConfiguration(v *viper.Viper, log logrus.FieldLogger, routes routeMap, 
 	for name, reader := range readerKeys {
 		r, err := parseReader(v, log, reader, name)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "reader keys")
 		}
 		confMap.Readers[name] = r
 	}
@@ -211,7 +214,7 @@ func loadConfiguration(v *viper.Viper, log logrus.FieldLogger, routes routeMap, 
 	for name, recorder := range recorderKeys {
 		r, err := readRecorders(v, log, recorder, name)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "recorder keys")
 		}
 		confMap.Recorders[name] = r
 	}
@@ -223,9 +226,11 @@ func loadConfiguration(v *viper.Viper, log logrus.FieldLogger, routes routeMap, 
 func parseReader(v *viper.Viper, log logrus.FieldLogger, readerType, name string) (ReaderConf, error) {
 	switch readerType {
 	case expvarReader:
-		return expvar.FromViper(v, log, name, "readers."+name)
+		rc, err := expvar.FromViper(v, log, name, "readers."+name)
+		return rc, errors.Wrap(err, "parsing reader")
 	case selfReader:
-		return self.FromViper(v, log, name, "readers."+name)
+		rc, err := self.FromViper(v, log, name, "readers."+name)
+		return rc, errors.Wrap(err, "parsing reader")
 	}
 	return nil, notSupportedErr(readerType)
 }
@@ -233,7 +238,8 @@ func parseReader(v *viper.Viper, log logrus.FieldLogger, readerType, name string
 func readRecorders(v *viper.Viper, log logrus.FieldLogger, recorderType, name string) (RecorderConf, error) {
 	switch recorderType {
 	case elasticsearchRecorder:
-		return elasticsearch.FromViper(v, log, name, "recorders."+name)
+		rc, err := elasticsearch.FromViper(v, log, name, "recorders."+name)
+		return rc, errors.Wrap(err, "read-recorders loading from viper")
 	}
 	return nil, notSupportedErr(recorderType)
 }

@@ -1,5 +1,5 @@
 settings:
-    log_level: info
+    log_level: debug
 
 readers:
     my_app: # service name
@@ -8,7 +8,7 @@ readers:
         routepath: /debug/vars
         type_name: my_app
         map_file: maps.yml
-        interval: 500ms
+        interval: 2s
         timeout: 3s
         backoff: 10
     my_app2: # service name
@@ -16,31 +16,31 @@ readers:
         endpoint: localhost:1235
         routepath: /debug/vars
         type_name: my_ap2
-        interval: 500ms
+        interval: 2s
         timeout: 13s
         backoff: 10
     self: # expvastic's self metric
         type: self # only used for this reason
         type_name: expvastic
-        interval: 500ms
+        interval: 2s
         backoff: 10
 
 recorders:
     elastic1: # service name
         type: elasticsearch
-        endpoint: 127.0.0.1:9200
+        endpoint: http://127.0.0.1:9200
         index_name: expvastic
         timeout: 8s
         backoff: 10
     elastic2:
         type: elasticsearch
-        endpoint: 127.0.0.1:9200
+        endpoint: http://127.0.0.1:9200
         index_name: expvastic
         timeout: 8s
         backoff: 10
     elastic3:
         type: elasticsearch
-        endpoint: 127.0.0.1:9200
+        endpoint: http://127.0.0.1:9200
         index_name: expvastic
         timeout: 18s
         backoff: 10
