@@ -11,9 +11,9 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/recorder"
-	"github.com/arsham/expvastic/recorder/testing"
+	"github.com/arsham/expipe/internal/datatype"
+	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/recorder/testing"
 )
 
 // This example shows when a record job is issued, the recorder hits the endpoint.

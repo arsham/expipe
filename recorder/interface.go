@@ -15,8 +15,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/token"
+	"github.com/arsham/expipe/internal/datatype"
+	"github.com/arsham/expipe/internal/token"
 )
 
 // DataRecorder receives a payload for shipping data to a repository.

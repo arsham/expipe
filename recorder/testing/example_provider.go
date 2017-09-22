@@ -8,12 +8,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expipe/internal"
 )
 
 // GetRecorder provides a SimpleRecorder for using in the example.
 func GetRecorder(ctx context.Context, url string) *Recorder {
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	rec, err := New(ctx, log, "reader_example", url, "intexName", time.Second, 5)
 	if err != nil {
 		panic(err)

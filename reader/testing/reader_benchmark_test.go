@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/token"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/internal/token"
 )
 
 var count = 0
@@ -31,7 +31,7 @@ func BenchmarkReader0_1000(b *testing.B)        { benchmarkReader(0, 1000, b) }
 func BenchmarkReader100000_100000(b *testing.B) { benchmarkReader(100000, 100000, b) }
 
 func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	ctx := context.Background()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

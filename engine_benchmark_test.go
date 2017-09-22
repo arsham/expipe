@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic_test
+package expipe_test
 
 import (
 	"context"
@@ -12,13 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic"
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/reader"
-	reader_testing "github.com/arsham/expvastic/reader/testing"
-	recorder_testing "github.com/arsham/expvastic/recorder/testing"
-	"github.com/arsham/expvastic/token"
+	"github.com/arsham/expipe"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/internal/token"
+	"github.com/arsham/expipe/reader"
+	reader_testing "github.com/arsham/expipe/reader/testing"
+	recorder_testing "github.com/arsham/expipe/recorder/testing"
 )
 
 func BenchmarkEngineSingle(b *testing.B) {
@@ -61,8 +60,8 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 	}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer ts.Close()
-	log := lib.DiscardLogger()
-	log.Level = logrus.ErrorLevel
+	log := internal.DiscardLogger()
+	log.Level = internal.ErrorLevel
 	for _, bc := range bcs {
 		ctx, cancel := context.WithCancel(context.Background())
 		name := fmt.Sprintf("Benchmark-%d_%d_%d_%d_(r:%d)", bc.readChanBuff, bc.readResChanBuff, bc.recChanBuff, bc.recResChan, bc.readers)
@@ -73,7 +72,7 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		e, _ := expvastic.New(ctx, log, rec, reds)
+		e, _ := expipe.New(ctx, log, rec, reds)
 
 		done := make(chan struct{})
 		go func(done chan struct{}) {
@@ -97,7 +96,7 @@ func benchmarkEngine(ctx context.Context, reds map[string]reader.DataReader, b *
 	}
 }
 
-func makeReaders(ctx context.Context, count int, log logrus.FieldLogger, url string) (map[string]reader.DataReader, error) {
+func makeReaders(ctx context.Context, count int, log internal.FieldLogger, url string) (map[string]reader.DataReader, error) {
 	reds := make(map[string]reader.DataReader, count)
 	readFunc := func(m *reader_testing.Reader) func(job *token.Context) (*reader.Result, error) {
 		return func(job *token.Context) (*reader.Result, error) {

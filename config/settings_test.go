@@ -11,9 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/config"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expipe/config"
+	"github.com/arsham/expipe/internal"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -22,7 +21,7 @@ func TestLoadSettingsErrors(t *testing.T) {
 	t.Parallel()
 
 	v := viper.New()
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	nilErr := &config.StructureErr{Section: "", Reason: "", Err: nil}
 	v.SetConfigType("yaml")
 
@@ -54,7 +53,7 @@ func TestLoadSettingsErrors(t *testing.T) {
     `))
 	v.ReadConfig(input)
 	config.LoadYAML(log, v)
-	if log.Level != logrus.DebugLevel {
+	if log.Level != internal.DebugLevel {
 		t.Errorf("loglevel wasn't changed, got (%v)", log.Level)
 	}
 }
@@ -62,7 +61,7 @@ func TestLoadSettingsErrors(t *testing.T) {
 func TestLoadSections(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	v.SetConfigType("yaml")
 
 	notSpec := func(t *testing.T, err error, section string) {

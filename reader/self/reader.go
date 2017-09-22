@@ -2,12 +2,12 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package self contains codes for recording expvastic's own metrics.
+// Package self contains codes for recording expipe's own metrics.
 //
 // Collected metrics
 //
 // This list will grow in time:
-//      ElasticSearch Var Name    | expvastic var name
+//      ElasticSearch Var Name    | expipe var name
 //      ----------------------------------------------
 //      Readers                   | expReaders
 //      Read Jobs                 | readJobs
@@ -34,20 +34,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/reader"
-	"github.com/arsham/expvastic/token"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/internal/datatype"
+	"github.com/arsham/expipe/internal/token"
+	"github.com/arsham/expipe/reader"
+
 	"github.com/shurcooL/go/ctxhttp"
 )
 
-// Reader reads from expvastic own application's metric information.
+// Reader reads from expipe own application's metric information.
 // It implements DataReader interface.
 type Reader struct {
 	name     string
 	typeName string
-	log      logrus.FieldLogger
+	log      internal.FieldLogger
 	mapper   datatype.Mapper
 	interval time.Duration
 	timeout  time.Duration
@@ -59,7 +59,7 @@ type Reader struct {
 	testMode bool // this is for internal tests and you should not set it to true
 }
 
-// New exposes expvastic's own metrics.
+// New exposes expipe's own metrics.
 // It returns and error on the following occasions:
 //
 //   Condition        |  Error
@@ -70,7 +70,7 @@ type Reader struct {
 //   typeName == ""   | ErrEmptyTypeName
 //   backoff < 5      | ErrLowBackoffValue
 //
-func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name, typeName string, interval time.Duration, timeout time.Duration, backoff int) (*Reader, error) {
+func New(log internal.FieldLogger, endpoint string, mapper datatype.Mapper, name, typeName string, interval time.Duration, timeout time.Duration, backoff int) (*Reader, error) {
 	if name == "" {
 		return nil, reader.ErrEmptyName
 	}
@@ -79,7 +79,7 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name, 
 		return nil, reader.ErrEmptyEndpoint
 	}
 
-	url, err := lib.SanitiseURL(endpoint)
+	url, err := internal.SanitiseURL(endpoint)
 	if err != nil {
 		return nil, reader.ErrInvalidEndpoint(endpoint)
 	}
@@ -91,7 +91,7 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name, 
 	if backoff < 5 {
 		return nil, reader.ErrLowBackoffValue(backoff)
 	}
-	log = log.WithField("engine", "expvastic")
+	log = log.WithField("engine", "expipe")
 	w := &Reader{
 		name:     name,
 		typeName: typeName,

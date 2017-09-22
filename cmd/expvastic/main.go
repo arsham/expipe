@@ -14,25 +14,24 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic"
-	"github.com/arsham/expvastic/config"
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/reader/expvar"
-	"github.com/arsham/expvastic/recorder/elasticsearch"
+	"github.com/arsham/expipe"
+	"github.com/arsham/expipe/config"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/reader/expvar"
+	"github.com/arsham/expipe/recorder/elasticsearch"
 	"github.com/namsral/flag"
 	"github.com/spf13/viper"
 )
 
 var (
-	log               *logrus.Logger
+	log               *internal.Logger
 	shallStartEngines = true // for testing purposes
 	confFile          = flag.String("c", "", "Configuration file. Should be in yaml format without the extension.")
 	reader            = flag.String("reader", "localhost:1234/debug/vars", "Target address and port")
 	recorder          = flag.String("recorder", "localhost:9200", "Elasticsearch URL and port")
 	debugLevel        = flag.String("loglevel", "info", "Log level")
-	indexName         = flag.String("index", "expvastic", "Elasticsearch index name")
-	typeName          = flag.String("app", "expvastic", "App name, which will be the Elasticsearch type name")
+	indexName         = flag.String("index", "expipe", "Elasticsearch index name")
+	typeName          = flag.String("app", "expipe", "App name, which will be the Elasticsearch type name")
 	interval          = flag.Duration("int", time.Second, "Interval between pulls from the target")
 	timeout           = flag.Duration("timeout", 30*time.Second, "Communication time-outs to both reader and recorder")
 	backoff           = flag.Int("backoff", 15, "After this amount, it will give up accessing unresponsive endpoints")
@@ -51,10 +50,10 @@ func main() {
 	flag.Parse()
 
 	if *confFile == "" {
-		log = lib.GetLogger(*debugLevel)
+		log = internal.GetLogger(*debugLevel)
 		confSlice, err = fromFlags()
 	} else {
-		log = lib.GetLogger("info")
+		log = internal.GetLogger("info")
 		confSlice, err = fromConfig(*confFile)
 	}
 
@@ -67,7 +66,7 @@ func main() {
 	defer cancel()
 	if shallStartEngines {
 		captureSignals(cancel)
-		done, err = expvastic.StartEngines(ctx, log, confSlice)
+		done, err = expipe.StartEngines(ctx, log, confSlice)
 		if err != nil {
 			ExitCommand(err.Error())
 			return

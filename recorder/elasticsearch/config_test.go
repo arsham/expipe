@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/recorder/elasticsearch"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/recorder/elasticsearch"
 	"github.com/spf13/viper"
 )
 
@@ -20,7 +20,7 @@ func TestLoadElasticsearchSuccess(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 
 	input := bytes.NewBuffer([]byte(`
     recorders:
@@ -57,7 +57,7 @@ func TestLoadElasticsearchSuccess(t *testing.T) {
 func TestLoadElasticsearchErrors(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	v.SetConfigType("yaml")
 	tcs := []struct {
 		input *bytes.Buffer
@@ -166,7 +166,7 @@ func TestNewInstance(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 
 	input := bytes.NewBuffer([]byte(`
     recorders:

@@ -22,4 +22,4 @@ install:
 script:
   - glide install
   - go test $(glide nv)
-  - goveralls -service=travis-ci -ignore="bootstrap.go,reader/testing/config.go,reader/testing/testing.go,reader/testing/example_provider.go,reader/testing/testing_token.go,reader/testing/testing_construction.go,reader/testing/testing_communication.go,reader/testing/testing_endpoints.go,recorder/testing/config.go,recorder/testing/testing.go,recorder/testing/example_provider.go,recorder/testing/testing_token.go,recorder/testing/testing_construction.go,recorder/testing/testing_communication.go,recorder/testing/testing_endpoints.go,.travis.yml"
+  - goveralls -service=travis-ci -ignore="reader/testing/config.go,reader/testing/testing.go,reader/testing/example_provider.go,reader/testing/testing_token.go,reader/testing/testing_construction.go,reader/testing/testing_communication.go,reader/testing/testing_endpoints.go,recorder/testing/config.go,recorder/testing/testing.go,recorder/testing/example_provider.go,recorder/testing/testing_token.go,recorder/testing/testing_construction.go,recorder/testing/testing_communication.go,recorder/testing/testing_endpoints.go,.travis.yml"

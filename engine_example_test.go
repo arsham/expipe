@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic_test
+package expipe_test
 
 import (
 	"context"
@@ -10,12 +10,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/arsham/expvastic"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expipe"
+	"github.com/arsham/expipe/internal"
 )
 
 func ExampleEngine_sendingJobs() {
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	ctx, cancel := context.WithCancel(context.Background())
 	recorded := make(chan string)
 
@@ -27,7 +27,7 @@ func ExampleEngine_sendingJobs() {
 	red, redTearDown := getReader(log)
 	defer redTearDown()
 	rec := getRecorder(ctx, log, ts.URL)
-	e, err := expvastic.New(ctx, log, rec, red)
+	e, err := expipe.New(ctx, log, rec, red)
 	if err != nil {
 		panic(err)
 	}

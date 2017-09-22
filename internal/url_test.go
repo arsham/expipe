@@ -2,11 +2,13 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package lib
+package internal
 
 import (
 	"fmt"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestSanitiseURLErrors(t *testing.T) {
@@ -33,6 +35,7 @@ func TestSanitiseURLErrors(t *testing.T) {
 			if res != tc.expected {
 				t.Errorf("want (%v), got (%v)", tc.expected, res)
 			}
+			err = errors.Cause(err)
 			if _, ok := err.(interface {
 				InvalidURL()
 			}); !ok {

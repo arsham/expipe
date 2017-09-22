@@ -1,4 +1,4 @@
-package: github.com/arsham/expvastic
+package: github.com/arsham/expipe
 import:
 - package: github.com/Sirupsen/logrus
   version: ^0.11.0

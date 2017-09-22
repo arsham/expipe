@@ -2,16 +2,16 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic
+package expipe
 
 import (
 	"runtime"
 	"time"
 
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/reader"
-	"github.com/arsham/expvastic/recorder"
-	"github.com/arsham/expvastic/token"
+	"github.com/arsham/expipe/internal/datatype"
+	"github.com/arsham/expipe/internal/token"
+	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/recorder"
 )
 
 // This file contains the operation section of the engine and its event loop.
@@ -30,12 +30,11 @@ func (e *Engine) Start() {
 	}()
 
 	e.redmu.RLock()
-	readers := e.readers
-	e.redmu.RUnlock()
-	for _, red := range readers {
+	for _, red := range e.readers {
 		e.wg.Add(1)
 		go e.readerEventLoop(red)
 	}
+	e.redmu.RUnlock()
 
 	e.wg.Wait()
 }
@@ -44,8 +43,10 @@ func (e *Engine) Start() {
 func (e *Engine) readerEventLoop(red reader.DataReader) {
 	expReaders.Add(1)
 	ticker := time.NewTicker(red.Interval())
-	e.log.Debugf("started reader: %s", red.Name())
-	remove := make(chan string)
+	e.log.Debugf("starting reader: %s", red.Name())
+
+	// Signals the loop to stop for this reader.
+	stop := make(chan struct{})
 LOOP:
 	for {
 		select {
@@ -53,7 +54,7 @@ LOOP:
 			// [1] job's life cycle starts here...
 			e.log.Debugf("issuing job to: %s", red.Name())
 			waitingReadJobs.Add(1)
-			go e.issueReaderJob(red, remove)
+			go e.issueReaderJob(red, stop)
 
 		case job := <-e.readerJobs:
 			// note that the job is not necessarily from current reader as they
@@ -63,13 +64,13 @@ LOOP:
 			waitingRecordJobs.Add(1)
 			go e.shipToRecorder(job)
 
-		case name := <-remove:
-			// this is why we need the name
-			delete(e.readers, name)
+		case <-stop:
+			// This reader is quitting.
 			break LOOP
 
 		case <-e.shutdown:
-			e.log.Debug("shutting down the engine")
+			// This engine is quitting and all other readers will stop.
+			e.log.Debugf("shutting down the engine %s", e)
 			break LOOP
 
 		case <-e.ctx.Done():
@@ -78,10 +79,11 @@ LOOP:
 		}
 	}
 
+	e.log.Debugf("reader %s is down", red.Name())
 	e.wg.Done()
 }
 
-func (e *Engine) issueReaderJob(red reader.DataReader, remove chan string) {
+func (e *Engine) issueReaderJob(red reader.DataReader, stop chan struct{}) {
 	defer waitingReadJobs.Add(-1)
 	readJobs.Add(1)
 
@@ -92,7 +94,7 @@ func (e *Engine) issueReaderJob(red reader.DataReader, remove chan string) {
 	}
 
 	// to make sure the reader is behaving.
-	timeout := red.Timeout() + time.Duration(10*time.Second)
+	timeout := red.Timeout() + 10*time.Second
 	timer := time.NewTimer(timeout)
 	done := make(chan struct{})
 	job := token.New(e.ctx)
@@ -102,7 +104,7 @@ func (e *Engine) issueReaderJob(red reader.DataReader, remove chan string) {
 		if err != nil {
 			e.log.WithField("ID", job.ID()).WithField("name", red.Name()).Error(err)
 			if err == reader.ErrBackoffExceeded {
-				remove <- red.Name()
+				close(stop)
 			}
 			return
 		}
@@ -141,7 +143,7 @@ func (e *Engine) shipToRecorder(result *reader.Result) {
 		return
 	}
 	recordJobs.Add(1)
-	timeout := e.recorder.Timeout() + time.Duration(10*time.Second)
+	timeout := e.recorder.Timeout() + 10*time.Second
 	timer := time.NewTimer(timeout)
 	recPayload := &recorder.Job{
 		ID:        result.ID,
@@ -157,7 +159,7 @@ func (e *Engine) shipToRecorder(result *reader.Result) {
 		err := e.recorder.Record(e.ctx, recPayload)
 		if err != nil {
 			e.log.WithField("ID", result.ID).WithField("name", e.recorder.Name()).Error(err)
-			if err == reader.ErrBackoffExceeded {
+			if err == recorder.ErrBackoffExceeded {
 				close(e.shutdown)
 			}
 		}

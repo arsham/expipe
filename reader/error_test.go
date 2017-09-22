@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expipe/reader"
 )
 
 func TestErrInvalidEndpoint(t *testing.T) {

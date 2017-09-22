@@ -12,9 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/recorder"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/recorder"
 	"github.com/shurcooL/go/ctxhttp"
 )
 
@@ -23,7 +22,7 @@ type Recorder struct {
 	name       string
 	endpoint   string
 	indexName  string
-	log        logrus.FieldLogger
+	log        internal.FieldLogger
 	timeout    time.Duration
 	ErrorFunc  func() error
 	backoff    int
@@ -34,7 +33,7 @@ type Recorder struct {
 }
 
 // New returns a Recorder instance.
-func New(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*Recorder, error) {
+func New(ctx context.Context, log internal.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*Recorder, error) {
 	if name == "" {
 		return nil, recorder.ErrEmptyName
 	}
@@ -50,7 +49,7 @@ func New(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName 
 	if backoff < 5 {
 		return nil, recorder.ErrLowBackoffValue(backoff)
 	}
-	url, err := lib.SanitiseURL(endpoint)
+	url, err := internal.SanitiseURL(endpoint)
 	if err != nil {
 		return nil, recorder.ErrInvalidEndpoint(endpoint)
 	}

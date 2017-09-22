@@ -2,20 +2,20 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic_test
+package expipe_test
 
 import (
 	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/arsham/expvastic"
+	"github.com/arsham/expipe"
 )
 
 func TestPingError(t *testing.T) {
 	name1 := "divine"
 	err1 := fmt.Errorf("is a myth")
-	e := expvastic.ErrPing{name1: err1}
+	e := expipe.ErrPing{name1: err1}
 
 	if !strings.Contains(e.Error(), err1.Error()) {
 		t.Errorf("want (%s) in error message, got (%s)", err1.Error(), e.Error())
@@ -23,7 +23,7 @@ func TestPingError(t *testing.T) {
 
 	name2 := "science"
 	err2 := fmt.Errorf("is wrong")
-	e = expvastic.ErrPing{name1: err1, name2: err2}
+	e = expipe.ErrPing{name1: err1, name2: err2}
 
 	if !strings.Contains(e.Error(), err1.Error()) {
 		t.Errorf("want (%s) in error message, got (%s)", err1.Error(), e.Error())

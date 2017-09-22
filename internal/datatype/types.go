@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expipe/internal"
 )
 
 const (
@@ -104,7 +104,7 @@ func (fl FloatListType) Equal(other DataType) bool {
 			return false
 		}
 		for _, v := range o.Value {
-			if !lib.FloatInSlice(v, fl.Value) {
+			if !internal.FloatInSlice(v, fl.Value) {
 				return false
 			}
 		}
@@ -140,7 +140,7 @@ func (flt GCListType) Equal(other DataType) bool {
 			return false
 		}
 		for _, v := range o.Value {
-			if !lib.Uint64InSlice(v, flt.Value) {
+			if !internal.Uint64InSlice(v, flt.Value) {
 				return false
 			}
 		}

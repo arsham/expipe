@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/reader/expvar"
+	"github.com/arsham/expipe/reader/expvar"
 	"github.com/spf13/viper"
 )
 

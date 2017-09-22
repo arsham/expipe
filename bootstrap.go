@@ -2,49 +2,60 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic
+package expipe
 
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/config"
+	"github.com/arsham/expipe/config"
+	"github.com/arsham/expipe/internal"
+	"github.com/pkg/errors"
 )
 
 // StartEngines creates some Engines and returns a channel that closes it when it's done its work.
 // For each routes, we need one engine that has multiple readers and writes to one recorder.
 // When all recorders of one reader go out of scope, the Engine stops that reader because there
 // is no destination.
-func StartEngines(ctx context.Context, log logrus.FieldLogger, confMap *config.ConfMap) (chan struct{}, error) {
+func StartEngines(ctx context.Context, log internal.FieldLogger, confMap *config.ConfMap) (chan struct{}, error) {
 	var (
 		wg       sync.WaitGroup
-		leastOne bool
+		leastOne uint32
 		err      error
-		en       *Engine
 	)
 	done := make(chan struct{})
 
-	for recorder, readers := range confMap.Routes {
-		for _, reader := range readers {
-			red := confMap.Readers[reader]
-			rec := confMap.Recorders[recorder]
-			en, err = WithConfig(ctx, log, rec, red)
-			if err != nil {
-				log.Warn(err)
-				continue
-			}
-			wg.Add(1)
-			go func() {
-				leastOne = true
-				name := en.name // when en goes out of scope, we need this for the info log
-				en.Start()
-				log.Infof("Engine %s has finished", name)
-				wg.Done()
-			}()
-		}
+	if confMap == nil {
+		return nil, errors.New("confMap cannot be nil")
 	}
-	if !leastOne {
+
+	for recorder, readers := range confMap.Routes {
+		var en *Engine
+		rec := confMap.Recorders[recorder]
+		if rec == nil {
+			return nil, errors.New("empty recorder")
+		}
+		reds := make([]config.ReaderConf, len(readers))
+		i := 0
+		for _, reader := range readers {
+			reds[i] = confMap.Readers[reader]
+			i++
+		}
+		en, err = WithConfig(ctx, log, rec, reds...)
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+		wg.Add(1)
+		atomic.StoreUint32(&leastOne, uint32(1))
+		go func() {
+			en.Start()
+			log.Infof("Engine's work (%s) has finished", en)
+			wg.Done()
+		}()
+	}
+	if atomic.LoadUint32(&leastOne) < 1 {
 		return nil, err
 	}
 	go func() {

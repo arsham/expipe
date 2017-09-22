@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/reader/self"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/reader/self"
 	"github.com/spf13/viper"
 )
 
@@ -25,7 +25,7 @@ func TestLoadExpvarSuccess(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 
 	input := bytes.NewBuffer([]byte(`
     readers:
@@ -55,7 +55,7 @@ func TestLoadExpvarSuccess(t *testing.T) {
 func TestLoadExpvarErrors(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	v.SetConfigType("yaml")
 	tcs := []struct {
 		input *bytes.Buffer
@@ -106,7 +106,7 @@ func TestLoadExpvarErrors(t *testing.T) {
 func TestNewInstance(t *testing.T) {
 	v := viper.New()
 	v.SetConfigType("yaml")
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	cwd, _ := os.Getwd()
 	file, err := ioutil.TempFile(cwd, "yaml")
 	if err != nil {

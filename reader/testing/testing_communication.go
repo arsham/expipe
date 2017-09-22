@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/token"
+	"github.com/arsham/expipe/internal/token"
 )
 
 // testReaderReceivesJob is a test helper to test the reader can receive jobs

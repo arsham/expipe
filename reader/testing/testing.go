@@ -5,7 +5,7 @@
 // Package testing is a test suit for readers. They should provide
 // an object that implements the Constructor interface then run:
 //
-//    import reader_test "github.com/arsham/expvastic/reader/testing"
+//    import reader_test "github.com/arsham/expipe/reader/testing"
 //
 //    func TestExpvar(t *testing.T) {
 //    	reader_testing.TestReader(t, &Construct{})
@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expipe/reader"
 )
 
 // Constructor is an interface for setting up an object for testing.

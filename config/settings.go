@@ -7,11 +7,10 @@ package config
 import (
 	"strings"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/reader/expvar"
-	"github.com/arsham/expvastic/reader/self"
-	"github.com/arsham/expvastic/recorder/elasticsearch"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/reader/expvar"
+	"github.com/arsham/expipe/reader/self"
+	"github.com/arsham/expipe/recorder/elasticsearch"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -49,13 +48,13 @@ type ConfMap struct {
 
 // Checks the application scope settings. Applies them if defined.
 // If the log level is defined, it will replace a new logger with the provided one.
-func checkSettingsSect(log *logrus.Logger, v *viper.Viper) error {
+func checkSettingsSect(log *internal.Logger, v *viper.Viper) error {
 	if v.IsSet("settings.log_level") {
 		newLevel, ok := v.Get("settings.log_level").(string)
 		if !ok {
 			return &StructureErr{"log_level", "should be a string", nil}
 		}
-		*log = *lib.GetLogger(newLevel)
+		*log = *internal.GetLogger(newLevel)
 	}
 	return nil
 }
@@ -63,7 +62,7 @@ func checkSettingsSect(log *logrus.Logger, v *viper.Viper) error {
 // LoadYAML loads the settings from the configuration file.
 // It returns any errors returned from readers/recorders. Please
 // refer to their documentations.
-func LoadYAML(log *logrus.Logger, v *viper.Viper) (*ConfMap, error) {
+func LoadYAML(log *internal.Logger, v *viper.Viper) (*ConfMap, error) {
 	var (
 		readerKeys   map[string]string
 		recorderKeys map[string]string
@@ -182,13 +181,13 @@ func getRoutes(v *viper.Viper) (routeMap, error) {
 func checkAgainstReadRecorders(routes routeMap, readerKeys, recorderKeys map[string]string) error {
 	for _, section := range routes {
 		for _, reader := range section.readers {
-			if !lib.StringInMapKeys(reader, readerKeys) {
+			if !internal.StringInMapKeys(reader, readerKeys) {
 				return newRoutersErr("routers", reader+" not in readers", nil)
 			}
 		}
 
 		for _, recorder := range section.recorders {
-			if !lib.StringInMapKeys(recorder, recorderKeys) {
+			if !internal.StringInMapKeys(recorder, recorderKeys) {
 				return newRoutersErr("routers", recorder+" not in recorders", nil)
 			}
 		}
@@ -197,7 +196,7 @@ func checkAgainstReadRecorders(routes routeMap, readerKeys, recorderKeys map[str
 	return nil
 }
 
-func loadConfiguration(v *viper.Viper, log logrus.FieldLogger, routes routeMap, readerKeys, recorderKeys map[string]string) (*ConfMap, error) {
+func loadConfiguration(v *viper.Viper, log internal.FieldLogger, routes routeMap, readerKeys, recorderKeys map[string]string) (*ConfMap, error) {
 	confMap := &ConfMap{
 		Readers:   make(map[string]ReaderConf, len(readerKeys)),
 		Recorders: make(map[string]RecorderConf, len(recorderKeys)),
@@ -223,7 +222,7 @@ func loadConfiguration(v *viper.Viper, log logrus.FieldLogger, routes routeMap, 
 	return confMap, nil
 }
 
-func parseReader(v *viper.Viper, log logrus.FieldLogger, readerType, name string) (ReaderConf, error) {
+func parseReader(v *viper.Viper, log internal.FieldLogger, readerType, name string) (ReaderConf, error) {
 	switch readerType {
 	case expvarReader:
 		rc, err := expvar.FromViper(v, log, name, "readers."+name)
@@ -235,7 +234,7 @@ func parseReader(v *viper.Viper, log logrus.FieldLogger, readerType, name string
 	return nil, notSupportedErr(readerType)
 }
 
-func readRecorders(v *viper.Viper, log logrus.FieldLogger, recorderType, name string) (RecorderConf, error) {
+func readRecorders(v *viper.Viper, log internal.FieldLogger, recorderType, name string) (RecorderConf, error) {
 	switch recorderType {
 	case elasticsearchRecorder:
 		rc, err := elasticsearch.FromViper(v, log, name, "recorders."+name)

@@ -2,16 +2,16 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package expvastic can read from any endpoints that provides expvar data and ships them to elasticsearch. You can inspect the metrics with kibana.
+// Package expipe can read from any endpoints that provides expvar data and ships them to elasticsearch. You can inspect the metrics with kibana.
 //
 // Please refer to golang's expvar documentation for more information.
-// Installation guides can be found on github page: https://github.com/arsham/expvastic
+// Installation guides can be found on github page: https://github.com/arsham/expipe
 //
 // At the heart of this package, there is Engine. It acts like a glue between multiple Readers and a Recorder. Messages are transferred in a package called DataContainer, which is a list of DataType objects.
 //
 // Example configuration
 //
-// Save it somewhere (let's call it expvastic.yml for now):
+// Save it somewhere (let's call it expipe.yml for now):
 //
 //    settings:
 //        log_level: info
@@ -37,13 +37,13 @@
 //        main_elasticsearch:
 //            type: elasticsearch        # the type of recorder. More to come soon!
 //            endpoint: 127.0.0.1:9200
-//            index_name: expvastic
+//            index_name: expipe
 //            timeout: 8s
 //            backoff: 10
 //        the_other_elasticsearch:
 //            type: elasticsearch
 //            endpoint: 127.0.0.1:9201
-//            index_name: expvastic
+//            index_name: expipe
 //            timeout: 18s
 //            backoff: 10
 //
@@ -68,7 +68,7 @@
 //
 // Then run the application:
 //
-//    expvasyml -c expvastic.yml
+//    expvasyml -c expipe.yml
 //
 // You can mix and match the routes, but the engine will choose the best set-up to achieve your goal without duplicating the results. For instance assume you set the routes like this:
 //
@@ -108,7 +108,7 @@
 //                 - elastic_0
 //                 - elastic_1
 //
-// Expvastic creates three engines like so:
+// Expipe creates three engines like so:
 //
 //     elastic_0 records data from app_0, app_1
 //     elastic_1 records data from app_0, app_1, app_2, app_4
@@ -150,4 +150,4 @@
 //   go tool pprof -pdf $BASENAME.test mem.out > mem.pdf && open mem.pdf
 //
 // Use of this source code is governed by the Apache 2.0 license. License that can be found in the LICENSE file.
-package expvastic
+package expipe

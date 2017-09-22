@@ -17,10 +17,10 @@
     }
   },
   {
-    "_id": "Expvastic-Dashboard",
+    "_id": "Expipe-Dashboard",
     "_type": "dashboard",
     "_source": {
-      "title": "Expvastic Dashboard",
+      "title": "Expipe Dashboard",
       "hits": 0,
       "description": "",
       "panelsJSON": "[{\"col\":10,\"id\":\"Avg-ByteType-Count-p-slash-m\",\"panelIndex\":1,\"row\":10,\"size_x\":3,\"size_y\":2,\"type\":\"visualization\"},{\"col\":1,\"id\":\"Avg-DataType-Object-Error-Count-p-slash-m\",\"panelIndex\":2,\"row\":12,\"size_x\":3,\"size_y\":2,\"type\":\"visualization\"},{\"col\":7,\"id\":\"Avg-DataType-Object-Count-p-slash-m\",\"panelIndex\":3,\"row\":8,\"size_x\":6,\"size_y\":2,\"type\":\"visualization\"},{\"col\":7,\"id\":\"Avg-ElasticSearch-Count-p-slash-m\",\"panelIndex\":4,\"row\":6,\"size_x\":6,\"size_y\":2,\"type\":\"visualization\"},{\"col\":1,\"id\":\"Avg-Expvar-Read-Count-p-slash-m\",\"panelIndex\":6,\"row\":6,\"size_x\":6,\"size_y\":2,\"type\":\"visualization\"},{\"col\":4,\"id\":\"Avg-FloatType-Count-p-slash-m\",\"panelIndex\":7,\"row\":12,\"size_x\":3,\"size_y\":2,\"type\":\"visualization\"},{\"col\":7,\"id\":\"Avg-GCListType-Count-p-slash-m\",\"panelIndex\":8,\"row\":10,\"size_x\":3,\"size_y\":2,\"type\":\"visualization\"},{\"col\":1,\"id\":\"Avg-Record-Jobs\",\"panelIndex\":10,\"row\":8,\"size_x\":6,\"size_y\":2,\"type\":\"visualization\"},{\"col\":4,\"id\":\"Avg-StringType-Count-p-slash-m\",\"panelIndex\":12,\"row\":10,\"size_x\":3,\"size_y\":2,\"type\":\"visualization\"},{\"col\":1,\"id\":\"Avg-Unidentified-JSON-p-slash-m\",\"panelIndex\":13,\"row\":10,\"size_x\":3,\"size_y\":2,\"type\":\"visualization\"},{\"col\":1,\"id\":\"Goroutine-Count-p-slash-s\",\"panelIndex\":14,\"row\":1,\"size_x\":12,\"size_y\":3,\"type\":\"visualization\"},{\"id\":\"Waiting-Read-Jobs\",\"type\":\"visualization\",\"panelIndex\":15,\"size_x\":6,\"size_y\":2,\"col\":1,\"row\":4},{\"id\":\"Waiting-Record-Jobs\",\"type\":\"visualization\",\"panelIndex\":16,\"size_x\":6,\"size_y\":2,\"col\":7,\"row\":4}]",
@@ -43,7 +43,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -57,7 +57,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -71,7 +71,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -85,7 +85,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -99,7 +99,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -113,7 +113,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -127,7 +127,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -141,7 +141,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -155,7 +155,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -169,7 +169,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -183,7 +183,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -197,7 +197,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -211,7 +211,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -225,7 +225,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"_type:expvastic\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"_type:expipe\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -239,7 +239,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -253,7 +253,7 @@
       "description": "Total bytes of memory obtained from the OS",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -267,7 +267,7 @@
       "description": "Number of pointer lookups performed by the runtime",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -281,7 +281,7 @@
       "description": "Megabytes stack in use",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\n  \"index\": \"expvastic\",\n  \"query\": {\n    \"query_string\": {\n      \"query\": \"*\",\n      \"analyze_wildcard\": true\n    }\n  },\n  \"filter\": []\n}"
+        "searchSourceJSON": "{\n  \"index\": \"expipe\",\n  \"query\": {\n    \"query_string\": {\n      \"query\": \"*\",\n      \"analyze_wildcard\": true\n    }\n  },\n  \"filter\": []\n}"
       }
     }
   },
@@ -295,7 +295,7 @@
       "description": "Megabytes of allocated heap objects",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -309,7 +309,7 @@
       "description": "Megabyte of heap in use",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -323,7 +323,7 @@
       "description": "Number of allocated heap objects",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -337,7 +337,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   },
@@ -351,7 +351,7 @@
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"expvastic\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"expipe\",\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}},\"filter\":[]}"
       }
     }
   }

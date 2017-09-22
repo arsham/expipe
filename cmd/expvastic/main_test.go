@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/config"
+	"github.com/arsham/expipe/config"
 )
 
 func errTestCases() [][]byte {
@@ -59,7 +59,7 @@ func errTestCases() [][]byte {
             elastic1: # service name
                 type: elasticsearch
                 endpoint: http://127.0.0.1:9200
-                index_name: expvastic
+                index_name: expipe
                 timeout: 8s
                 backoff: 10
         routes:
@@ -83,7 +83,7 @@ func errTestCases() [][]byte {
             elastic1: # service name
                 type: elasticsearch
                 endpoint: http://127.0.0.1:9200
-                index_name: expvastic
+                index_name: expipe
                 timeout: 8s
                 backoff: 10
         routes:
@@ -111,7 +111,7 @@ recorders:
     elastic1: # service name
         type: elasticsearch
         endpoint: http://127.0.0.1:9200
-        index_name: expvastic
+        index_name: expipe
         timeout: 8s
         backoff: 10
 routes:

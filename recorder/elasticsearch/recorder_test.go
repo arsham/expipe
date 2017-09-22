@@ -14,20 +14,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/recorder"
-	"github.com/arsham/expvastic/recorder/elasticsearch"
-	recorder_testing "github.com/arsham/expvastic/recorder/testing"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/recorder/elasticsearch"
+	recorder_testing "github.com/arsham/expipe/recorder/testing"
 )
 
 var (
-	log        logrus.FieldLogger
+	log        internal.FieldLogger
 	testServer *httptest.Server
 )
 
 func TestMain(m *testing.M) {
-	log = lib.DiscardLogger()
+	log = internal.DiscardLogger()
 	var host, url, port string
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/_nodes/http" {

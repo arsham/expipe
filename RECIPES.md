@@ -3,10 +3,10 @@
 
 
 1. [Kibana](#kibana)
-  * [Per Application Setup](#per-application-setup)
+    * [Per Application Setup](#per-application-setup)
 3. [Configuration File](#configuration-file)
-  * [How Routes Are Defined](#how-routes-are-defined)
-  * [Mappings](#mappings)
+    * [How Routes Are Defined](#how-routes-are-defined)
+    * [Mappings](#mappings)
 4. [Testing](#testing)
 5. [Coverage](#coverage)
 6. [Benchmarks](#benchmarks)
@@ -19,7 +19,7 @@ On any dashboards/visualisations, you can specify the metrics for a specific app
 
 ## Configuration File
 
-Here an example configuration, save it somewhere (let's call it expvastic.yml for now):
+Here an example configuration, save it somewhere (let's call it expipe.yml for now):
 
 ```yaml
 settings:
@@ -47,13 +47,13 @@ recorders:                         # This section is where the data will be ship
     main_elasticsearch:
         type: elasticsearch        # the type of recorder. More to come soon!
         endpoint: 127.0.0.1:9200
-        index_name: expvastic
+        index_name: expipe
         timeout: 8s
         backoff: 10
     the_other_elasticsearch:
         type: elasticsearch
         endpoint: 127.0.0.1:9201
-        index_name: expvastic
+        index_name: expipe
         timeout: 18s
         backoff: 10
 
@@ -80,7 +80,7 @@ routes:                            # You can specify metrics of which applicatio
 Then run the application and point it to the file:
 
 ```bash
-expvastic -c expvastic.yml
+expipe -c expipe.yml
 ```
 
 ### How Routes Are Defined
@@ -124,7 +124,7 @@ routes:
             - elastic_0
             - elastic_1
 ```
-Expvastic creates three engines like so:
+Expipe creates three engines like so:
 
 ```
     elastic_0 records data from app_0, app_1

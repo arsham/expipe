@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package expvastic_test
+package expipe_test
 
 import (
 	"context"
@@ -11,14 +11,14 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/reader"
-	reader_testing "github.com/arsham/expvastic/reader/testing"
-	"github.com/arsham/expvastic/recorder"
-	recorder_testing "github.com/arsham/expvastic/recorder/testing"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/reader"
+	reader_testing "github.com/arsham/expipe/reader/testing"
+	"github.com/arsham/expipe/recorder"
+	recorder_testing "github.com/arsham/expipe/recorder/testing"
 )
 
-func getReader(log logrus.FieldLogger) (map[string]reader.DataReader, func()) {
+func getReader(log internal.FieldLogger) (map[string]reader.DataReader, func()) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		desire := `{"the key": "is the value!"}`
 		io.WriteString(w, desire)
@@ -34,7 +34,7 @@ func getReader(log logrus.FieldLogger) (map[string]reader.DataReader, func()) {
 	}
 }
 
-func getRecorder(ctx context.Context, log logrus.FieldLogger, url string) recorder.DataRecorder {
+func getRecorder(ctx context.Context, log internal.FieldLogger, url string) recorder.DataRecorder {
 	rec, err := recorder_testing.New(ctx, log, "reader_example", url, "intexName", time.Millisecond*100, 5)
 	if err != nil {
 		panic(err)

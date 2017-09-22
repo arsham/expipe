@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expipe/internal"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -19,7 +19,7 @@ func TestTypeCheckErrors(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 
 	input := bytes.NewBuffer([]byte(`
     readers:
@@ -87,7 +87,7 @@ func TestGetReaderKeys(t *testing.T) {
 
 	target := []string{"reader1", "reader2"}
 	for rKey := range keys {
-		if !lib.StringInSlice(rKey, target) {
+		if !internal.StringInSlice(rKey, target) {
 			t.Errorf("expected (%s) be in %v", rKey, target)
 		}
 	}
@@ -157,7 +157,7 @@ func TestGetRecorderKeys(t *testing.T) {
 
 	target := []string{"recorder1", "recorder2"}
 	for rKey := range keys {
-		if !lib.StringInSlice(rKey, target) {
+		if !internal.StringInSlice(rKey, target) {
 			t.Errorf("expected (%s) be in %v", rKey, target)
 		}
 	}

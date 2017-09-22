@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/lib"
-	"github.com/arsham/expvastic/reader"
-	"github.com/arsham/expvastic/token"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/internal/datatype"
+	"github.com/arsham/expipe/internal/token"
+	"github.com/arsham/expipe/reader"
+
 	"golang.org/x/net/context/ctxhttp"
 )
 
@@ -25,7 +25,7 @@ type Reader struct {
 	typeName string
 	endpoint string
 	mapper   datatype.Mapper
-	log      logrus.FieldLogger
+	log      internal.FieldLogger
 	interval time.Duration
 	timeout  time.Duration
 	backoff  int
@@ -35,7 +35,7 @@ type Reader struct {
 }
 
 // New is a reader for using in tests
-func New(log logrus.FieldLogger, endpoint string, name, typeName string, interval, timeout time.Duration, backoff int) (*Reader, error) {
+func New(log internal.FieldLogger, endpoint string, name, typeName string, interval, timeout time.Duration, backoff int) (*Reader, error) {
 	if name == "" {
 		return nil, reader.ErrEmptyName
 	}
@@ -44,7 +44,7 @@ func New(log logrus.FieldLogger, endpoint string, name, typeName string, interva
 		return nil, reader.ErrEmptyEndpoint
 	}
 
-	url, err := lib.SanitiseURL(endpoint)
+	url, err := internal.SanitiseURL(endpoint)
 	if err != nil {
 		return nil, reader.ErrInvalidEndpoint(endpoint)
 	}

@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/internal/datatype"
+	"github.com/arsham/expipe/reader"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -26,11 +26,11 @@ type Config struct {
 	mapper       datatype.Mapper
 
 	interval time.Duration
-	log      logrus.FieldLogger
+	log      internal.FieldLogger
 }
 
 // FromViper constructs the necessary configuration for bootstrapping the expvar reader
-func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Config, error) {
+func FromViper(v *viper.Viper, log internal.FieldLogger, name, key string) (*Config, error) {
 	var (
 		c     Config
 		inter time.Duration
@@ -79,7 +79,7 @@ func (c *Config) Interval() time.Duration { return c.interval }
 func (c *Config) Timeout() time.Duration { return time.Second }
 
 // Logger returns the logger
-func (c *Config) Logger() logrus.FieldLogger { return c.log }
+func (c *Config) Logger() internal.FieldLogger { return c.log }
 
 // Backoff returns the backoff
 func (c *Config) Backoff() int { return c.SelfBackoff }

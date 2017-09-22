@@ -8,8 +8,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/recorder"
+	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/recorder"
 )
 
 // Config holds the necessary configuration for setting up an elasticsearch reader endpoint.
@@ -19,11 +19,11 @@ type Config struct {
 	MockTimeout   time.Duration
 	MockBackoff   int
 	MockIndexName string
-	MockLogger    logrus.FieldLogger
+	MockLogger    internal.FieldLogger
 }
 
 // NewConfig returns a mocked object
-func NewConfig(name string, log logrus.FieldLogger, endpoint string, timeout time.Duration, backoff int, indexName string) (*Config, error) {
+func NewConfig(name string, log internal.FieldLogger, endpoint string, timeout time.Duration, backoff int, indexName string) (*Config, error) {
 	return &Config{
 		MockName:      name,
 		MockEndpoint:  endpoint,
@@ -55,7 +55,7 @@ func (m *Config) RoutePath() string { return "" }
 func (m *Config) Timeout() time.Duration { return m.MockTimeout }
 
 // Logger is the mocked version
-func (m *Config) Logger() logrus.FieldLogger { return m.MockLogger }
+func (m *Config) Logger() internal.FieldLogger { return m.MockLogger }
 
 // Backoff is the mocked version
 func (m *Config) Backoff() int { return m.MockBackoff }

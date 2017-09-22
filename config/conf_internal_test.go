@@ -6,23 +6,23 @@ package config
 
 import (
 	"bytes"
-	"errors"
 	"strings"
 	"testing"
 
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expipe/internal"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
 func TestParseReader(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	v.SetConfigType("yaml")
 
 	v.ReadConfig(bytes.NewBuffer([]byte("")))
 	_, err := parseReader(v, log, "non_existence_plugin", "readers.reader1")
-	if _, ok := err.(interface {
+	if _, ok := errors.Cause(err).(interface {
 		NotSupported()
 	}); !ok {
 		t.Errorf("want NotSupportedErr error, got (%v)", err)

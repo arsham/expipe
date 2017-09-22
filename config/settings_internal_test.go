@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expipe/internal"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -16,7 +16,7 @@ import (
 func TestLoadConfiguration(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	v.SetConfigType("yaml")
 
 	input := bytes.NewBuffer([]byte(`

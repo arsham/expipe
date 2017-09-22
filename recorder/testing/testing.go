@@ -5,7 +5,7 @@
 // Package testing is a test suit for recorders. They should provide
 // an object that implements the Constructor interface then run:
 //
-//    import recorder_test "github.com/arsham/expvastic/recorder/testing"
+//    import recorder_test "github.com/arsham/expipe/recorder/testing"
 //
 //    func TestElasticsearch(t *testing.T) {
 //    	recorder_testing.TestRecorder(t, &Construct{})
@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/recorder"
+	"github.com/arsham/expipe/recorder"
 )
 
 // Constructor is an interface for setting up an object for testing.

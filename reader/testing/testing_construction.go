@@ -10,7 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/reader"
+	"github.com/arsham/expipe/reader"
+	"github.com/pkg/errors"
 )
 
 func testShowNotChangeTheInput(t *testing.T, cons Constructor) {
@@ -89,6 +90,7 @@ func testBackoffCheck(t *testing.T, cons Constructor) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
+	err = errors.Cause(err)
 	if _, ok := err.(interface {
 		LowBackoffValue()
 	}); !ok {
@@ -121,6 +123,7 @@ func testEndpointCheck(t *testing.T, cons Constructor) {
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("expected nil, got (%v)", red)
 	}
+	err = errors.Cause(err)
 	if _, ok := err.(interface {
 		InvalidEndpoint()
 	}); !ok {
