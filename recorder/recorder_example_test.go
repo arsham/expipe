@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/internal/datatype"
 	"github.com/arsham/expvastic/recorder"
 	"github.com/arsham/expvastic/recorder/testing"
 )

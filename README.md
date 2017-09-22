@@ -10,10 +10,10 @@ Expvastic can record your application's `metrics` in [ElasticSearch][elasticsear
 1. [Features](#features)
 2. [Installation](#installation)
 3. [Kibana](#kibana)
-  * [Importing Dashboard](#importing-dashboard)
+    * [Importing Dashboard](#importing-dashboard)
 4. [Usage](#usage)
-  * [With Flags](#with-flags)
-  * [Advanced](#advanced)
+    * [With Flags](#with-flags)
+    * [Advanced](#advanced)
 5. [LICENSE](#license)
 
 ## Features

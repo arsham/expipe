@@ -2,10 +2,10 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package lib
+package internal
 
-// FloatInSlice returns true if niddle is in the haystack
-func FloatInSlice(niddle float64, haystack []float64) bool {
+// StringInSlice returns true if niddle is in the haystack
+func StringInSlice(niddle string, haystack []string) bool {
 	for _, b := range haystack {
 		if b == niddle {
 			return true
@@ -14,9 +14,9 @@ func FloatInSlice(niddle float64, haystack []float64) bool {
 	return false
 }
 
-// Uint64InSlice returns true if niddle is in the haystack
-func Uint64InSlice(niddle uint64, haystack []uint64) bool {
-	for _, b := range haystack {
+// StringInMapKeys returns true if niddle is in the haystack's keys
+func StringInMapKeys(niddle string, haystack map[string]string) bool {
+	for b := range haystack {
 		if b == niddle {
 			return true
 		}

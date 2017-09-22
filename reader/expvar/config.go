@@ -11,9 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
+	"github.com/arsham/expvastic/internal/datatype"
 	"github.com/arsham/expvastic/reader"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -31,14 +30,14 @@ type Config struct {
 	EXPBackoff   int    `mapstructure:"backoff"`
 	MapFile      string `mapstructure:"map_file"`
 
-	log      logrus.FieldLogger
+	log      internal.FieldLogger
 	interval time.Duration
 	timeout  time.Duration
 	mapper   datatype.Mapper
 }
 
 // NewConfig returns an instance of the expvar reader
-func NewConfig(log logrus.FieldLogger, name, typeName string, endpoint, routepath string, interval, timeout time.Duration, backoff int, mapFile string) (*Config, error) {
+func NewConfig(log internal.FieldLogger, name, typeName string, endpoint, routepath string, interval, timeout time.Duration, backoff int, mapFile string) (*Config, error) {
 	c := &Config{
 		name:         name,
 		EXPTypeName:  typeName,
@@ -54,7 +53,7 @@ func NewConfig(log logrus.FieldLogger, name, typeName string, endpoint, routepat
 }
 
 // FromViper constructs the necessary configuration for bootstrapping the expvar reader.
-func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Config, error) {
+func FromViper(v *viper.Viper, log internal.FieldLogger, name, key string) (*Config, error) {
 	var (
 		c                 Config
 		interval, timeout time.Duration
@@ -89,7 +88,7 @@ func withConfig(c *Config) (*Config, error) {
 		return nil, reader.ErrEmptyEndpoint
 	}
 
-	url, err := lib.SanitiseURL(c.EXPEndpoint)
+	url, err := internal.SanitiseURL(c.EXPEndpoint)
 	if err != nil {
 		return nil, reader.ErrInvalidEndpoint(c.EXPEndpoint)
 	}
@@ -150,7 +149,7 @@ func (c *Config) Interval() time.Duration { return c.interval }
 func (c *Config) Timeout() time.Duration { return c.timeout }
 
 // Logger returns logger
-func (c *Config) Logger() logrus.FieldLogger { return c.log }
+func (c *Config) Logger() internal.FieldLogger { return c.log }
 
 // Backoff returns backoff
 func (c *Config) Backoff() int { return c.EXPBackoff }

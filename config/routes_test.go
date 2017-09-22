@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -19,7 +19,7 @@ func equalSlice(a, b []string) bool {
 		return false
 	}
 	for i := range a {
-		if !lib.StringInSlice(a[i], b) {
+		if !internal.StringInSlice(a[i], b) {
 			return false
 		}
 	}
@@ -100,6 +100,7 @@ func TestGetRoutesErrors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			v.ReadConfig(tc.input)
 			_, err := getRoutes(v)
+			err = errors.Cause(err)
 			if err == nil {
 				t.Fatalf("want an error, got nothing (%s)", err)
 			}
@@ -169,7 +170,7 @@ func TestGetRoutesValues(t *testing.T) {
 		t.Fatalf("want no errors, got (%s)", err)
 	}
 	for name, route := range routes {
-		if !lib.StringInSlice(name, []string{"route1", "route2"}) {
+		if !internal.StringInSlice(name, []string{"route1", "route2"}) {
 			t.Errorf("want (route1 or route2), got (%s)", name)
 		}
 		want = []string{name + "_rec1", name + "_rec2"}
@@ -186,7 +187,7 @@ func TestGetRoutesValues(t *testing.T) {
 func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	v.SetConfigType("yaml")
 
 	tcs := []struct {
@@ -337,21 +338,21 @@ routes:
 
 	wantKeys := []string{"elastic_1", "elastic_2"}
 	for key := range routeMap {
-		if !lib.StringInSlice(key, wantKeys) {
+		if !internal.StringInSlice(key, wantKeys) {
 			t.Fatalf("(%v) not in (%v)", key, wantKeys)
 		}
 	}
 
 	wantKeys = []string{"app_0", "app_4", "app_1", "app_2"}
 	for _, key := range routeMap["elastic_1"] {
-		if !lib.StringInSlice(key, wantKeys) {
+		if !internal.StringInSlice(key, wantKeys) {
 			t.Errorf("(%v) not in (%v)", key, wantKeys)
 		}
 	}
 
 	wantKeys = []string{"app_0", "app_5"}
 	for _, key := range routeMap["elastic_2"] {
-		if !lib.StringInSlice(key, wantKeys) {
+		if !internal.StringInSlice(key, wantKeys) {
 			t.Errorf("(%v) not in (%v)", key, wantKeys)
 		}
 	}

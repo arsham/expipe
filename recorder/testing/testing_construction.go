@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/arsham/expvastic/recorder"
+	"github.com/pkg/errors"
 )
 
 func testShowNotChangeTheInput(t *testing.T, cons Constructor) {
@@ -55,6 +56,8 @@ func testBackoffCheck(t *testing.T, cons Constructor) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
+
+	err = errors.Cause(err)
 	if _, ok := err.(interface {
 		LowBackoffValue()
 	}); !ok {

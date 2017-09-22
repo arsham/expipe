@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/antonholmquist/jason"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
 	"github.com/spf13/viper"
 )
 
@@ -31,7 +31,7 @@ func TestLoadMapsReaderGCTypes(t *testing.T) {
 	v.ReadConfig(input)
 	maps := MapsFromViper(v)
 	for _, c := range []string{"PauseEnd", "memstats.PauseNs"} {
-		if !lib.StringInSlice(c, maps.gcTypes) {
+		if !internal.StringInSlice(c, maps.gcTypes) {
 			t.Errorf("(%s) not found in returned valued. got (%s)", c, strings.Join(maps.gcTypes, ", "))
 		}
 	}

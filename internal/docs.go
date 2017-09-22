@@ -4,5 +4,5 @@
 
 // Package lib contains some functionalities needed for expvastic.
 // There are numeric and string searches, logging setup, etc.
-// TODO: rename this package to "internal"
-package lib
+
+package internal

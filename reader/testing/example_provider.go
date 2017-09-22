@@ -7,12 +7,12 @@ package testing
 import (
 	"time"
 
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
 )
 
 // GetReader provides a SimpleReader for using in the example.
 func GetReader(url string) *Reader {
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	red, err := New(log, url, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond, 10)
 	if err != nil {
 		panic(err)

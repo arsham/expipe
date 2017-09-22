@@ -16,8 +16,8 @@ package reader
 import (
 	"time"
 
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/token"
+	"github.com/arsham/expvastic/internal/datatype"
+	"github.com/arsham/expvastic/internal/token"
 )
 
 // DataReader receives job requests to read from the target. It returns

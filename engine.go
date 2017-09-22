@@ -12,11 +12,10 @@ import (
 	"sync"
 
 	"github.com/arsham/expvastic/config"
+	"github.com/arsham/expvastic/internal"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
 	"github.com/pkg/errors"
-
-	"github.com/Sirupsen/logrus"
 )
 
 var (
@@ -30,26 +29,28 @@ var (
 	contextCanceled   = "context has been cancelled"
 )
 
-// Engine represents an engine that receives information from readers and ships them to a recorder.
-// The Engine is allowed to change the index and type names at will.
-// When the context times out or cancelled, the engine will close and return.
+// Engine represents an engine that receives information from readers and ships
+// them to a recorder. The Engine is allowed to change the index and type names
+// at will. When the context times out or cancelled, the engine will close and
+// return.  Use the shutdown channel to signal the engine to stop recording.
+// The ctx context will create a new context based on the parent.
 type Engine struct {
-	log        logrus.FieldLogger
-	ctx        context.Context       // Will call stop() when this context is cancelled/timed-out. This is a new context from the parent.
+	log        internal.FieldLogger
+	ctx        context.Context       // Will call stop() when this context is cancelled/timed-out.
 	name       string                // Name identifier for this engine.
-	recorder   recorder.DataRecorder // Records to ElasticSearch client.
-	readerJobs chan *reader.Result   // The results of reader jobs will be streamed here.
+	recorder   recorder.DataRecorder // Records to destination client.
+	readerJobs chan *reader.Result   // The results of reader jobs.
 
-	wg      sync.WaitGroup
+	wg      sync.WaitGroup // For keeping reader count.
 	redmu   sync.RWMutex
 	readers map[string]reader.DataReader // Map of active readers name to their objects.
 
-	shutdown chan struct{} // if closed, stops all operations and quits the engine
+	shutdown chan struct{} // if closed, stops all operations and quits the engine.
 }
 
-// WithConfig creates an engine by instantiating readers and recorder from the configurations and sends them
-// to the New function.
-func WithConfig(ctx context.Context, log logrus.FieldLogger, recorderConf config.RecorderConf, readers ...config.ReaderConf) (*Engine, error) {
+// WithConfig creates an engine by instantiating readers and recorder from the
+// configurations and sends them to the New function.
+func WithConfig(ctx context.Context, log internal.FieldLogger, recorderConf config.RecorderConf, readers ...config.ReaderConf) (*Engine, error) {
 	reds := make(map[string]reader.DataReader) // we don't know if all readers are available
 	for _, redConf := range readers {
 		if redConf == nil {
@@ -75,51 +76,49 @@ func WithConfig(ctx context.Context, log logrus.FieldLogger, recorderConf config
 }
 
 // New creates an Engine instance with already set-up reader and recorders.
-// The Engine's work starts from here by streaming all readers payloads to the recorder.
-// Returns an error if there are recorders with the same name, or any of constructions results in errors.
-func New(ctx context.Context, log logrus.FieldLogger, rec recorder.DataRecorder, reds map[string]reader.DataReader) (*Engine, error) {
+// The Engine's work starts from here by streaming all readers payloads to the
+// recorder. Returns an error if there are recorders with the same name, or any
+// of constructions results in errors.
+func New(ctx context.Context, log internal.FieldLogger, rec recorder.DataRecorder, reds map[string]reader.DataReader) (*Engine, error) {
 	failedErrors := make(map[string]error)
-	canDo := false
-	readerNames := make([]string, len(reds))
 
 	err := rec.Ping()
 	if err != nil {
 		return nil, ErrPing{rec.Name(): err}
 	}
 
+	var readerNames []string
+	readers := make(map[string]reader.DataReader)
+	canDo := false
 	i := 0
+
 	for name, red := range reds {
 		err := red.Ping()
 		if err != nil {
 			failedErrors[name] = err
 			continue
 		}
-		readerNames[i] = name
+		readerNames = append(readerNames, name)
+		readers[name] = red
 		canDo = true
 		i++
 	}
 	if !canDo {
 		return nil, ErrPing(failedErrors)
 	}
-
 	// just to be cute
-	engineName := fmt.Sprintf("( %s >-x-<< %s )", rec.Name(), strings.Join(readerNames, ","))
+	engineName := fmt.Sprintf("( %s <-<< %s )", rec.Name(), strings.Join(readerNames, ","))
 	log = log.WithField("engine", engineName)
 	cl := &Engine{
 		name:       engineName,
 		ctx:        ctx,
 		readerJobs: make(chan *reader.Result, len(reds)), // TODO: increase this is required
 		recorder:   rec,
-		readers:    reds,
+		readers:    readers,
 		log:        log,
 	}
 	log.Debug("started the engine")
 	return cl, nil
 }
 
-// setReaders is used in tests.
-func (e *Engine) setReaders(readers map[string]reader.DataReader) {
-	e.redmu.Lock()
-	defer e.redmu.Unlock()
-	e.readers = readers
-}
+func (e *Engine) String() string { return e.name }

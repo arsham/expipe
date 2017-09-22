@@ -8,8 +8,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
 	"github.com/arsham/expvastic/recorder"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -23,12 +22,12 @@ type Config struct {
 	ESBackoff   int    `mapstructure:"backoff"`
 	ESIndexName string `mapstructure:"index_name"`
 
-	log     logrus.FieldLogger
+	log     internal.FieldLogger
 	timeout time.Duration
 }
 
 // NewConfig returns errors coming from Viper
-func NewConfig(log logrus.FieldLogger, name string, endpoint string, timeout time.Duration, backoff int, indexName string) (*Config, error) {
+func NewConfig(log internal.FieldLogger, name string, endpoint string, timeout time.Duration, backoff int, indexName string) (*Config, error) {
 	c := &Config{
 		name:        name,
 		ESEndpoint:  endpoint,
@@ -41,7 +40,7 @@ func NewConfig(log logrus.FieldLogger, name string, endpoint string, timeout tim
 }
 
 // FromViper constructs the necessary configuration for bootstrapping the elasticsearch reader
-func FromViper(v *viper.Viper, log logrus.FieldLogger, name, key string) (*Config, error) {
+func FromViper(v *viper.Viper, log internal.FieldLogger, name, key string) (*Config, error) {
 	var (
 		c       Config
 		timeout time.Duration
@@ -70,7 +69,7 @@ func withConfig(c *Config) (*Config, error) {
 	if c.ESEndpoint == "" {
 		return nil, recorder.ErrEmptyEndpoint
 	}
-	endpoint, err := lib.SanitiseURL(c.ESEndpoint)
+	endpoint, err := internal.SanitiseURL(c.ESEndpoint)
 	if err != nil {
 		return nil, recorder.ErrInvalidEndpoint(c.ESEndpoint)
 	}
@@ -104,7 +103,7 @@ func (c *Config) RoutePath() string { return "" }
 func (c *Config) Timeout() time.Duration { return c.timeout }
 
 // Logger return the logger
-func (c *Config) Logger() logrus.FieldLogger { return c.log }
+func (c *Config) Logger() internal.FieldLogger { return c.log }
 
 // Backoff return the backoff
 func (c *Config) Backoff() int { return c.ESBackoff }

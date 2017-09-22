@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/antonholmquist/jason"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
 	"github.com/spf13/viper"
 )
 
@@ -104,7 +104,7 @@ func (m *MapConvert) getArrayValue(prefix, name string, arr []*jason.Value) Data
 	if len(arr) == 0 {
 		return &FloatListType{prefix + name, []float64{}}
 	} else if _, err := arr[0].Float64(); err == nil {
-		if lib.StringInSlice(name, m.gcTypes) {
+		if internal.StringInSlice(name, m.gcTypes) {
 			return getGCList(prefix+name, arr)
 		}
 		return getFloatListValues(prefix+name, arr)

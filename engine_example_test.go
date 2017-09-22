@@ -11,11 +11,11 @@ import (
 	"net/http/httptest"
 
 	"github.com/arsham/expvastic"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
 )
 
 func ExampleEngine_sendingJobs() {
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	ctx, cancel := context.WithCancel(context.Background())
 	recorded := make(chan string)
 

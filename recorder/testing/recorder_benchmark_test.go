@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
 	"github.com/arsham/expvastic/recorder"
 )
 
@@ -27,7 +27,7 @@ func BenchmarkRecorder1000_0(b *testing.B)    { benchmarkRecorder(1000, 0, b) }
 func BenchmarkRecorder0_1000(b *testing.B)    { benchmarkRecorder(0, 1000, b) }
 
 func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
-	log := lib.DiscardLogger()
+	log := internal.DiscardLogger()
 	ctx := context.Background()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))

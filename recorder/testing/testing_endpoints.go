@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/internal/datatype"
+	"github.com/arsham/expvastic/internal/token"
 	"github.com/arsham/expvastic/recorder"
-	"github.com/arsham/expvastic/token"
 )
 
 // testRecorderErrorsOnUnavailableEndpoint tests the recorder errors for bad URL.

@@ -3,10 +3,10 @@
 
 
 1. [Kibana](#kibana)
-  * [Per Application Setup](#per-application-setup)
+    * [Per Application Setup](#per-application-setup)
 3. [Configuration File](#configuration-file)
-  * [How Routes Are Defined](#how-routes-are-defined)
-  * [Mappings](#mappings)
+    * [How Routes Are Defined](#how-routes-are-defined)
+    * [Mappings](#mappings)
 4. [Testing](#testing)
 5. [Coverage](#coverage)
 6. [Benchmarks](#benchmarks)

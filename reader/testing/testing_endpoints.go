@@ -12,8 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arsham/expvastic/internal/token"
 	"github.com/arsham/expvastic/reader"
-	"github.com/arsham/expvastic/token"
+	"github.com/pkg/errors"
 )
 
 // pingingEndpoint is a helper to test the reader errors when the endpoint goes away.
@@ -38,7 +39,7 @@ func pingingEndpoint(t *testing.T, cons Constructor) {
 
 	if err := red.Ping(); err == nil {
 		t.Errorf("expected an error, got nil")
-	} else if _, ok := err.(interface {
+	} else if _, ok := errors.Cause(err).(interface {
 		EndpointNotAvailable()
 	}); !ok {
 		t.Errorf("want ErrInvalidEndpoint, got (%v)", err)
@@ -51,6 +52,7 @@ func pingingEndpoint(t *testing.T, cons Constructor) {
 	if err = red.Ping(); err == nil {
 		t.Fatal("expected ErrEndpointNotAvailable, got nil")
 	}
+	err = errors.Cause(err)
 	if _, ok := err.(interface {
 		EndpointNotAvailable()
 	}); !ok {
@@ -90,6 +92,7 @@ func testReaderErrorsOnEndpointDisapears(t *testing.T, cons Constructor) {
 			t.Error("want error, got nil")
 			return
 		}
+		err = errors.Cause(err)
 		if _, ok := err.(interface {
 			EndpointNotAvailable()
 		}); !ok {

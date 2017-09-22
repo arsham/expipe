@@ -9,12 +9,12 @@ package elasticsearch
 import (
 	"context"
 	"expvar"
+	"net/url"
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
+	"github.com/arsham/expvastic/internal/datatype"
 	"github.com/arsham/expvastic/recorder"
 	"github.com/olivere/elastic"
 	"github.com/pkg/errors"
@@ -29,7 +29,7 @@ type Recorder struct {
 	client    *elastic.Client // Elasticsearch client
 	endpoint  string
 	indexName string
-	log       logrus.FieldLogger
+	log       internal.FieldLogger
 	timeout   time.Duration
 	backoff   int
 	strike    int
@@ -47,7 +47,7 @@ type Recorder struct {
 //   Invalid IndexName    | ErrInvalidIndexName
 //   Empty IndexName      | ErrEmptyIndexName
 //
-func New(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*Recorder, error) {
+func New(ctx context.Context, log internal.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*Recorder, error) {
 	if name == "" {
 		return nil, recorder.ErrEmptyName
 	}
@@ -61,7 +61,7 @@ func New(ctx context.Context, log logrus.FieldLogger, name, endpoint, indexName 
 	}
 
 	log.Debug("connecting to: ", endpoint)
-	url, err := lib.SanitiseURL(endpoint)
+	url, err := internal.SanitiseURL(endpoint)
 	if err != nil {
 		return nil, recorder.ErrInvalidEndpoint(endpoint)
 	}
@@ -145,7 +145,7 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 	err := r.record(ctx, job.TypeName, job.Time, job.Payload)
 	if err != nil {
 		err = errors.Cause(err)
-		if err == elastic.ErrNoClient {
+		if _, ok := err.(*url.Error); ok || err == elastic.ErrNoClient {
 			r.strike++
 			err = recorder.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
 		}

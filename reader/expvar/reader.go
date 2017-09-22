@@ -15,11 +15,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/datatype"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
+	"github.com/arsham/expvastic/internal/datatype"
+	"github.com/arsham/expvastic/internal/token"
 	"github.com/arsham/expvastic/reader"
-	"github.com/arsham/expvastic/token"
+
 	"github.com/pkg/errors"
 	"golang.org/x/net/context/ctxhttp"
 )
@@ -33,7 +33,7 @@ var (
 type Reader struct {
 	name     string
 	endpoint string
-	log      logrus.FieldLogger
+	log      internal.FieldLogger
 	mapper   datatype.Mapper
 	typeName string
 	interval time.Duration
@@ -54,7 +54,7 @@ type Reader struct {
 //   typeName == ""       | ErrEmptyTypeName
 //   backoff < 5          | ErrLowBackoffValue
 //
-func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name string, typeName string, interval time.Duration, timeout time.Duration, backoff int) (*Reader, error) {
+func New(log internal.FieldLogger, endpoint string, mapper datatype.Mapper, name string, typeName string, interval time.Duration, timeout time.Duration, backoff int) (*Reader, error) {
 	if name == "" {
 		return nil, reader.ErrEmptyName
 	}
@@ -63,7 +63,7 @@ func New(log logrus.FieldLogger, endpoint string, mapper datatype.Mapper, name s
 		return nil, reader.ErrEmptyEndpoint
 	}
 
-	url, err := lib.SanitiseURL(endpoint)
+	url, err := internal.SanitiseURL(endpoint)
 	if err != nil {
 		return nil, reader.ErrInvalidEndpoint(endpoint)
 	}

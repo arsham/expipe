@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arsham/expvastic/token"
+	"github.com/arsham/expvastic/internal/token"
 )
 
 // This example shows how to create a new job from a context.

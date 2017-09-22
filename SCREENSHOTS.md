@@ -3,14 +3,14 @@
 ### Table of Contents
 
 1. [Memory Usage](#memory-usage)
-  * [Three Apps](#three-apps)
-  * [Expvastic Memory Usage](#expvastic-memory-usage)
-  * [Expvastic Stack In Use](#expvastic-stack-in-use)
-  * [Expvastic Total Allocations](#expvastic-total-allocations)
-  * [Expvastic Heap Objects](#expvastic-heap-objects)
-  * [Expvastic Heap Allocations](#expvastic-heap-allocations)
-  * [Expvastic Heap In Use](#expvastic-heap-in-use)
-  * [Expvastic Data Collections](#expvastic-data-collections)
+    * [Three Apps](#three-apps)
+    * [Expvastic Memory Usage](#expvastic-memory-usage)
+    * [Expvastic Stack In Use](#expvastic-stack-in-use)
+    * [Expvastic Total Allocations](#expvastic-total-allocations)
+    * [Expvastic Heap Objects](#expvastic-heap-objects)
+    * [Expvastic Heap Allocations](#expvastic-heap-allocations)
+    * [Expvastic Heap In Use](#expvastic-heap-in-use)
+    * [Expvastic Data Collections](#expvastic-data-collections)
 2. [JSON Tables](#json-tables)
 
 ## Memory Usage

@@ -10,7 +10,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/internal"
 	"github.com/arsham/expvastic/reader"
 	"github.com/arsham/expvastic/recorder"
 )
@@ -28,7 +28,7 @@ type Conf interface {
 	Backoff() int
 
 	// Logger returns an instance of the logger.
-	Logger() logrus.FieldLogger
+	Logger() internal.FieldLogger
 }
 
 // ReaderConf defines a behaviour of a reader.

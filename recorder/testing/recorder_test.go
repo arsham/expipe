@@ -12,8 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
 	"github.com/arsham/expvastic/recorder"
 	recorder_test "github.com/arsham/expvastic/recorder/testing"
 )
@@ -22,12 +21,12 @@ import (
 // works perfect, so other tests can rely on it.
 
 var (
-	log        logrus.FieldLogger
+	log        internal.FieldLogger
 	testServer *httptest.Server
 )
 
 func TestMain(m *testing.M) {
-	log = lib.DiscardLogger()
+	log = internal.DiscardLogger()
 	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	exitCode := m.Run()
 	testServer.Close()

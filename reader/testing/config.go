@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/arsham/expvastic/internal"
 	"github.com/arsham/expvastic/reader"
 )
 
@@ -21,11 +21,11 @@ type Config struct {
 	MockTimeout   time.Duration
 	MockInterval  time.Duration
 	MockBackoff   int
-	MockLogger    logrus.FieldLogger
+	MockLogger    internal.FieldLogger
 }
 
 // NewConfig returns a mocked version of the Config
-func NewConfig(name, typeName string, log logrus.FieldLogger, endpoint, routepath string, interval, timeout time.Duration, backoff int) (*Config, error) {
+func NewConfig(name, typeName string, log internal.FieldLogger, endpoint, routepath string, interval, timeout time.Duration, backoff int) (*Config, error) {
 	return &Config{
 		MockName:      name,
 		MockTypeName:  typeName,
@@ -62,7 +62,7 @@ func (c *Config) Interval() time.Duration { return c.MockInterval }
 func (c *Config) Timeout() time.Duration { return c.MockTimeout }
 
 // Logger returns the logger
-func (c *Config) Logger() logrus.FieldLogger { return c.MockLogger }
+func (c *Config) Logger() internal.FieldLogger { return c.MockLogger }
 
 // Backoff returns the backoff
 func (c *Config) Backoff() int { return c.MockBackoff }

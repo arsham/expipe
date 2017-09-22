@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/internal/datatype"
 )
 
 func TestGetByteRepresentation(t *testing.T) {

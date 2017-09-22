@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/internal/datatype"
+	"github.com/arsham/expvastic/internal/token"
 	"github.com/arsham/expvastic/recorder"
-	"github.com/arsham/expvastic/token"
 )
 
 // testRecorderReceivesPayload tests the recorder receives the payload correctly.

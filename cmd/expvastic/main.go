@@ -14,10 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/arsham/expvastic"
 	"github.com/arsham/expvastic/config"
-	"github.com/arsham/expvastic/lib"
+	"github.com/arsham/expvastic/internal"
 	"github.com/arsham/expvastic/reader/expvar"
 	"github.com/arsham/expvastic/recorder/elasticsearch"
 	"github.com/namsral/flag"
@@ -25,7 +24,7 @@ import (
 )
 
 var (
-	log               *logrus.Logger
+	log               *internal.Logger
 	shallStartEngines = true // for testing purposes
 	confFile          = flag.String("c", "", "Configuration file. Should be in yaml format without the extension.")
 	reader            = flag.String("reader", "localhost:1234/debug/vars", "Target address and port")
@@ -51,10 +50,10 @@ func main() {
 	flag.Parse()
 
 	if *confFile == "" {
-		log = lib.GetLogger(*debugLevel)
+		log = internal.GetLogger(*debugLevel)
 		confSlice, err = fromFlags()
 	} else {
-		log = lib.GetLogger("info")
+		log = internal.GetLogger("info")
 		confSlice, err = fromConfig(*confFile)
 	}
 

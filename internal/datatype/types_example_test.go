@@ -9,7 +9,7 @@ import (
 	"reflect"
 
 	"github.com/antonholmquist/jason"
-	"github.com/arsham/expvastic/datatype"
+	"github.com/arsham/expvastic/internal/datatype"
 )
 
 // This example shows how to read a float64 value into a FloatType
