@@ -5,7 +5,6 @@
 package elasticsearch
 
 import (
-	"context"
 	"time"
 
 	"github.com/arsham/expipe/internal"
@@ -83,8 +82,15 @@ func withConfig(c *Config) (*Config, error) {
 }
 
 // NewInstance returns an instance of the elasticsearch recorder
-func (c *Config) NewInstance(ctx context.Context) (recorder.DataRecorder, error) {
-	return New(ctx, c.Logger(), c.Name(), c.Endpoint(), c.IndexName(), c.Timeout(), c.Backoff())
+func (c *Config) NewInstance() (recorder.DataRecorder, error) {
+	return New(
+		recorder.SetLogger(c.Logger()),
+		recorder.SetEndpoint(c.Endpoint()),
+		recorder.SetName(c.Name()),
+		recorder.SetIndexName(c.IndexName()),
+		recorder.SetTimeout(c.Timeout()),
+		recorder.SetBackoff(c.Backoff()),
+	)
 }
 
 // Name return the name

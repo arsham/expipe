@@ -49,11 +49,21 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.New(internal.DiscardLogger(), testServer.URL, "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond, 5)
+	red, err := reader_test.New(
+		reader.SetLogger(internal.DiscardLogger()),
+		reader.SetEndpoint(testServer.URL),
+		reader.SetName("reader_name"),
+		reader.SetTypeName("typeName"),
+		reader.SetInterval(10*time.Millisecond),
+		reader.SetTimeout(time.Second),
+		reader.SetBackoff(5),
+	)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
-	red.Ping()
+	if err = red.Ping(); err != nil {
+		t.Fatal(err)
+	}
 
 	e.setReaders(map[string]reader.DataReader{red.Name(): red})
 
@@ -102,7 +112,15 @@ func TestEventLoopClosingContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.New(internal.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Hour, time.Hour, 5)
+	red, err := reader_test.New(
+		reader.SetLogger(internal.DiscardLogger()),
+		reader.SetEndpoint(testServer.URL),
+		reader.SetName("reader_name"),
+		reader.SetTypeName("typeName"),
+		reader.SetInterval(time.Hour),
+		reader.SetTimeout(time.Hour),
+		reader.SetBackoff(5),
+	)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}

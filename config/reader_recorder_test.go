@@ -33,10 +33,10 @@ func TestTypeCheckErrors(t *testing.T) {
 	_, err := LoadYAML(log, v)
 
 	var (
-		val *notSpecifiedErr
+		val *ErrNotSpecified
 		ok  bool
 	)
-	if val, ok = errors.Cause(err).(*notSpecifiedErr); !ok {
+	if val, ok = errors.Cause(err).(*ErrNotSpecified); !ok {
 		t.Fatalf("want notSpecifiedErr, got (%v)", err)
 	}
 
@@ -55,7 +55,7 @@ func TestTypeCheckErrors(t *testing.T) {
 	v.ReadConfig(input)
 	_, err = LoadYAML(log, v)
 
-	if val, ok = errors.Cause(err).(*notSpecifiedErr); !ok {
+	if val, ok = errors.Cause(err).(*ErrNotSpecified); !ok {
 		t.Fatalf("want notSpecifiedErr, got (%v)", err)
 	}
 

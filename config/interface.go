@@ -7,7 +7,6 @@
 package config
 
 import (
-	"context"
 	"time"
 
 	"github.com/arsham/expipe/internal"
@@ -39,7 +38,7 @@ type ReaderConf interface {
 	Interval() time.Duration
 
 	// NewInstance should return an initialised Reader instance.
-	NewInstance(ctx context.Context) (reader.DataReader, error)
+	NewInstance() (reader.DataReader, error)
 
 	// TypeName is usually the application name.
 	// Readers should not intercept the engine's decision on setting
@@ -53,7 +52,7 @@ type RecorderConf interface {
 	Conf
 
 	// NewInstance should return an initialised Recorder instance.
-	NewInstance(ctx context.Context) (recorder.DataRecorder, error)
+	NewInstance() (recorder.DataRecorder, error)
 
 	// IndexName comes from the configuration, but the engine might take over.
 	// Recorders should not intercept the engine's decision on setting

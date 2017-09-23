@@ -26,8 +26,8 @@ func ExampleEngine_sendingJobs() {
 
 	red, redTearDown := getReader(log)
 	defer redTearDown()
-	rec := getRecorder(ctx, log, ts.URL)
-	e, err := expipe.New(ctx, log, rec, red)
+	rec := getRecorder(log, ts.URL)
+	e, err := expipe.EngineWithReadRecs(ctx, log, rec, red)
 	if err != nil {
 		panic(err)
 	}

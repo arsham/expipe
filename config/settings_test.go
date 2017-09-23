@@ -65,10 +65,8 @@ func TestLoadSections(t *testing.T) {
 	v.SetConfigType("yaml")
 
 	notSpec := func(t *testing.T, err error, section string) {
-		if _, ok := errors.Cause(err).(interface {
-			NotSpecified()
-		}); !ok {
-			t.Errorf("expected NotSpecified error, got (%v)", err)
+		if _, ok := errors.Cause(err).(*config.ErrNotSpecified); !ok {
+			t.Errorf("expected ErrNotSpecified error, got (%v)", err)
 		}
 
 		if !strings.Contains(err.Error(), section) {

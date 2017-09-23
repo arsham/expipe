@@ -51,19 +51,15 @@ func TestLoadConfiguration(t *testing.T) {
 		recorders: []string{"recorder_1"},
 	}}
 	_, err := loadConfiguration(v, log, routeMap, readers, recorders)
-	if _, ok := errors.Cause(err).(interface {
-		NotSupported()
-	}); !ok {
-		t.Errorf("want InvalidEndpoint, got (%T)", err)
+	if _, ok := errors.Cause(err).(ErrNotSupported); !ok {
+		t.Errorf("want ErrNotSupported, got (%T)", err)
 	}
 
 	readers = map[string]string{"reader_1": "expvar"}
 	recorders = map[string]string{"recorder_1": "not_exists"}
 	_, err = loadConfiguration(v, log, routeMap, readers, recorders)
-	if _, ok := errors.Cause(err).(interface {
-		NotSupported()
-	}); !ok {
-		t.Errorf("want InvalidEndpoint, got (%T)", err)
+	if _, ok := errors.Cause(err).(ErrNotSupported); !ok {
+		t.Errorf("want ErrNotSupported, got (%T)", err)
 	}
 
 	readers = map[string]string{"reader_1": "expvar", "reader_2": "self"}

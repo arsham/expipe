@@ -10,7 +10,6 @@ import (
 	"context"
 	"expvar"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/arsham/expipe/internal"
@@ -47,36 +46,34 @@ type Recorder struct {
 //   Invalid IndexName    | ErrInvalidIndexName
 //   Empty IndexName      | ErrEmptyIndexName
 //
-func New(ctx context.Context, log internal.FieldLogger, name, endpoint, indexName string, timeout time.Duration, backoff int) (*Recorder, error) {
-	if name == "" {
-		return nil, recorder.ErrEmptyName
+func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
+	r := &Recorder{}
+	for _, op := range options {
+		err := op(r)
+		if err != nil {
+			return nil, errors.Wrap(err, "option creation")
+		}
 	}
 
-	if indexName == "" {
-		return nil, recorder.ErrEmptyIndexName
+	if r.log == nil {
+		r.log = internal.GetLogger("error")
+	}
+	r.log = r.log.WithField("engine", "expipe")
+
+	if r.backoff < 5 {
+		r.backoff = 5
 	}
 
-	if strings.ContainsAny(indexName, ` "*\<|,>/?`) {
-		return nil, recorder.ErrInvalidIndexName(indexName)
+	if r.indexName == "" {
+		r.indexName = r.name
 	}
 
-	log.Debug("connecting to: ", endpoint)
-	url, err := internal.SanitiseURL(endpoint)
-	if err != nil {
-		return nil, recorder.ErrInvalidEndpoint(endpoint)
+	if r.timeout == 0 {
+		r.timeout = 5 * time.Second
 	}
-	if backoff < 5 {
-		return nil, recorder.ErrLowBackoffValue(backoff)
-	}
+	r.log.Debug("connecting to: ", r.Endpoint())
 
-	return &Recorder{
-		name:      name,
-		endpoint:  url,
-		indexName: indexName,
-		log:       log,
-		timeout:   timeout,
-		backoff:   backoff,
-	}, nil
+	return r, nil
 }
 
 // Ping should ping the endpoint and report if was successful.
@@ -175,11 +172,38 @@ func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.T
 	return ctx.Err()
 }
 
-// Name shows the name identifier for this reader
+// Name shows the name identifier for this recorder
 func (r *Recorder) Name() string { return r.name }
 
-// IndexName is the index/database
+// SetName sets the name of the recorder
+func (r *Recorder) SetName(name string) { r.name = name }
+
+// Endpoint returns the endpoint
+func (r *Recorder) Endpoint() string { return r.endpoint }
+
+// SetEndpoint sets the endpoint of the recorder
+func (r *Recorder) SetEndpoint(endpoint string) { r.endpoint = endpoint }
+
+// IndexName shows the indexName the recorder should record as
 func (r *Recorder) IndexName() string { return r.indexName }
 
-// Timeout returns the timeout
+// SetIndexName sets the type name of the recorder
+func (r *Recorder) SetIndexName(indexName string) { r.indexName = indexName }
+
+// Timeout returns the time-out
 func (r *Recorder) Timeout() time.Duration { return r.timeout }
+
+// SetTimeout sets the timeout of the recorder
+func (r *Recorder) SetTimeout(timeout time.Duration) { r.timeout = timeout }
+
+// Backoff returns the backoff
+func (r *Recorder) Backoff() int { return r.backoff }
+
+// SetBackoff sets the backoff of the recorder
+func (r *Recorder) SetBackoff(backoff int) { r.backoff = backoff }
+
+// Logger returns the log
+func (r *Recorder) Logger() internal.FieldLogger { return r.log }
+
+// SetLogger sets the log of the recorder
+func (r *Recorder) SetLogger(log internal.FieldLogger) { r.log = log }

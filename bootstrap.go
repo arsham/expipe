@@ -11,6 +11,7 @@ import (
 
 	"github.com/arsham/expipe/config"
 	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/reader"
 	"github.com/pkg/errors"
 )
 
@@ -32,17 +33,36 @@ func StartEngines(ctx context.Context, log internal.FieldLogger, confMap *config
 
 	for recorder, readers := range confMap.Routes {
 		var en *Engine
-		rec := confMap.Recorders[recorder]
-		if rec == nil {
+		recMap := confMap.Recorders[recorder]
+		if recMap == nil {
 			return nil, errors.New("empty recorder")
 		}
-		reds := make([]config.ReaderConf, len(readers))
-		i := 0
-		for _, reader := range readers {
-			reds[i] = confMap.Readers[reader]
-			i++
+		rec, errR := recMap.NewInstance()
+		if errR != nil {
+			return nil, errors.Wrap(errR, "bootstrapping recorder")
 		}
-		en, err = WithConfig(ctx, log, rec, reds...)
+
+		reds := make([]reader.DataReader, 1)
+		for _, reader := range readers {
+			if _, ok := confMap.Readers[reader]; !ok {
+				continue
+			}
+			red, errR := confMap.Readers[reader].NewInstance()
+			if errR != nil {
+				return nil, errors.Wrap(errR, "new engine with config")
+			}
+			reds = append(reds, red)
+		}
+		if len(reds) == 0 {
+			return nil, ErrNoReader
+		}
+
+		en, err = New(
+			SetCtx(ctx),
+			SetRecorder(rec),
+			SetReaders(reds...),
+			SetLogger(log),
+		)
 		if err != nil {
 			log.Warn(err)
 			continue

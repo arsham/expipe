@@ -5,7 +5,6 @@
 package expipe_test
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -21,10 +20,22 @@ import (
 func getReader(log internal.FieldLogger) (map[string]reader.DataReader, func()) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		desire := `{"the key": "is the value!"}`
-		io.WriteString(w, desire)
+		_, err := io.WriteString(w, desire)
+		if err != nil {
+			panic(err)
+		}
 	}))
 
-	red, err := reader_testing.New(log, ts.URL, "reader_example", "typeName", time.Millisecond*100, time.Millisecond*100, 5) //for testing
+	red, err := reader_testing.New(
+		reader.SetLogger(log),
+		reader.SetEndpoint(ts.URL),
+		reader.SetName("reader_example"),
+		reader.SetTypeName("typeName"),
+		reader.SetInterval(time.Millisecond*100),
+		reader.SetTimeout(time.Second),
+		reader.SetBackoff(5),
+	)
+
 	if err != nil {
 		panic(err)
 	}
@@ -34,8 +45,15 @@ func getReader(log internal.FieldLogger) (map[string]reader.DataReader, func()) 
 	}
 }
 
-func getRecorder(ctx context.Context, log internal.FieldLogger, url string) recorder.DataRecorder {
-	rec, err := recorder_testing.New(ctx, log, "reader_example", url, "intexName", time.Millisecond*100, 5)
+func getRecorder(log internal.FieldLogger, url string) recorder.DataRecorder {
+	rec, err := recorder_testing.New(
+		recorder.SetLogger(log),
+		recorder.SetEndpoint(url),
+		recorder.SetName("recorder_example"),
+		recorder.SetIndexName("indexName"),
+		recorder.SetTimeout(time.Second),
+		recorder.SetBackoff(5),
+	)
 	if err != nil {
 		panic(err)
 	}

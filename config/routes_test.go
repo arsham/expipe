@@ -104,12 +104,10 @@ func TestGetRoutesErrors(t *testing.T) {
 			if err == nil {
 				t.Fatalf("want an error, got nothing (%s)", err)
 			}
-			if _, ok := err.(interface {
-				Routers()
-			}); !ok {
-				t.Fatalf("expected RoutersErr error, got (%v)", err)
+			if _, ok := err.(*ErrRouters); !ok {
+				t.Fatalf("expected ErrRouters error, got (%v)", err)
 			}
-			val := err.(*routersErr)
+			val := err.(*ErrRouters)
 
 			if val.Section != tc.section {
 				t.Errorf("want (%s), got (%v)", tc.section, val.Section)
@@ -207,7 +205,7 @@ func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
             recorders: not_exists
             readers: red1
     `)),
-			err: newRoutersErr("routers", "not_exists not in recorders", nil),
+			err: NewErrRouters("routers", "not_exists not in recorders", nil),
 		},
 		{
 			input: bytes.NewBuffer([]byte(`
@@ -222,7 +220,7 @@ func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
             recorders: rec1
             readers: not_exists
     `)),
-			err: newRoutersErr("routers", "not_exists not in readers", nil),
+			err: NewErrRouters("routers", "not_exists not in readers", nil),
 		},
 		{
 			input: bytes.NewBuffer([]byte(`
@@ -239,7 +237,7 @@ func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
             readers: red2
             recorders: red1 # wrong one!
     `)),
-			err: newRoutersErr("routers", "red1 not in recorders", nil),
+			err: NewErrRouters("routers", "red1 not in recorders", nil),
 		},
 	}
 

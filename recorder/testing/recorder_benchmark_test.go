@@ -33,7 +33,14 @@ func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer ts.Close()
 
-	rec, err := New(ctx, log, "reader_example", ts.URL, "intexName", 10*time.Millisecond, 10)
+	rec, err := New(
+		recorder.SetLogger(log),
+		recorder.SetEndpoint(ts.URL),
+		recorder.SetName("recorder_example"),
+		recorder.SetIndexName("recorder_example"),
+		recorder.SetTimeout(time.Second),
+		recorder.SetBackoff(10),
+	)
 	if err != nil {
 		b.Fatal(err)
 	}

@@ -5,18 +5,25 @@
 package testing
 
 import (
-	"context"
 	"time"
 
 	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/recorder"
 )
 
 // GetRecorder provides a SimpleRecorder for using in the example.
-func GetRecorder(ctx context.Context, url string) *Recorder {
+func GetRecorder(url string) *Recorder {
 	log := internal.DiscardLogger()
-	rec, err := New(ctx, log, "reader_example", url, "intexName", time.Second, 5)
+	red, err := New(
+		recorder.SetLogger(log),
+		recorder.SetEndpoint(url),
+		recorder.SetName("recorder_example"),
+		recorder.SetIndexName("recorder_example"),
+		recorder.SetTimeout(time.Second),
+		recorder.SetBackoff(5),
+	)
 	if err != nil {
 		panic(err)
 	}
-	return rec
+	return red
 }

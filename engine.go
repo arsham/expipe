@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/arsham/expipe/config"
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/recorder"
@@ -48,77 +47,112 @@ type Engine struct {
 	shutdown chan struct{} // if closed, stops all operations and quits the engine.
 }
 
-// WithConfig creates an engine by instantiating readers and recorder from the
-// configurations and sends them to the New function.
-func WithConfig(ctx context.Context, log internal.FieldLogger, recorderConf config.RecorderConf, readers ...config.ReaderConf) (*Engine, error) {
-	reds := make(map[string]reader.DataReader) // we don't know if all readers are available
-	for _, redConf := range readers {
-		if redConf == nil {
-			log.Warn("empty reader has been provided")
-			continue
-		}
-		red, err := redConf.NewInstance(ctx)
+func (e *Engine) String() string { return e.name }
+
+// New generates the Engine based on the provided options
+func New(options ...func(*Engine) error) (*Engine, error) {
+	e := &Engine{}
+	for _, op := range options {
+		err := op(e)
 		if err != nil {
-			return nil, errors.Wrap(err, "new engine with config")
+			return nil, errors.Wrap(err, "option creation")
 		}
-		reds[red.Name()] = red
 	}
 
-	if len(reds) == 0 {
+	if e.log == nil {
+		return nil, ErrNoLogger
+	}
+
+	if e.ctx == nil {
+		return nil, ErrNoCtx
+	}
+
+	if len(e.readers) == 0 {
 		return nil, ErrNoReader
 	}
 
-	rec, err := recorderConf.NewInstance(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "new engine with config")
-	}
-	return New(ctx, log, rec, reds)
+	return e, nil
 }
 
-// New creates an Engine instance with already set-up reader and recorders.
-// The Engine's work starts from here by streaming all readers payloads to the
-// recorder. Returns an error if there are recorders with the same name, or any
-// of constructions results in errors.
-func New(ctx context.Context, log internal.FieldLogger, rec recorder.DataRecorder, reds map[string]reader.DataReader) (*Engine, error) {
-	failedErrors := make(map[string]error)
-
-	err := rec.Ping()
-	if err != nil {
-		return nil, ErrPing{rec.Name(): err}
+// SetCtx uses ctx as the Engine's background context
+func SetCtx(ctx context.Context) func(*Engine) error {
+	return func(e *Engine) error {
+		e.ctx = ctx
+		return nil
 	}
+}
 
-	var readerNames []string
-	readers := make(map[string]reader.DataReader)
-	canDo := false
-	i := 0
-
-	for name, red := range reds {
-		err := red.Ping()
-		if err != nil {
-			failedErrors[name] = err
-			continue
+// SetReaders builds up the readers and checks them
+func SetReaders(reds ...reader.DataReader) func(*Engine) error {
+	return func(e *Engine) error {
+		failedErrors := make(map[string]error)
+		readers := make(map[string]reader.DataReader)
+		for _, redConf := range reds {
+			if redConf == nil {
+				continue
+			}
+			err := redConf.Ping()
+			if err != nil {
+				failedErrors[redConf.Name()] = err
+				continue
+			}
+			readers[redConf.Name()] = redConf
 		}
-		readerNames = append(readerNames, name)
-		readers[name] = red
-		canDo = true
-		i++
+		if len(readers) == 0 {
+			return ErrNoReader
+		}
+
+		// if len(failedErrors) > 0 { //TODO: check this part
+		// 	return ErrPing(failedErrors)
+		// }
+
+		e.readers = readers
+
+		// TODO: separate this part
+		var readerNames []string
+		for name := range e.readers {
+			readerNames = append(readerNames, name)
+		}
+		e.name = fmt.Sprintf("( %s <-<< %s )", e.recorder.Name(), strings.Join(readerNames, ","))
+		if e.log != nil {
+			decorLog(e)
+		}
+		e.readerJobs = make(chan *reader.Result, len(e.readers)) // TODO: increase this is required
+
+		return nil
 	}
-	if !canDo {
-		return nil, ErrPing(failedErrors)
-	}
-	// just to be cute
-	engineName := fmt.Sprintf("( %s <-<< %s )", rec.Name(), strings.Join(readerNames, ","))
-	log = log.WithField("engine", engineName)
-	cl := &Engine{
-		name:       engineName,
-		ctx:        ctx,
-		readerJobs: make(chan *reader.Result, len(reds)), // TODO: increase this is required
-		recorder:   rec,
-		readers:    readers,
-		log:        log,
-	}
-	log.Debug("started the engine")
-	return cl, nil
 }
 
-func (e *Engine) String() string { return e.name }
+// SetLogger sets the logger
+func SetLogger(log internal.FieldLogger) func(*Engine) error {
+	return func(e *Engine) error {
+		e.log = log
+		if e.name != "" {
+			decorLog(e)
+		}
+		return nil
+	}
+}
+
+var once sync.Once
+
+func decorLog(e *Engine) {
+	once.Do(func() {
+		e.log = e.log.WithField("engine", e.name)
+	})
+}
+
+// SetRecorder builds up the recorder
+func SetRecorder(rec recorder.DataRecorder) func(*Engine) error {
+	return func(e *Engine) error {
+		if rec == nil {
+			return errors.New("nil recorder")
+		}
+		err := rec.Ping()
+		if err != nil {
+			return ErrPing{rec.Name(): err}
+		}
+		e.recorder = rec
+		return nil
+	}
+}

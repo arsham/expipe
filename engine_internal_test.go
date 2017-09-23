@@ -6,8 +6,10 @@ package expipe
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -32,7 +34,15 @@ func init() {
 }
 
 func withRecorder(ctx context.Context, log internal.FieldLogger) (*Engine, error) {
-	rec, _ := recorder_testing.New(ctx, log, "recorder_test", testServer.URL, "indexName", time.Hour, 5)
+	rec, _ := recorder_testing.New(
+		recorder.SetLogger(log),
+		recorder.SetEndpoint(testServer.URL),
+		recorder.SetName("recorder_test"),
+		recorder.SetIndexName("indexName"),
+		recorder.SetTimeout(time.Hour),
+		recorder.SetBackoff(5),
+	)
+
 	err := rec.Ping()
 	if err != nil {
 		return nil, err
@@ -53,6 +63,55 @@ func (e *Engine) setReaders(readers map[string]reader.DataReader) {
 	e.readers = readers
 }
 
+// EngineWithReadRecs creates an Engine instance with already set-up reader and recorders.
+// The Engine's work starts from here by streaming all readers payloads to the
+// recorder. Returns an error if there are recorders with the same name, or any
+// of constructions results in errors.
+//
+// IMPORTANT: only use this for testing.
+//
+func EngineWithReadRecs(ctx context.Context, log internal.FieldLogger, rec recorder.DataRecorder, reds map[string]reader.DataReader) (*Engine, error) {
+	failedErrors := make(map[string]error)
+
+	err := rec.Ping()
+	if err != nil {
+		return nil, ErrPing{rec.Name(): err}
+	}
+
+	var readerNames []string
+	readers := make(map[string]reader.DataReader)
+	canDo := false
+	i := 0
+
+	for name, red := range reds {
+		err := red.Ping()
+		if err != nil {
+			failedErrors[name] = err
+			continue
+		}
+		readerNames = append(readerNames, name)
+		readers[name] = red
+		canDo = true
+		i++
+	}
+	if !canDo {
+		return nil, ErrPing(failedErrors)
+	}
+	// just to be cute
+	engineName := fmt.Sprintf("( %s <-<< %s )", rec.Name(), strings.Join(readerNames, ","))
+	log = log.WithField("engine", engineName)
+	cl := &Engine{
+		name:       engineName,
+		ctx:        ctx,
+		readerJobs: make(chan *reader.Result, len(reds)), // TODO: increase this is required
+		recorder:   rec,
+		readers:    readers,
+		log:        log,
+	}
+	log.Debug("started the engine")
+	return cl, nil
+}
+
 func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 	log := internal.DiscardLogger()
 
@@ -61,11 +120,23 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.New(internal.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Millisecond, time.Millisecond, 5)
+	red, err := reader_test.New(
+		reader.SetLogger(internal.DiscardLogger()),
+		reader.SetEndpoint(testServer.URL),
+		reader.SetName("reader_name"),
+		reader.SetTypeName("typeName"),
+		reader.SetInterval(time.Millisecond),
+		reader.SetTimeout(time.Second),
+		reader.SetBackoff(5),
+	)
+
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
-	red.Ping()
+	if err := red.Ping(); err != nil {
+		t.Fatal(err)
+	}
+
 	e.setReaders(map[string]reader.DataReader{red.Name(): red})
 	job := token.New(ctx)
 	jobID := job.ID()
@@ -121,14 +192,39 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red1, err := reader_test.New(internal.DiscardLogger(), testServer.URL, "reader_name", "typeName", time.Hour, time.Hour, 5)
+	red1, err := reader_test.New(
+		reader.SetLogger(internal.DiscardLogger()),
+		reader.SetEndpoint(testServer.URL),
+		reader.SetName("reader_name"),
+		reader.SetTypeName("typeName"),
+		reader.SetInterval(time.Hour),
+		reader.SetTimeout(time.Hour),
+		reader.SetBackoff(5),
+	)
+
 	if err != nil {
 		t.Fatal(err)
 	}
-	red1.Ping()
+	if err = red1.Ping(); err != nil {
+		t.Fatal(err)
+	}
 
-	red2, _ := reader_test.New(internal.DiscardLogger(), testServer.URL, "reader2_name", "typeName", time.Hour, time.Hour, 5)
-	red2.Ping()
+	red2, err := reader_test.New(
+		reader.SetLogger(internal.DiscardLogger()),
+		reader.SetEndpoint(testServer.URL),
+		reader.SetName("reader2_name"),
+		reader.SetTypeName("typeName"),
+		reader.SetInterval(time.Hour),
+		reader.SetTimeout(time.Hour),
+		reader.SetBackoff(5),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = red2.Ping(); err != nil {
+		t.Fatal(err)
+	}
 	red1.ReadFunc = func(job *token.Context) (*reader.Result, error) { return nil, nil }
 	red2.ReadFunc = func(job *token.Context) (*reader.Result, error) { return nil, nil }
 
@@ -150,6 +246,36 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 	}
 }
 
+func getReader(t *testing.T, name string, jobContent []byte) *reader_test.Reader {
+	red, err := reader_test.New(
+		reader.SetLogger(internal.DiscardLogger()),
+		reader.SetEndpoint(testServer.URL),
+		reader.SetName(name),
+		reader.SetTypeName("typeName"),
+		reader.SetInterval(time.Hour),
+		reader.SetTimeout(time.Hour),
+		reader.SetBackoff(5),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = red.Ping(); err != nil {
+		t.Fatal(err)
+	}
+
+	// testing engine send the payloads to the recorder
+	red.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+		resp := &reader.Result{
+			ID:       job.ID(),
+			Content:  jobContent,
+			TypeName: red.TypeName(),
+			Mapper:   red.Mapper(),
+		}
+		return resp, nil
+	}
+	return red
+}
+
 func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 	log := internal.DiscardLogger()
 	log.Level = internal.DebugLevel
@@ -159,42 +285,14 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red1, err := reader_test.New(internal.DiscardLogger(), testServer.URL, "reader1_name", "typeName", time.Hour, time.Hour, 5)
-	if err != nil {
-		t.Fatal(err)
-	}
-	red1.Ping()
-	red2, err := reader_test.New(internal.DiscardLogger(), testServer.URL, "reader2_name", "typeName", time.Hour, time.Hour, 5)
-	if err != nil {
-		t.Fatal(err)
-	}
-	red2.Ping()
+
+	red1 := getReader(t, "reader1_name", []byte(`{"devil":666}`))
+	red2 := getReader(t, "reader2_name", []byte(`{"beelzebub":666}`))
 	e.setReaders(map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
 
 	job1 := token.New(ctx)
 	job2 := token.New(ctx)
 	recorded := make(chan struct{})
-
-	// testing engine send the payloads to the recorder
-	red1.ReadFunc = func(job *token.Context) (*reader.Result, error) {
-		resp := &reader.Result{
-			ID:       job.ID(),
-			Content:  []byte(`{"devil":666}`),
-			TypeName: red1.TypeName(),
-			Mapper:   red1.Mapper(),
-		}
-		return resp, nil
-	}
-
-	red2.ReadFunc = func(job *token.Context) (*reader.Result, error) {
-		resp := &reader.Result{
-			ID:       job.ID(),
-			Content:  []byte(`{"beelzebub":666}`),
-			TypeName: red2.TypeName(),
-			Mapper:   red2.Mapper(),
-		}
-		return resp, nil
-	}
 
 	rec := e.recorder.(*recorder_testing.Recorder)
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
@@ -217,11 +315,15 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 	done1 := make(chan struct{})
 	done2 := make(chan struct{})
 	go func() {
-		red1.Read(job1)
+		if _, err := red1.Read(job1); err != nil {
+			t.Error(err)
+		}
 		close(done1)
 	}()
 	go func() {
-		red1.Read(job2)
+		if _, err := red1.Read(job2); err != nil {
+			t.Error(err)
+		}
 		close(done2)
 	}()
 
@@ -258,11 +360,22 @@ func TestStartReadersTicking(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.New(internal.DiscardLogger(), testServer.URL, "reader_name", "typeName", 10*time.Millisecond, 10*time.Millisecond, 5)
+	red, err := reader_test.New(
+		reader.SetLogger(internal.DiscardLogger()),
+		reader.SetEndpoint(testServer.URL),
+		reader.SetName("reader_name"),
+		reader.SetTypeName("typeName"),
+		reader.SetInterval(10*time.Millisecond),
+		reader.SetTimeout(time.Second),
+		reader.SetBackoff(5),
+	)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
 	}
-	red.Ping()
+	if err = red.Ping(); err != nil {
+		t.Fatal(err)
+	}
+
 	e.setReaders(map[string]reader.DataReader{red.Name(): red})
 
 	recorded := make(chan struct{})

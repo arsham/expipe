@@ -6,7 +6,6 @@ package elasticsearch_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -17,7 +16,6 @@ import (
 )
 
 func TestLoadElasticsearchSuccess(t *testing.T) {
-	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
 	log := internal.DiscardLogger()
@@ -55,7 +53,6 @@ func TestLoadElasticsearchSuccess(t *testing.T) {
 }
 
 func TestLoadElasticsearchErrors(t *testing.T) {
-	t.Parallel()
 	v := viper.New()
 	log := internal.DiscardLogger()
 	v.SetConfigType("yaml")
@@ -163,7 +160,6 @@ func TestLoadElasticsearchErrors(t *testing.T) {
 }
 
 func TestNewInstance(t *testing.T) {
-	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
 	log := internal.DiscardLogger()
@@ -184,7 +180,7 @@ func TestNewInstance(t *testing.T) {
 		t.Fatalf("want no errors, got (%v)", err)
 	}
 
-	r, err := c.NewInstance(context.Background())
+	r, err := c.NewInstance()
 	if err != nil {
 		t.Errorf("want nil, got (%v)", err)
 	}

@@ -6,7 +6,6 @@ package self_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -104,6 +103,7 @@ func TestLoadExpvarErrors(t *testing.T) {
 }
 
 func TestNewInstance(t *testing.T) {
+	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
 	log := internal.DiscardLogger()
@@ -138,7 +138,7 @@ func TestNewInstance(t *testing.T) {
 		t.Fatalf("want no errors, got (%v)", err)
 	}
 	c.SelfEndpoint = ts.URL
-	r, err := c.NewInstance(context.Background())
+	r, err := c.NewInstance()
 	if err != nil {
 		t.Errorf("want nil, got (%v)", err)
 	}

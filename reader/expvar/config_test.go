@@ -6,7 +6,6 @@ package expvar_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -14,9 +13,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader/expvar"
 	"github.com/spf13/viper"
 )
+
+var log = internal.DiscardLogger()
 
 func TestLoadExpvarSuccess(t *testing.T) {
 	t.Parallel()
@@ -208,7 +210,7 @@ func TestNewInstance(t *testing.T) {
 		t.Fatalf("want no errors, got (%v)", err)
 	}
 
-	r, err := c.NewInstance(context.Background())
+	r, err := c.NewInstance()
 	if err != nil {
 		t.Errorf("want nil, got (%v)", err)
 	}

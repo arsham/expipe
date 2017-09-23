@@ -10,15 +10,19 @@ import (
 )
 
 var (
-	// ErrNoReader is returned when no reader has been provided to the engine
+	// ErrNoReader is returned when no reader has been provided
 	ErrNoReader = fmt.Errorf("no reader provided")
+
+	// ErrNoLogger is returned when no logger has been provided
+	ErrNoLogger = fmt.Errorf("no logger provided")
+
+	// ErrNoCtx is returned when no ctx has been provided
+	ErrNoCtx = fmt.Errorf("no ctx provided")
 )
 
 // ErrPing is the error when one of readers/recorder has a ping error
 type ErrPing map[string]error
 
-// Ping defines the behaviour of the error
-func (ErrPing) Ping() {}
 func (e ErrPing) Error() string {
 	var msgs []string
 	for name, err := range e {

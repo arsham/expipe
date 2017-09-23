@@ -38,6 +38,7 @@ import (
 	"github.com/arsham/expipe/internal/datatype"
 	"github.com/arsham/expipe/internal/token"
 	"github.com/arsham/expipe/reader"
+	"github.com/pkg/errors"
 
 	"github.com/shurcooL/go/ctxhttp"
 )
@@ -70,40 +71,42 @@ type Reader struct {
 //   typeName == ""   | ErrEmptyTypeName
 //   backoff < 5      | ErrLowBackoffValue
 //
-func New(log internal.FieldLogger, endpoint string, mapper datatype.Mapper, name, typeName string, interval time.Duration, timeout time.Duration, backoff int) (*Reader, error) {
-	if name == "" {
-		return nil, reader.ErrEmptyName
+func New(options ...func(reader.Constructor) error) (*Reader, error) {
+	r := &Reader{}
+	for _, op := range options {
+		err := op(r)
+		if err != nil {
+			return nil, errors.Wrap(err, "option creation")
+		}
 	}
 
-	if endpoint == "" {
-		return nil, reader.ErrEmptyEndpoint
+	if r.log == nil {
+		r.log = internal.GetLogger("error")
+	}
+	r.log = r.log.WithField("engine", "self")
+
+	if r.backoff < 5 {
+		r.backoff = 5
 	}
 
-	url, err := internal.SanitiseURL(endpoint)
-	if err != nil {
-		return nil, reader.ErrInvalidEndpoint(endpoint)
+	if r.mapper == nil {
+		r.mapper = datatype.DefaultMapper()
 	}
 
-	if typeName == "" {
-		return nil, reader.ErrEmptyTypeName
+	if r.typeName == "" {
+		r.typeName = r.name
 	}
 
-	if backoff < 5 {
-		return nil, reader.ErrLowBackoffValue(backoff)
+	if r.interval == 0 {
+		r.interval = time.Second
 	}
-	log = log.WithField("engine", "expipe")
-	w := &Reader{
-		name:     name,
-		typeName: typeName,
-		mapper:   mapper,
-		log:      log,
-		interval: interval,
-		timeout:  timeout,
-		endpoint: url,
-		backoff:  backoff,
-		quit:     make(chan struct{}),
+
+	if r.timeout == 0 {
+		r.timeout = 5 * time.Second
 	}
-	return w, nil
+
+	r.quit = make(chan struct{})
+	return r, nil
 }
 
 // Ping pings the endpoint and return nil if was successful.
@@ -153,17 +156,50 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 // Name shows the name identifier for this reader
 func (r *Reader) Name() string { return r.name }
 
+// SetName sets the name of the reader
+func (r *Reader) SetName(name string) { r.name = name }
+
+// Endpoint returns the endpoint
+func (r *Reader) Endpoint() string { return r.endpoint }
+
+// SetEndpoint sets the endpoint of the reader
+func (r *Reader) SetEndpoint(endpoint string) { r.endpoint = endpoint }
+
 // TypeName shows the typeName the recorder should record as
 func (r *Reader) TypeName() string { return r.typeName }
+
+// SetTypeName sets the type name of the reader
+func (r *Reader) SetTypeName(typeName string) { r.typeName = typeName }
 
 // Mapper returns the mapper object
 func (r *Reader) Mapper() datatype.Mapper { return r.mapper }
 
+// SetMapper sets the mapper of the reader
+func (r *Reader) SetMapper(mapper datatype.Mapper) { r.mapper = mapper }
+
 // Interval returns the interval
 func (r *Reader) Interval() time.Duration { return r.interval }
 
-// Timeout returns the timeout
+// SetInterval sets the interval of the reader
+func (r *Reader) SetInterval(interval time.Duration) { r.interval = interval }
+
+// Timeout returns the time-out
 func (r *Reader) Timeout() time.Duration { return r.timeout }
+
+// SetTimeout sets the timeout of the reader
+func (r *Reader) SetTimeout(timeout time.Duration) { r.timeout = timeout }
+
+// Backoff returns the backoff
+func (r *Reader) Backoff() int { return r.backoff }
+
+// SetBackoff sets the backoff of the reader
+func (r *Reader) SetBackoff(backoff int) { r.backoff = backoff }
+
+// Logger returns the log
+func (r *Reader) Logger() internal.FieldLogger { return r.log }
+
+// SetLogger sets the log of the reader
+func (r *Reader) SetLogger(log internal.FieldLogger) { r.log = log }
 
 // SetTestMode sets the mode to testing for testing purposes
 // This is because the way self works

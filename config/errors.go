@@ -16,10 +16,14 @@ type StructureErr struct {
 	Err     error  // Err is the error that occurred during the operation.
 }
 
+const (
+	nilStr = "<nil>"
+)
+
 // Error returns "<nil>" if the error is nil.
 func (e *StructureErr) Error() string {
 	if e == nil {
-		return "<nil>"
+		return nilStr
 	}
 
 	s := e.Section
@@ -33,17 +37,15 @@ func (e *StructureErr) Error() string {
 	return s
 }
 
-type notSpecifiedErr StructureErr
+type ErrNotSpecified StructureErr
 
-func newNotSpecifiedErr(section, reason string, err error) *notSpecifiedErr {
-	return &notSpecifiedErr{section, reason, err}
+func NewErrNotSpecified(section, reason string, err error) *ErrNotSpecified {
+	return &ErrNotSpecified{section, reason, err}
 }
 
-// NotSpecified says a section is not specified
-func (e *notSpecifiedErr) NotSpecified() {}
-func (e *notSpecifiedErr) Error() string {
+func (e *ErrNotSpecified) Error() string {
 	if e == nil {
-		return "<nil>"
+		return nilStr
 	}
 
 	s := e.Section
@@ -58,18 +60,17 @@ func (e *notSpecifiedErr) Error() string {
 	return s
 }
 
-type routersErr struct{ StructureErr }
+// ErrRouters represents an error when routes are not configured correctly.
+// The section on this error is the subsection of the route.
+type ErrRouters struct{ StructureErr }
 
-func newRoutersErr(section, reason string, err error) *routersErr {
-	return &routersErr{StructureErr{section, reason, err}}
+func NewErrRouters(section, reason string, err error) *ErrRouters {
+	return &ErrRouters{StructureErr{section, reason, err}}
 }
 
-// Routers represents an error when routes are not configured correctly.
-// The section on this error is the subsection of the route.
-func (routersErr) Routers() {}
-func (e *routersErr) Error() string {
+func (e *ErrRouters) Error() string {
 	if e == nil {
-		return "<nil>"
+		return nilStr
 	}
 
 	s := "not specified: " + e.Section
@@ -83,10 +84,9 @@ func (e *routersErr) Error() string {
 	return s
 }
 
-type notSupportedErr string
+// ErrNotSupported says something is still not supported
+type ErrNotSupported string
 
-// NotSupported says something is still not supported
-func (notSupportedErr) NotSupported() {}
-func (n notSupportedErr) Error() string {
+func (n ErrNotSupported) Error() string {
 	return fmt.Sprintf("%s is not supported", string(n))
 }

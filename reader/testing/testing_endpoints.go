@@ -19,15 +19,13 @@ import (
 
 // pingingEndpoint is a helper to test the reader errors when the endpoint goes away.
 func pingingEndpoint(t *testing.T, cons Constructor) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	ts.Close()
 	cons.SetName("the name")
-	cons.SetTypename("my type")
+	cons.SetTypeName("my type")
 	cons.SetEndpoint(ts.URL)
 	cons.SetInterval(time.Millisecond)
-	cons.SetTimeout(time.Millisecond * 100)
-	cons.SetBackoff(5)
+	cons.SetTimeout(time.Second)
 	red, err := cons.Object()
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
@@ -39,10 +37,8 @@ func pingingEndpoint(t *testing.T, cons Constructor) {
 
 	if err := red.Ping(); err == nil {
 		t.Errorf("expected an error, got nil")
-	} else if _, ok := errors.Cause(err).(interface {
-		EndpointNotAvailable()
-	}); !ok {
-		t.Errorf("want ErrInvalidEndpoint, got (%v)", err)
+	} else if _, ok := errors.Cause(err).(reader.ErrEndpointNotAvailable); !ok {
+		t.Errorf("want ErrEndpointNotAvailable, got (%v)", err)
 	}
 
 	unavailableEndpoint := "http://192.168.255.255"
@@ -53,9 +49,7 @@ func pingingEndpoint(t *testing.T, cons Constructor) {
 		t.Fatal("expected ErrEndpointNotAvailable, got nil")
 	}
 	err = errors.Cause(err)
-	if _, ok := err.(interface {
-		EndpointNotAvailable()
-	}); !ok {
+	if _, ok := err.(reader.ErrEndpointNotAvailable); !ok {
 		t.Errorf("expected ErrEndpointNotAvailable, got (%v)", err)
 	}
 
@@ -69,7 +63,7 @@ func testReaderErrorsOnEndpointDisapears(t *testing.T, cons Constructor) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	cons.SetName("the name")
-	cons.SetTypename("my type")
+	cons.SetTypeName("my type")
 	cons.SetEndpoint(ts.URL)
 	cons.SetInterval(time.Hour)
 	cons.SetTimeout(time.Hour)
@@ -93,9 +87,7 @@ func testReaderErrorsOnEndpointDisapears(t *testing.T, cons Constructor) {
 			return
 		}
 		err = errors.Cause(err)
-		if _, ok := err.(interface {
-			EndpointNotAvailable()
-		}); !ok {
+		if _, ok := err.(reader.ErrEndpointNotAvailable); !ok {
 			t.Errorf("want ErrEndpointNotAvailable, got (%v)", err)
 		}
 		if !strings.Contains(err.Error(), ts.URL) {
@@ -118,7 +110,7 @@ func testReaderErrorsOnEndpointDisapears(t *testing.T, cons Constructor) {
 func testReaderBacksOffOnEndpointGone(t *testing.T, cons Constructor) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	cons.SetName("the name")
-	cons.SetTypename("my type")
+	cons.SetTypeName("my type")
 	cons.SetEndpoint(ts.URL)
 	cons.SetInterval(time.Hour)
 	cons.SetTimeout(time.Hour)
@@ -168,7 +160,7 @@ func testReaderBacksOffOnEndpointGone(t *testing.T, cons Constructor) {
 func testReadingReturnsErrorIfNotPingedYet(t *testing.T, cons Constructor) {
 	ctx := context.Background()
 	cons.SetName("the name")
-	cons.SetTypename("my type")
+	cons.SetTypeName("my type")
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetInterval(time.Second)
 	cons.SetTimeout(time.Second)

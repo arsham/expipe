@@ -5,28 +5,18 @@
 package elasticsearch_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
 	"github.com/arsham/expipe/recorder/elasticsearch"
 	recorder_testing "github.com/arsham/expipe/recorder/testing"
 )
 
-var (
-	log        internal.FieldLogger
-	testServer *httptest.Server
-)
-
-func TestMain(m *testing.M) {
-	log = internal.DiscardLogger()
+func getTestServer() *httptest.Server {
 	var host, url, port string
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/_nodes/http" {
@@ -70,32 +60,26 @@ func TestMain(m *testing.M) {
 		}
 	})
 
-	testServer = httptest.NewServer(handler)
+	testServer := httptest.NewServer(handler)
 	url = strings.Split(testServer.URL, "//")[1]
 	host, port = strings.Split(url, ":")[0], strings.Split(url, ":")[1]
-	exitCode := m.Run()
-	testServer.Close()
-	os.Exit(exitCode)
+	return testServer
 }
 
 type Construct struct {
-	name      string
-	indexName string
-	endpoint  string
-	interval  time.Duration
-	timeout   time.Duration
-	backoff   int
+	*elasticsearch.Recorder
+	testServer *httptest.Server
 }
 
-func (c *Construct) SetName(name string)                { c.name = name }
-func (c *Construct) SetIndexName(indexName string)      { c.indexName = indexName }
-func (c *Construct) SetEndpoint(endpoint string)        { c.endpoint = endpoint }
-func (c *Construct) SetInterval(interval time.Duration) { c.interval = interval }
-func (c *Construct) SetTimeout(timeout time.Duration)   { c.timeout = timeout }
-func (c *Construct) SetBackoff(backoff int)             { c.backoff = backoff }
-func (c *Construct) TestServer() *httptest.Server       { return testServer }
+func (c *Construct) TestServer() *httptest.Server { return c.testServer }
 func (c *Construct) Object() (recorder.DataRecorder, error) {
-	return elasticsearch.New(context.Background(), log, c.name, c.endpoint, c.indexName, c.timeout, c.backoff)
+	return elasticsearch.New(
+		recorder.SetEndpoint(c.Endpoint()),
+		recorder.SetName(c.Name()),
+		recorder.SetIndexName(c.IndexName()),
+		recorder.SetTimeout(c.Timeout()),
+		recorder.SetBackoff(c.Backoff()),
+	)
 }
 
 func (c *Construct) ValidEndpoints() []string {
@@ -118,5 +102,16 @@ func (c *Construct) InvalidEndpoints() []string {
 }
 
 func TestElasticsearch(t *testing.T) {
-	recorder_testing.TestRecorder(t, &Construct{})
+	for name, fn := range recorder_testing.TestSuites() {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			r, err := elasticsearch.New()
+			if err != nil {
+				panic(err)
+			}
+			c := &Construct{r, getTestServer()}
+			defer c.testServer.Close()
+			fn(t, c)
+		})
+	}
 }

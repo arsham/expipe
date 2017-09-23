@@ -16,7 +16,7 @@ import (
 // testReaderReceivesJob is a test helper to test the reader can receive jobs
 func testReaderReceivesJob(t *testing.T, cons Constructor) {
 	cons.SetName("the name")
-	cons.SetTypename("my type")
+	cons.SetTypeName("my type")
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetInterval(time.Hour)
 	cons.SetTimeout(time.Hour)
@@ -77,7 +77,7 @@ func testReaderReceivesJob(t *testing.T, cons Constructor) {
 // testReaderReturnsSameID is a test helper to test the reader returns the same ID in the response
 func testReaderReturnsSameID(t *testing.T, cons Constructor) {
 	cons.SetName("the name")
-	cons.SetTypename("my type")
+	cons.SetTypeName("my type")
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetInterval(time.Hour)
 	cons.SetTimeout(time.Hour)

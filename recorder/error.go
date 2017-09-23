@@ -4,7 +4,10 @@
 
 package recorder
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 var (
 	// ErrEmptyName is the error when the package name is empty.
@@ -27,9 +30,7 @@ var (
 // ErrInvalidEndpoint is the error when the endpoint is not a valid url
 type ErrInvalidEndpoint string
 
-// InvalidEndpoint defines the behaviour of the error
-func (ErrInvalidEndpoint) InvalidEndpoint() {}
-func (e ErrInvalidEndpoint) Error() string  { return fmt.Sprintf("invalid endpoint: %s", string(e)) }
+func (e ErrInvalidEndpoint) Error() string { return fmt.Sprintf("invalid endpoint: %s", string(e)) }
 
 // ErrLowBackoffValue is the error when the endpoint is not a valid url
 type ErrLowBackoffValue int64
@@ -44,8 +45,6 @@ type ErrParseInterval struct {
 	Err      error
 }
 
-// ParseInterval defines the behaviour of the error
-func (ErrParseInterval) ParseInterval() {}
 func (e ErrParseInterval) Error() string {
 	return fmt.Sprintf("parse interval (%s): %s", e.Interval, e.Err)
 }
@@ -56,8 +55,6 @@ type ErrParseTimeOut struct {
 	Err     error
 }
 
-// ParseTimeOut defines the behaviour of the error
-func (ErrParseTimeOut) ParseTimeOut() {}
 func (e ErrParseTimeOut) Error() string {
 	return fmt.Sprintf("parse timeout (%s): %s", e.Timeout, e.Err)
 }
@@ -68,8 +65,6 @@ type ErrEndpointNotAvailable struct {
 	Err      error
 }
 
-// EndpointNotAvailable defines the behaviour of the error
-func (ErrEndpointNotAvailable) EndpointNotAvailable() {}
 func (e ErrEndpointNotAvailable) Error() string {
 	return fmt.Sprintf("endpoint (%s) not available: %s", e.Endpoint, e.Err)
 }
@@ -77,8 +72,13 @@ func (e ErrEndpointNotAvailable) Error() string {
 // ErrInvalidIndexName is the error when the index name is invalid.
 type ErrInvalidIndexName string
 
-// InvalidIndexName defines the behaviour of the error
-func (ErrInvalidIndexName) InvalidIndexName() {}
 func (e ErrInvalidIndexName) Error() string {
 	return fmt.Sprintf("Index name (%s) is not valid", string(e))
+}
+
+// ErrLowTimeout is the error when the interval is zero
+type ErrLowTimeout time.Duration
+
+func (e ErrLowTimeout) Error() string {
+	return fmt.Sprintf("timeout should be more than 1 second: %d", e)
 }

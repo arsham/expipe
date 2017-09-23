@@ -12,11 +12,12 @@ import (
 	"github.com/arsham/expipe/internal/datatype"
 	"github.com/arsham/expipe/internal/token"
 	"github.com/arsham/expipe/recorder"
+	"github.com/pkg/errors"
 )
 
 // testRecorderErrorsOnUnavailableEndpoint tests the recorder errors for bad URL.
 func testRecorderErrorsOnUnavailableEndpoint(t *testing.T, cons Constructor) {
-	timeout := 10 * time.Millisecond
+	timeout := time.Second
 	name := "the name"
 	indexName := "my_index_name"
 	backoff := 5
@@ -35,9 +36,8 @@ func testRecorderErrorsOnUnavailableEndpoint(t *testing.T, cons Constructor) {
 	if err == nil {
 		t.Error("want error, got nil")
 	}
-	if _, ok := err.(interface {
-		EndpointNotAvailable()
-	}); !ok {
+	err = errors.Cause(err)
+	if _, ok := err.(recorder.ErrEndpointNotAvailable); !ok {
 		t.Errorf("want EndpointNotAvailable, got (%v)", err)
 	}
 }
@@ -46,7 +46,7 @@ func testRecorderErrorsOnUnavailableEndpoint(t *testing.T, cons Constructor) {
 func testRecorderBacksOffOnEndpointGone(t *testing.T, cons Constructor) {
 	ctx := context.Background()
 	ts := cons.TestServer()
-	timeout := 10 * time.Millisecond
+	timeout := time.Second
 	cons.SetName("the name")
 	cons.SetIndexName("my_index_name")
 	cons.SetEndpoint(ts.URL)
@@ -102,10 +102,11 @@ func testRecorderBacksOffOnEndpointGone(t *testing.T, cons Constructor) {
 // if the caller hasn't called the Ping() method.
 func testRecordingReturnsErrorIfNotPingedYet(t *testing.T, cons Constructor) {
 	ctx := context.Background()
-	timeout := 10 * time.Millisecond
+	timeout := time.Second
 	cons.SetName("the name")
 	cons.SetIndexName("my_index_name")
 	cons.SetTimeout(timeout)
+	cons.SetEndpoint(cons.ValidEndpoints()[0])
 	cons.SetBackoff(5)
 
 	rec, err := cons.Object()

@@ -8,12 +8,21 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/reader"
 )
 
 // GetReader provides a SimpleReader for using in the example.
 func GetReader(url string) *Reader {
 	log := internal.DiscardLogger()
-	red, err := New(log, url, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond, 10)
+	red, err := New(
+		reader.SetLogger(log),
+		reader.SetEndpoint(url),
+		reader.SetName("reader_example"),
+		reader.SetTypeName("reader_example"),
+		reader.SetInterval(10*time.Millisecond),
+		reader.SetTimeout(time.Second),
+		reader.SetBackoff(10),
+	)
 	if err != nil {
 		panic(err)
 	}

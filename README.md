@@ -1,5 +1,6 @@
 # Expipe
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GoDoc](https://godoc.org/github.com/arsham/expipe?status.svg)](http://godoc.org/github.com/arsham/expipe)
 [![Build Status](https://travis-ci.org/arsham/expipe.svg?branch=master)](https://travis-ci.org/arsham/expipe)
 [![Coverage Status](https://coveralls.io/repos/github/arsham/expipe/badge.svg?branch=master)](https://coveralls.io/github/arsham/expipe?branch=master)
@@ -8,6 +9,7 @@
 Expipe can record your application's `metrics` in [ElasticSearch][elasticsearch] and you can view them with [kibana][kibana]. It can read from any applications (written in any language) that provides metrics in `json` format.
 
 1. [Features](#features)
+    * [Upcoming Features](#upcoming-features)
 2. [Installation](#installation)
 3. [Kibana](#kibana)
     * [Importing Dashboard](#importing-dashboard)
@@ -27,7 +29,7 @@ Expipe can record your application's `metrics` in [ElasticSearch][elasticsearch]
 * Maps values how you define them. For example you can change bytes to megabytes.
 * Benchmarks are included.
 
-There are TODO items in the issue section. Feature requests welcome!
+There are TODO items in the issue section. Feature requests are welcome!
 
 Please refer to golang's [expvar documentation][expvar] for more information.
 
@@ -35,9 +37,18 @@ Screen shots can be found in [this](./SCREENSHOTS.md) document. Here is an examp
 
 ![Colored](http://i.imgur.com/6U2hxlp.png)
 
+### Upcoming Features
+
+* Read from log files.
+* Use as a third-party package.
+* Record to more repositories:
+    * InfluxDB
+    * Log files
+
+
 ## Installation
 
-I will provide a docker image soon, but for now it needs to be installed. You need golang 1.7 and [glide][glide] installed. Simply do:
+I will provide a docker image soon, but for now it needs to be installed. You need golang >= 1.7 and [glide][glide] installed. Simply do:
 
 ```bash
 go get github.com/arsham/expipe

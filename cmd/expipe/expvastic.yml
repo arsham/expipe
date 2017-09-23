@@ -56,8 +56,8 @@ routes:
             - my_app2
         recorders:
             - elastic2
-    self_route:
-        readers:
-            - self
-        recorders:
-            - elastic3
+    # self_route:
+    #     readers:
+    #         - self
+    #     recorders:
+    #         - elastic3

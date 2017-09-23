@@ -5,7 +5,6 @@
 package self
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -56,8 +55,17 @@ func FromViper(v *viper.Viper, log internal.FieldLogger, name, key string) (*Con
 }
 
 // NewInstance instantiates a SelfReader
-func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
-	return New(c.Logger(), c.Endpoint(), c.mapper, c.Name(), c.TypeName(), c.Interval(), c.Timeout(), c.Backoff())
+func (c *Config) NewInstance() (reader.DataReader, error) {
+	return New(
+		reader.SetLogger(c.Logger()),
+		reader.SetEndpoint(c.Endpoint()),
+		reader.SetMapper(c.mapper),
+		reader.SetName(c.Name()),
+		reader.SetTypeName(c.TypeName()),
+		reader.SetInterval(c.Interval()),
+		reader.SetTimeout(c.Timeout()),
+		reader.SetBackoff(c.Backoff()),
+	)
 }
 
 // Name returns the name

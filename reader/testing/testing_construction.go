@@ -6,6 +6,7 @@ package testing
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -14,15 +15,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-func testShowNotChangeTheInput(t *testing.T, cons Constructor) {
-	name := "the name"
-	typeName := "my type"
+const (
+	name     = "the name"
+	typeName = "my type"
+)
+
+func testShouldNotChangeTheInput(t *testing.T, cons Constructor) {
 	endpoint := cons.TestServer().URL
 	interval := time.Hour
 	timeout := time.Hour
 	backoff := 5
 	cons.SetName(name)
-	cons.SetTypename(typeName)
+	cons.SetTypeName(typeName)
 	cons.SetEndpoint(endpoint)
 	cons.SetInterval(interval)
 	cons.SetTimeout(timeout)
@@ -48,72 +52,85 @@ func testShowNotChangeTheInput(t *testing.T, cons Constructor) {
 }
 
 func testNameCheck(t *testing.T, cons Constructor) {
-	name := "the name"
-	typeName := "my type"
+	endpoint := cons.TestServer().URL
 	cons.SetName("")
-	cons.SetTypename(typeName)
-	cons.SetInterval(time.Hour)
-	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(5)
+	cons.SetEndpoint(endpoint)
 
 	red, err := cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("expected nil, got (%#v)", red)
+		t.Errorf("expected nil, got (%v)", red)
 	}
-	if err != reader.ErrEmptyName {
+	if errors.Cause(err) != reader.ErrEmptyName {
 		t.Errorf("expected ErrEmptyName, got (%v)", err)
 	}
+}
 
+func testTypeNameCheck(t *testing.T, cons Constructor) {
+	endpoint := cons.TestServer().URL
 	cons.SetName(name)
-	cons.SetTypename("")
-	// TypeName Check
-	red, err = cons.Object()
+	cons.SetTypeName("")
+	cons.SetEndpoint(endpoint)
+
+	red, err := cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("expected nil, got (%#v)", red)
+		t.Fatalf("expected nil, got (%v)", red)
 	}
-	if err != reader.ErrEmptyTypeName {
+	if errors.Cause(err) != reader.ErrEmptyTypeName {
 		t.Errorf("expected ErrEmptyTypeName, got (%v)", err)
 	}
 }
 
 func testBackoffCheck(t *testing.T, cons Constructor) {
+	endpoint := cons.TestServer().URL
+	backoff := 3
+	cons.SetEndpoint(endpoint)
 	cons.SetName("the name")
-	cons.SetTypename("my type")
-	cons.SetInterval(time.Hour)
-	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(3)
+	cons.SetTypeName("my type")
+	cons.SetBackoff(backoff)
 
 	red, err := cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("expected nil, got (%#v)", red)
 	}
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	err = errors.Cause(err)
+	if _, ok := err.(reader.ErrLowBackoffValue); !ok {
+		t.Fatalf("expected ErrLowBackoffValue, got (%v)", err)
+	}
+	if !strings.Contains(err.Error(), strconv.Itoa(backoff)) {
+		t.Errorf("expected (%d) be mentioned, got (%v)", backoff, err)
+	}
+}
+
+func testIntervalCheck(t *testing.T, cons Constructor) {
+	endpoint := cons.TestServer().URL
+	interval := 0
+	cons.SetEndpoint(endpoint)
+	cons.SetName("the name")
+	cons.SetTypeName("my type")
+	cons.SetInterval(time.Duration(interval))
+
+	red, err := cons.Object()
+	if !reflect.ValueOf(red).IsNil() {
+		t.Errorf("expected nil, got (%v)", red)
 	}
 	err = errors.Cause(err)
-	if _, ok := err.(interface {
-		LowBackoffValue()
-	}); !ok {
-		t.Errorf("expected ErrLowBackoffValue, got (%v)", err)
+	if _, ok := err.(reader.ErrLowInterval); !ok {
+		t.Fatalf("expected ErrLowInterval, got (%v)", err)
 	}
-	if !strings.Contains(err.Error(), "3") {
-		t.Errorf("expected 3 be mentioned, got (%v)", err)
+	if !strings.Contains(err.Error(), strconv.Itoa(interval)) {
+		t.Errorf("expected (%d) be mentioned, got (%v)", interval, err)
 	}
 }
 
 func testEndpointCheck(t *testing.T, cons Constructor) {
-	cons.SetName("the name")
-	cons.SetTypename("my type")
-	cons.SetInterval(time.Hour)
-	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(5)
+	cons.SetTypeName("my type")
 	cons.SetEndpoint("")
 
 	red, err := cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("expected nil, got (%v)", red)
 	}
-	if err != reader.ErrEmptyEndpoint {
+	if errors.Cause(err) != reader.ErrEmptyEndpoint {
 		t.Errorf("expected ErrEmptyEndpoint, got (%v)", err)
 	}
 
@@ -124,10 +141,8 @@ func testEndpointCheck(t *testing.T, cons Constructor) {
 		t.Errorf("expected nil, got (%v)", red)
 	}
 	err = errors.Cause(err)
-	if _, ok := err.(interface {
-		InvalidEndpoint()
-	}); !ok {
-		t.Fatalf("expected ErrInvalidEndpoint, got (%v)", err)
+	if _, ok := err.(reader.ErrInvalidEndpoint); !ok {
+		t.Fatalf("expected ErrInvalidEndpoint, got (%T)", err)
 	}
 	if !strings.Contains(err.Error(), invalidEndpoint) {
 		t.Errorf("expected (%s) be in the error message, got (%v)", invalidEndpoint, err)

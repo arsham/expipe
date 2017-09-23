@@ -5,14 +5,16 @@
 package testing
 
 import (
-	"context"
+	"net/url"
+	"path"
 	"time"
 
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
+	"github.com/pkg/errors"
 )
 
-// Config holds the necessary configuration for setting up an elasticsearch reader endpoint.
+// Config holds the necessary configuration for setting up an elasticsearch recorder endpoint.
 type Config struct {
 	MockName      string
 	MockEndpoint  string
@@ -35,27 +37,40 @@ func NewConfig(name string, log internal.FieldLogger, endpoint string, timeout t
 }
 
 // NewInstance returns a mocked object
-func (m *Config) NewInstance(ctx context.Context) (recorder.DataRecorder, error) {
-	return New(ctx, m.Logger(), m.Name(), m.Endpoint(), m.IndexName(), m.Timeout(), m.Backoff())
+func (c *Config) NewInstance() (recorder.DataRecorder, error) {
+	endpoint, err := url.Parse(c.Endpoint())
+	if err != nil {
+		return nil, errors.Wrap(err, "new config")
+	}
+	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
+	d, err := New(
+		recorder.SetLogger(c.Logger()),
+		recorder.SetEndpoint(c.Endpoint()),
+		recorder.SetName(c.Name()),
+		recorder.SetIndexName(c.IndexName()),
+		recorder.SetTimeout(c.Timeout()),
+		recorder.SetBackoff(c.Backoff()),
+	)
+	return d, err
 }
 
 // Name is the mocked version
-func (m *Config) Name() string { return m.MockName }
+func (c *Config) Name() string { return c.MockName }
 
 // IndexName is the mocked version
-func (m *Config) IndexName() string { return m.MockIndexName }
+func (c *Config) IndexName() string { return c.MockIndexName }
 
 // Endpoint is the mocked version
-func (m *Config) Endpoint() string { return m.MockEndpoint }
+func (c *Config) Endpoint() string { return c.MockEndpoint }
 
 // RoutePath is the mocked version
-func (m *Config) RoutePath() string { return "" }
+func (c *Config) RoutePath() string { return "" }
 
 // Timeout is the mocked version
-func (m *Config) Timeout() time.Duration { return m.MockTimeout }
+func (c *Config) Timeout() time.Duration { return c.MockTimeout }
 
 // Logger is the mocked version
-func (m *Config) Logger() internal.FieldLogger { return m.MockLogger }
+func (c *Config) Logger() internal.FieldLogger { return c.MockLogger }
 
 // Backoff is the mocked version
-func (m *Config) Backoff() int { return m.MockBackoff }
+func (c *Config) Backoff() int { return c.MockBackoff }

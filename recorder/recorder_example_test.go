@@ -30,7 +30,7 @@ func ExampleDataRecorder() {
 	}))
 	defer ts.Close()
 
-	rec := testing.GetRecorder(ctx, ts.URL)
+	rec := testing.GetRecorder(ts.URL)
 	rec.Ping()
 	fmt.Println("Pinging successful")
 	payload := datatype.New([]datatype.DataType{

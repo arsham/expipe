@@ -15,6 +15,7 @@ import (
 	"github.com/arsham/expipe/internal/datatype"
 	"github.com/arsham/expipe/internal/token"
 	"github.com/arsham/expipe/reader"
+	"github.com/pkg/errors"
 
 	"golang.org/x/net/context/ctxhttp"
 )
@@ -35,78 +36,84 @@ type Reader struct {
 }
 
 // New is a reader for using in tests
-func New(log internal.FieldLogger, endpoint string, name, typeName string, interval, timeout time.Duration, backoff int) (*Reader, error) {
-	if name == "" {
+func New(options ...func(reader.Constructor) error) (*Reader, error) {
+	r := &Reader{}
+	for _, op := range options {
+		err := op(r)
+		if err != nil {
+			return nil, errors.Wrap(err, "option creation")
+		}
+	}
+
+	if r.log == nil {
+		r.log = internal.GetLogger("info")
+	}
+	r.log = r.log.WithField("engine", "reader_testing")
+
+	if r.name == "" {
 		return nil, reader.ErrEmptyName
 	}
 
-	if endpoint == "" {
-		return nil, reader.ErrEmptyEndpoint
+	if r.backoff < 5 {
+		r.backoff = 5
 	}
 
-	url, err := internal.SanitiseURL(endpoint)
-	if err != nil {
-		return nil, reader.ErrInvalidEndpoint(endpoint)
+	if r.mapper == nil {
+		r.mapper = &datatype.MapConvertMock{}
 	}
 
-	if typeName == "" {
-		return nil, reader.ErrEmptyTypeName
+	if r.typeName == "" {
+		r.typeName = r.name
 	}
 
-	if backoff < 5 {
-		return nil, reader.ErrLowBackoffValue(backoff)
+	if r.interval == 0 {
+		r.interval = time.Second
 	}
 
-	w := &Reader{
-		name:     name,
-		typeName: typeName,
-		endpoint: url,
-		mapper:   &datatype.MapConvertMock{},
-		log:      log,
-		timeout:  timeout,
-		interval: interval,
-		backoff:  backoff,
+	if r.timeout == 0 {
+		r.timeout = 5 * time.Second
 	}
-	return w, nil
+
+	return r, nil
 }
 
 // Ping pings the endpoint and return nil if was successful.
-func (s *Reader) Ping() error {
-	if s.Pinged {
+func (r *Reader) Ping() error {
+	if r.Pinged {
 		// In tests, we have a strict policy on channels. Therefore if it
 		// is already pinged, we won't bother.
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
-	_, err := ctxhttp.Head(ctx, nil, s.endpoint)
+	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
 	if err != nil {
-		return reader.ErrEndpointNotAvailable{Endpoint: s.endpoint, Err: err}
+		return reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
 	}
-	s.Pinged = true
+	r.Pinged = true
 	return nil
 }
 
 // Read executes the ReadFunc if defined, otherwise continues normally
-func (s *Reader) Read(job *token.Context) (*reader.Result, error) {
-	if !s.Pinged {
+func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
+	if !r.Pinged {
 		return nil, reader.ErrPingNotCalled
 	}
 
-	if s.strike > s.backoff {
+	if r.strike > r.backoff {
 		return nil, reader.ErrBackoffExceeded
 	}
-	if s.ReadFunc != nil {
-		return s.ReadFunc(job)
+	if r.ReadFunc != nil {
+		return r.ReadFunc(job)
 	}
-	resp, err := ctxhttp.Get(job, nil, s.endpoint)
+	resp, err := ctxhttp.Get(job, nil, r.endpoint)
 	if err != nil {
 		if v, ok := err.(*url.Error); ok {
 			if strings.Contains(v.Error(), "getsockopt: connection refused") {
-				s.strike++
+				r.strike++
 			}
-			err = reader.ErrEndpointNotAvailable{Endpoint: s.endpoint, Err: err}
+			err = reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
 		}
 		return nil, err
 	}
@@ -117,23 +124,56 @@ func (s *Reader) Read(job *token.Context) (*reader.Result, error) {
 		ID:       job.ID(),
 		Time:     time.Now(),
 		Content:  buf.Bytes(),
-		TypeName: s.TypeName(),
-		Mapper:   s.Mapper(),
+		TypeName: r.TypeName(),
+		Mapper:   r.Mapper(),
 	}
 	return res, nil
 }
 
 // Name returns the name
-func (s *Reader) Name() string { return s.name }
+func (r *Reader) Name() string { return r.name }
+
+// SetName sets the name of the reader
+func (r *Reader) SetName(name string) { r.name = name }
+
+// Endpoint returns the endpoint
+func (r *Reader) Endpoint() string { return r.endpoint }
+
+// SetEndpoint sets the endpoint of the reader
+func (r *Reader) SetEndpoint(endpoint string) { r.endpoint = endpoint }
 
 // TypeName returns the type name
-func (s *Reader) TypeName() string { return s.typeName }
+func (r *Reader) TypeName() string { return r.typeName }
+
+// SetTypeName sets the type name of the reader
+func (r *Reader) SetTypeName(typeName string) { r.typeName = typeName }
 
 // Mapper returns the mapper
-func (s *Reader) Mapper() datatype.Mapper { return s.mapper }
+func (r *Reader) Mapper() datatype.Mapper { return r.mapper }
+
+// SetMapper sets the mapper of the reader
+func (r *Reader) SetMapper(mapper datatype.Mapper) { r.mapper = mapper }
 
 // Interval returns the interval
-func (s *Reader) Interval() time.Duration { return s.interval }
+func (r *Reader) Interval() time.Duration { return r.interval }
+
+// SetInterval sets the interval of the reader
+func (r *Reader) SetInterval(interval time.Duration) { r.interval = interval }
 
 // Timeout returns the timeout
-func (s *Reader) Timeout() time.Duration { return s.timeout }
+func (r *Reader) Timeout() time.Duration { return r.timeout }
+
+// SetTimeout sets the timeout of the reader
+func (r *Reader) SetTimeout(timeout time.Duration) { r.timeout = timeout }
+
+// Backoff returns the backoff
+func (r *Reader) Backoff() int { return r.backoff }
+
+// SetBackoff sets the backoff of the reader
+func (r *Reader) SetBackoff(backoff int) { r.backoff = backoff }
+
+// Logger returns the log
+func (r *Reader) Logger() internal.FieldLogger { return r.log }
+
+// SetLogger sets the log of the reader
+func (r *Reader) SetLogger(log internal.FieldLogger) { r.log = log }

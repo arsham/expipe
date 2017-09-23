@@ -5,7 +5,6 @@
 package expvar
 
 import (
-	"context"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -121,13 +120,22 @@ func withConfig(c *Config) (*Config, error) {
 }
 
 // NewInstance returns an instance of the expvar reader.
-func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
-	endpoint, err := url.Parse(c.Endpoint())
+func (c *Config) NewInstance() (reader.DataReader, error) {
+	endpoint, err := url.Parse(c.Endpoint()) // TODO: check this part
 	if err != nil {
 		return nil, errors.Wrap(err, "new config")
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
-	return New(c.Logger(), endpoint.String(), c.mapper, c.Name(), c.EXPTypeName, c.Interval(), c.Timeout(), c.Backoff())
+	return New(
+		reader.SetLogger(c.Logger()), // TODO: test this against the binary. Errors are not caught
+		reader.SetEndpoint(endpoint.String()),
+		reader.SetMapper(c.mapper),
+		reader.SetName(c.Name()),
+		reader.SetTypeName(c.EXPTypeName),
+		reader.SetInterval(c.Interval()),
+		reader.SetTimeout(c.Timeout()),
+		reader.SetBackoff(c.Backoff()),
+	)
 }
 
 // Name returns name

@@ -28,6 +28,7 @@ func requirements() (context.Context, *internal.Logger, *reader_testing.Config, 
 		MockBackoff:  5,
 		MockInterval: time.Second,
 		MockTimeout:  time.Second,
+		MockLogger:   log,
 	}
 	mockRecorder := &recorder_testing.Config{
 		MockName:      "name",
@@ -35,6 +36,7 @@ func requirements() (context.Context, *internal.Logger, *reader_testing.Config, 
 		MockIndexName: "in",
 		MockBackoff:   5,
 		MockTimeout:   time.Second,
+		MockLogger:    log,
 	}
 	return ctx, log, mockReader, mockRecorder
 }
@@ -151,7 +153,7 @@ func TestClosesDoneChan(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctx)
 	d, err := expipe.StartEngines(ctx, log, confMap)
 	if err != nil {
-		t.Fatalf("want (nil), got (%+v)", err)
+		t.Fatalf("want (nil), got (%v)", err)
 	}
 	if d == nil {
 		t.Fatal("want (chan), got nil")

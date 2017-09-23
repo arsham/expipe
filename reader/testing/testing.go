@@ -7,8 +7,14 @@
 //
 //    import reader_test "github.com/arsham/expipe/reader/testing"
 //
-//    func TestExpvar(t *testing.T) {
-//    	reader_testing.TestReader(t, &Construct{})
+//    for name, fn := range reader_test.TestSuites() {
+//        t.Run(name, func(t *testing.T) {
+//            r, err := reader_test.New(reader.SetName("test"))
+//            if err != nil {
+//                panic(err)
+//            }
+//            fn(t, &Construct{r})
+//        })
 //    }
 //
 // The test suit will pick it up and does all the tests.
@@ -22,30 +28,13 @@ package testing
 import (
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/arsham/expipe/reader"
 )
 
 // Constructor is an interface for setting up an object for testing.
 type Constructor interface {
-	// SetName is for setting the Name
-	SetName(string)
-
-	// SetTypename is for setting the Typename
-	SetTypename(string)
-
-	// SetEndpoint is for setting the Endpoint
-	SetEndpoint(string)
-
-	// SetInterval is for setting the Interval
-	SetInterval(time.Duration)
-
-	// SetTimeout is for setting the Timeout
-	SetTimeout(time.Duration)
-
-	// SetBackoff is for setting the Backoff
-	SetBackoff(int)
+	reader.Constructor
 
 	// TestServer should return a ready to use test server
 	TestServer() *httptest.Server
@@ -54,42 +43,55 @@ type Constructor interface {
 	Object() (reader.DataReader, error)
 }
 
-// TestReader runs all essential tests on object construction.
-func TestReader(t *testing.T, cons Constructor) {
-	t.Run("ShowNotChangeTheInput", func(t *testing.T) {
-		testShowNotChangeTheInput(t, cons)
-	})
-	t.Run("NameCheck", func(t *testing.T) {
-		testNameCheck(t, cons)
-	})
-	t.Run("BackoffCheck", func(t *testing.T) {
-		testBackoffCheck(t, cons)
-	})
-	t.Run("EndpointCheck", func(t *testing.T) {
-		testEndpointCheck(t, cons)
-	})
+// TestSuites returns a map of test name to the runner function.
+func TestSuites() map[string]func(t *testing.T, cons Constructor) {
+	return map[string]func(t *testing.T, cons Constructor){
+		"ShouldNotChangeTheInput": func(t *testing.T, cons Constructor) {
+			testShouldNotChangeTheInput(t, cons)
+		},
 
-	t.Run("ReceivesJob", func(t *testing.T) {
-		testReaderReceivesJob(t, cons)
-	})
+		"NameCheck": func(t *testing.T, cons Constructor) {
+			testNameCheck(t, cons)
+		},
 
-	t.Run("ReturnsSameID", func(t *testing.T) {
-		testReaderReturnsSameID(t, cons)
-	})
+		"TypeNameCheck": func(t *testing.T, cons Constructor) {
+			testTypeNameCheck(t, cons)
+		},
 
-	t.Run("PingingEndpoint", func(t *testing.T) {
-		pingingEndpoint(t, cons)
-	})
+		"BackoffCheck": func(t *testing.T, cons Constructor) {
+			testBackoffCheck(t, cons)
+		},
 
-	t.Run("ErrorsOnEndpointDisapears", func(t *testing.T) {
-		testReaderErrorsOnEndpointDisapears(t, cons)
-	})
+		"IntervalCheck": func(t *testing.T, cons Constructor) {
+			testIntervalCheck(t, cons)
+		},
 
-	t.Run("BacksOffOnEndpointGone", func(t *testing.T) {
-		testReaderBacksOffOnEndpointGone(t, cons)
-	})
+		"EndpointCheck": func(t *testing.T, cons Constructor) {
+			testEndpointCheck(t, cons)
+		},
 
-	t.Run("ReadingReturnsErrorIfNotPingedYet", func(t *testing.T) {
-		testReadingReturnsErrorIfNotPingedYet(t, cons)
-	})
+		"ReceivesJob": func(t *testing.T, cons Constructor) {
+			testReaderReceivesJob(t, cons)
+		},
+
+		"ReturnsSameID": func(t *testing.T, cons Constructor) {
+			testReaderReturnsSameID(t, cons)
+		},
+
+		"PingingEndpoint": func(t *testing.T, cons Constructor) {
+			pingingEndpoint(t, cons)
+		},
+
+		"ErrorsOnEndpointDisapears": func(t *testing.T, cons Constructor) {
+			testReaderErrorsOnEndpointDisapears(t, cons)
+		},
+
+		"BacksOffOnEndpointGone": func(t *testing.T, cons Constructor) {
+			testReaderBacksOffOnEndpointGone(t, cons)
+		},
+
+		"ReadingReturnsErrorIfNotPingedYet": func(t *testing.T, cons Constructor) {
+			testReadingReturnsErrorIfNotPingedYet(t, cons)
+		},
+	}
 }

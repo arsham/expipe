@@ -14,11 +14,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-func testShowNotChangeTheInput(t *testing.T, cons Constructor) {
+func testShouldNotChangeTheInput(t *testing.T, cons Constructor) {
 	name := "the name"
 	indexName := "my_index_name"
 	endpoint := cons.TestServer().URL
-	timeout := 10 * time.Millisecond
+	timeout := time.Second
 	backoff := 5
 	cons.SetName(name)
 	cons.SetIndexName(indexName)
@@ -46,7 +46,7 @@ func testBackoffCheck(t *testing.T, cons Constructor) {
 	cons.SetName("the name")
 	cons.SetIndexName("my_index_name")
 	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetTimeout(10 * time.Millisecond)
+	cons.SetTimeout(time.Second)
 
 	cons.SetBackoff(3)
 	rec, err := cons.Object()
@@ -79,9 +79,9 @@ func testNameCheck(t *testing.T, cons Constructor) {
 
 	rec, err := cons.Object()
 	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%#v)", rec)
+		t.Errorf("expected nil, got (%v)", rec)
 	}
-	if err != recorder.ErrEmptyName {
+	if errors.Cause(err) != recorder.ErrEmptyName {
 		t.Errorf("expected ErrEmptyName, got (%v)", err)
 	}
 
@@ -91,7 +91,7 @@ func testNameCheck(t *testing.T, cons Constructor) {
 	if !reflect.ValueOf(rec).IsNil() {
 		t.Errorf("expected nil, got (%#v)", rec)
 	}
-	if err != recorder.ErrEmptyIndexName {
+	if errors.Cause(err) != recorder.ErrEmptyIndexName {
 		t.Errorf("expected ErrEmptyIndexName, got (%v)", err)
 	}
 
@@ -101,10 +101,8 @@ func testNameCheck(t *testing.T, cons Constructor) {
 	if !reflect.ValueOf(rec).IsNil() {
 		t.Errorf("expected nil, got (%#v)", rec)
 	}
-	if _, ok := err.(interface {
-		InvalidIndexName()
-	}); !ok {
-		t.Errorf("expected InvalidIndexName, got (%v)", err)
+	if _, ok := errors.Cause(err).(recorder.ErrInvalidIndexName); !ok {
+		t.Errorf("expected ErrInvalidIndexName, got (%v)", err)
 	}
 }
 
@@ -124,9 +122,8 @@ func testEndpointCheck(t *testing.T, cons Constructor) {
 	if !reflect.ValueOf(rec).IsNil() {
 		t.Errorf("expected nil, got (%v)", rec)
 	}
-	if _, ok := err.(interface {
-		InvalidEndpoint()
-	}); !ok {
+	err = errors.Cause(err)
+	if _, ok := err.(recorder.ErrInvalidEndpoint); !ok {
 		t.Fatalf("expected ErrInvalidEndpoint, got (%v)", err)
 	}
 	if !strings.Contains(err.Error(), invalidEndpoint) {

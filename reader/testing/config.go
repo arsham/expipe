@@ -5,11 +5,13 @@
 package testing
 
 import (
-	"context"
+	"net/url"
+	"path"
 	"time"
 
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
+	"github.com/pkg/errors"
 )
 
 // Config is used for instantiating a mock reader
@@ -39,8 +41,21 @@ func NewConfig(name, typeName string, log internal.FieldLogger, endpoint, routep
 }
 
 // NewInstance  returns a mocked version of the config
-func (c *Config) NewInstance(ctx context.Context) (reader.DataReader, error) {
-	return New(c.MockLogger, c.Endpoint(), c.MockName, c.MockTypeName, c.MockInterval, c.MockTimeout, c.MockBackoff)
+func (c *Config) NewInstance() (reader.DataReader, error) {
+	endpoint, err := url.Parse(c.Endpoint())
+	if err != nil {
+		return nil, errors.Wrap(err, "new config")
+	}
+	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
+	return New(
+		reader.SetLogger(c.Logger()),
+		reader.SetEndpoint(c.Endpoint()),
+		reader.SetName(c.Name()),
+		reader.SetTypeName(c.TypeName()),
+		reader.SetInterval(c.Interval()),
+		reader.SetTimeout(c.Timeout()),
+		reader.SetBackoff(c.Backoff()),
+	)
 }
 
 // Name returns the name

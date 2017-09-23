@@ -22,10 +22,8 @@ func TestParseReader(t *testing.T) {
 
 	v.ReadConfig(bytes.NewBuffer([]byte("")))
 	_, err := parseReader(v, log, "non_existence_plugin", "readers.reader1")
-	if _, ok := errors.Cause(err).(interface {
-		NotSupported()
-	}); !ok {
-		t.Errorf("want NotSupportedErr error, got (%v)", err)
+	if _, ok := errors.Cause(err).(ErrNotSupported); !ok {
+		t.Errorf("want ErrNotSupported error, got (%v)", err)
 	}
 	if !strings.Contains(err.Error(), "non_existence_plugin") {
 		t.Errorf("expected non_existence_plugin in error message, got (%s)", err)
@@ -79,8 +77,8 @@ func TestStructureErr(t *testing.T) {
 	}
 
 	s = (*StructureErr)(nil)
-	if s.Error() != "<nil>" {
-		t.Errorf("want (<nil>), got (%s)", s.Error())
+	if s.Error() != nilStr {
+		t.Errorf("want (%s), got (%s)", nilStr, s.Error())
 	}
 }
 
@@ -88,7 +86,7 @@ func TestNotSpecifiedErr(t *testing.T) {
 	section := "section name"
 	reason := "reason name"
 	err := errors.New("my error")
-	s := &notSpecifiedErr{
+	s := &ErrNotSpecified{
 		Section: section,
 		Reason:  reason,
 		Err:     err,
@@ -107,9 +105,9 @@ func TestNotSpecifiedErr(t *testing.T) {
 		t.Errorf("want (%v), got (%v)", err, s.Err)
 	}
 
-	s = (*notSpecifiedErr)(nil)
-	if s.Error() != "<nil>" {
-		t.Errorf("want (<nil>), got (%s)", s.Error())
+	s = (*ErrNotSpecified)(nil)
+	if s.Error() != nilStr {
+		t.Errorf("want (%s), got (%s)", nilStr, s.Error())
 	}
 }
 
@@ -117,7 +115,7 @@ func TestRoutersErr(t *testing.T) {
 	section := "section name"
 	reason := "reason name"
 	err := errors.New("my error")
-	s := newRoutersErr(section, reason, err)
+	s := NewErrRouters(section, reason, err)
 
 	if !strings.Contains(s.Error(), section) {
 		t.Errorf("want (%s) in the message, got (%s)", section, s.Error())
@@ -132,23 +130,21 @@ func TestRoutersErr(t *testing.T) {
 		t.Errorf("want (%v), got (%v)", err, s.Err)
 	}
 
-	s = (*routersErr)(nil)
-	if s.Error() != "<nil>" {
-		t.Errorf("want (<nil>), got (%s)", s.Error())
+	s = (*ErrRouters)(nil)
+	if s.Error() != nilStr {
+		t.Errorf("want (%s), got (%s)", nilStr, s.Error())
 	}
 }
 
 func TestNotSupportedErr(t *testing.T) {
 	msg := "god"
-	s := notSupportedErr(msg)
+	s := ErrNotSupported(msg)
 
 	if !strings.Contains(s.Error(), msg) {
 		t.Errorf("want (%s) in the message, got (%s)", msg, s.Error())
 	}
 
-	if _, ok := interface{}(s).(interface {
-		NotSupported()
-	}); !ok {
-		t.Errorf("want notSupportedErr interface, got (%v)", s)
+	if _, ok := interface{}(s).(ErrNotSupported); !ok {
+		t.Errorf("want ErrNotSupported interface, got (%v)", s)
 	}
 }

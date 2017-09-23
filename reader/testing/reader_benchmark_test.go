@@ -14,9 +14,8 @@ import (
 
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/internal/token"
+	"github.com/arsham/expipe/reader"
 )
-
-var count = 0
 
 func BenchmarkReader0_0(b *testing.B)           { benchmarkReader(0, 0, b) }
 func BenchmarkReader0_10(b *testing.B)          { benchmarkReader(0, 10, b) }
@@ -39,7 +38,16 @@ func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
 	}))
 	defer ts.Close()
 
-	red, err := New(log, ts.URL, "reader_example", "reader_example", 10*time.Millisecond, 10*time.Millisecond, 100)
+	red, err := New(
+		reader.SetLogger(log),
+		reader.SetEndpoint(ts.URL),
+		reader.SetName("reader_example"),
+		reader.SetTypeName("reader_example"),
+		reader.SetInterval(10*time.Millisecond),
+		reader.SetTimeout(time.Second),
+		reader.SetBackoff(10),
+	)
+
 	if err != nil {
 		b.Fatal(err)
 	}

@@ -5,14 +5,11 @@
 package testing_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
 	recorder_test "github.com/arsham/expipe/recorder/testing"
 )
@@ -21,36 +18,34 @@ import (
 // works perfect, so other tests can rely on it.
 
 var (
-	log        internal.FieldLogger
 	testServer *httptest.Server
 )
 
 func TestMain(m *testing.M) {
-	log = internal.DiscardLogger()
 	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	exitCode := m.Run()
 	testServer.Close()
 	os.Exit(exitCode)
 }
 
-type Construct struct {
-	name      string
-	indexName string
-	endpoint  string
-	interval  time.Duration
-	timeout   time.Duration
-	backoff   int
+func getTestServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 }
 
-func (c *Construct) SetName(name string)                { c.name = name }
-func (c *Construct) SetIndexName(indexName string)      { c.indexName = indexName }
-func (c *Construct) SetEndpoint(endpoint string)        { c.endpoint = endpoint }
-func (c *Construct) SetInterval(interval time.Duration) { c.interval = interval }
-func (c *Construct) SetTimeout(timeout time.Duration)   { c.timeout = timeout }
-func (c *Construct) SetBackoff(backoff int)             { c.backoff = backoff }
-func (c *Construct) TestServer() *httptest.Server       { return testServer }
+type Construct struct {
+	*recorder_test.Recorder
+	testServer *httptest.Server
+}
+
+func (c *Construct) TestServer() *httptest.Server { return c.testServer }
 func (c *Construct) Object() (recorder.DataRecorder, error) {
-	return recorder_test.New(context.Background(), log, c.name, c.endpoint, c.indexName, c.timeout, c.backoff)
+	return recorder_test.New(
+		recorder.SetEndpoint(c.Endpoint()),
+		recorder.SetName(c.Name()),
+		recorder.SetIndexName(c.IndexName()),
+		recorder.SetTimeout(c.Timeout()),
+		recorder.SetBackoff(c.Backoff()),
+	)
 }
 
 func (c *Construct) ValidEndpoints() []string {
@@ -73,5 +68,16 @@ func (c *Construct) InvalidEndpoints() []string {
 }
 
 func TestMockRecorder(t *testing.T) {
-	recorder_test.TestRecorder(t, &Construct{})
+	for name, fn := range recorder_test.TestSuites() {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			r, err := recorder_test.New()
+			if err != nil {
+				panic(err)
+			}
+			c := &Construct{r, getTestServer()}
+			defer c.testServer.Close()
+			fn(t, c)
+		})
+	}
 }
