@@ -6,36 +6,41 @@ package expipe_test
 
 import (
 	"fmt"
-	"strings"
-	"testing"
 
 	"github.com/arsham/expipe"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-func TestPingError(t *testing.T) {
-	name1 := "divine"
-	err1 := fmt.Errorf("is a myth")
-	e := expipe.ErrPing{name1: err1}
+var _ = Describe("Error messages", func() {
+	Context("with ErrPing", func() {
 
-	if !strings.Contains(e.Error(), err1.Error()) {
-		t.Errorf("want (%s) in error message, got (%s)", err1.Error(), e.Error())
-	}
+		Context("given one pair", func() {
+			name := "divine"
+			body := "is a myth"
+			err := expipe.ErrPing{name: fmt.Errorf(body)}
+			Specify("error message should contain the body and the name of the error", func() {
+				Expect(err.Error()).To(ContainSubstring(name))
+				Expect(err.Error()).To(ContainSubstring(body))
+			})
+		})
 
-	name2 := "science"
-	err2 := fmt.Errorf("is wrong")
-	e = expipe.ErrPing{name1: err1, name2: err2}
-
-	if !strings.Contains(e.Error(), err1.Error()) {
-		t.Errorf("want (%s) in error message, got (%s)", err1.Error(), e.Error())
-	}
-	if !strings.Contains(e.Error(), name1) {
-		t.Errorf("want (%s) in error message, got (%s)", name1, e.Error())
-	}
-
-	if !strings.Contains(e.Error(), err2.Error()) {
-		t.Errorf("want (%s) in error message, got (%s)", err2.Error(), e.Error())
-	}
-	if !strings.Contains(e.Error(), name2) {
-		t.Errorf("want (%s) in error message, got (%s)", name2, e.Error())
-	}
-}
+		Context("given two pairs", func() {
+			name1 := "divine"
+			body1 := "is a myth"
+			name2 := "science"
+			body2 := "just works!"
+			err := expipe.ErrPing{
+				name1: fmt.Errorf(body1),
+				name2: fmt.Errorf(body2),
+			}
+			Specify("error message should contain the body and the name of the error pairs", func() {
+				Expect(err.Error()).To(ContainSubstring(name1))
+				Expect(err.Error()).To(ContainSubstring(body1))
+				Expect(err.Error()).To(ContainSubstring(name2))
+				Expect(err.Error()).To(ContainSubstring(body2))
+			})
+		})
+	})
+})
