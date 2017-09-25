@@ -10,10 +10,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/internal/datatype"
 	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/reader/self"
-	reader_test "github.com/arsham/expipe/reader/testing"
+	reader_testing "github.com/arsham/expipe/reader/testing"
 )
 
 var (
@@ -41,6 +42,7 @@ func (c *Construct) Object() (reader.DataReader, error) {
 		reader.SetInterval(c.Interval()),
 		reader.SetTimeout(c.Timeout()),
 		reader.SetBackoff(c.Backoff()),
+		reader.SetLogger(internal.DiscardLogger()),
 	)
 	if err == nil {
 		red.SetTestMode()
@@ -49,14 +51,10 @@ func (c *Construct) Object() (reader.DataReader, error) {
 }
 
 func TestSelfReader(t *testing.T) {
-	for name, fn := range reader_test.TestSuites() {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			r, err := self.New(reader.SetName("test"))
-			if err != nil {
-				panic(err)
-			}
-			fn(t, &Construct{r})
-		})
+	r, err := self.New(reader.SetName("test"))
+	if err != nil {
+		panic(err)
 	}
+	c := &Construct{r}
+	reader_testing.TestSuites(t, c)
 }

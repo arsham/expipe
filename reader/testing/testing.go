@@ -6,16 +6,13 @@
 // an object that implements the Constructor interface then run:
 //
 //    import reader_test "github.com/arsham/expipe/reader/testing"
-//
-//    for name, fn := range reader_test.TestSuites() {
-//        t.Run(name, func(t *testing.T) {
-//            r, err := reader_test.New(reader.SetName("test"))
-//            if err != nil {
-//                panic(err)
-//            }
-//            fn(t, &Construct{r})
-//        })
+//    ....
+//    r, err := reader_test.New(reader.SetName("test"))
+//    if err != nil {
+//        panic(err)
 //    }
+//    c := &Construct{r}
+//    reader_test.TestSuites(t, c)
 //
 // The test suit will pick it up and does all the tests.
 //
@@ -30,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/arsham/expipe/reader"
+	. "github.com/onsi/ginkgo"
 )
 
 // Constructor is an interface for setting up an object for testing.
@@ -44,54 +42,75 @@ type Constructor interface {
 }
 
 // TestSuites returns a map of test name to the runner function.
-func TestSuites() map[string]func(t *testing.T, cons Constructor) {
-	return map[string]func(t *testing.T, cons Constructor){
-		"ShouldNotChangeTheInput": func(t *testing.T, cons Constructor) {
-			testShouldNotChangeTheInput(t, cons)
-		},
+func TestSuites(t *testing.T, cons Constructor) {
 
-		"NameCheck": func(t *testing.T, cons Constructor) {
-			testNameCheck(t, cons)
-		},
+	t.Run("Should NotChangeTheInput", func(t *testing.T) {
+		Describe("Checking input", func() {
+			testShouldNotChangeTheInput(cons)
+		})
+	})
 
-		"TypeNameCheck": func(t *testing.T, cons Constructor) {
-			testTypeNameCheck(t, cons)
-		},
+	t.Run("NameCheck", func(t *testing.T) {
+		Describe("Checking name and index name", func() {
+			testNameCheck(cons)
+		})
+	})
 
-		"BackoffCheck": func(t *testing.T, cons Constructor) {
-			testBackoffCheck(t, cons)
-		},
+	t.Run("TypeNameCheck", func(t *testing.T) {
+		testTypeNameCheck(cons)
+	})
 
-		"IntervalCheck": func(t *testing.T, cons Constructor) {
-			testIntervalCheck(t, cons)
-		},
+	t.Run("BackoffCheck", func(t *testing.T) {
+		Describe("Checking backoff value", func() {
+			testBackoffCheck(cons)
+		})
+	})
 
-		"EndpointCheck": func(t *testing.T, cons Constructor) {
-			testEndpointCheck(t, cons)
-		},
+	t.Run("IntervalCheck", func(t *testing.T) {
+		Describe("Checking interval value", func() {
+			testIntervalCheck(cons)
+		})
+	})
 
-		"ReceivesJob": func(t *testing.T, cons Constructor) {
-			testReaderReceivesJob(t, cons)
-		},
+	t.Run("EndpointCheck", func(t *testing.T) {
+		Describe("Checking endpoint value", func() {
+			testEndpointCheck(cons)
+		})
+	})
 
-		"ReturnsSameID": func(t *testing.T, cons Constructor) {
-			testReaderReturnsSameID(t, cons)
-		},
+	t.Run("ReceivesJob", func(t *testing.T) {
+		Describe("Receiving payload", func() {
+			testReaderReceivesJob(cons)
+		})
+	})
 
-		"PingingEndpoint": func(t *testing.T, cons Constructor) {
-			pingingEndpoint(t, cons)
-		},
+	t.Run("ReturnsSameID", func(t *testing.T) {
+		Describe("Returning the same job ID", func() {
+			testReaderReturnsSameID(cons)
+		})
+	})
 
-		"ErrorsOnEndpointDisapears": func(t *testing.T, cons Constructor) {
-			testReaderErrorsOnEndpointDisapears(t, cons)
-		},
+	t.Run("PingingEndpoint", func(t *testing.T) {
+		Describe("Pinging the endpoint", func() {
+			pingingEndpoint(cons)
+		})
+	})
 
-		"BacksOffOnEndpointGone": func(t *testing.T, cons Constructor) {
-			testReaderBacksOffOnEndpointGone(t, cons)
-		},
+	t.Run("ErrorsOnEndpointDisapears", func(t *testing.T) {
+		Describe("Backing off when the endpoint disappears", func() {
+			testReaderErrorsOnEndpointDisapears(cons)
+		})
+	})
 
-		"ReadingReturnsErrorIfNotPingedYet": func(t *testing.T, cons Constructor) {
-			testReadingReturnsErrorIfNotPingedYet(t, cons)
-		},
-	}
+	t.Run("BacksOffOnEndpointGone", func(t *testing.T) {
+		Describe("Backing off when the endpoint is gone", func() {
+			testReaderBacksOffOnEndpointGone(cons)
+		})
+	})
+
+	t.Run("ReadingReturnsErrorIfNotPingedYet", func(t *testing.T) {
+		Describe("Reading without pinging", func() {
+			testReadingReturnsErrorIfNotPingedYet(cons)
+		})
+	})
 }

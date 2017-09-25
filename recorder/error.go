@@ -39,16 +39,6 @@ type ErrLowBackoffValue int64
 func (ErrLowBackoffValue) LowBackoffValue() {}
 func (e ErrLowBackoffValue) Error() string  { return fmt.Sprintf("back off should be at least 5: %d", e) }
 
-// ErrParseInterval is for when the timeout cannot be parsed
-type ErrParseInterval struct {
-	Interval string
-	Err      error
-}
-
-func (e ErrParseInterval) Error() string {
-	return fmt.Sprintf("parse interval (%s): %s", e.Interval, e.Err)
-}
-
 // ErrParseTimeOut is for when the timeout cannot be parsed
 type ErrParseTimeOut struct {
 	Timeout string

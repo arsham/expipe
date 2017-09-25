@@ -6,118 +6,109 @@ package testing
 
 import (
 	"context"
-	"fmt"
-	"testing"
 	"time"
 
 	"github.com/arsham/expipe/internal/token"
+	"github.com/arsham/expipe/reader"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 // testReaderReceivesJob is a test helper to test the reader can receive jobs
-func testReaderReceivesJob(t *testing.T, cons Constructor) {
-	cons.SetName("the name")
-	cons.SetTypeName("my type")
-	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetInterval(time.Hour)
-	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(5)
+func testReaderReceivesJob(cons Constructor) {
+	Context("Having a reader setup", func() {
+		var (
+			err error
+			red reader.DataReader
+		)
+		cons.SetName("the name")
+		cons.SetTypeName("my type")
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetInterval(time.Hour)
+		cons.SetTimeout(time.Hour)
+		cons.SetBackoff(5)
 
-	red, err := cons.Object()
-	if err != nil {
-		t.Fatalf("unexpected error occurred during reader creation: %v", err)
-	}
-	err = red.Ping()
-	if err != nil {
-		t.Fatal(err)
-	}
-	ctx := context.Background()
-	done := make(chan struct{})
-	errChan := make(chan string)
-	fatalChan := make(chan string)
-	go func() {
-		result, err := red.Read(token.New(ctx))
-		if err != nil {
-			errChan <- fmt.Sprintf("want nil, got (%v)", err)
-			return
-		}
-		if result == nil {
-			fatalChan <- "expecting results, got nil"
-			return
-		}
-		if result.ID.String() == "" {
-			errChan <- "expecting ID, got nil"
-			return
-		}
-		if result.TypeName == "" {
-			errChan <- "expecting TypeName, got empty string"
-			return
-		}
-		if result.Content == nil {
-			errChan <- "expecting Res, got nil"
-			return
-		}
-		if result.Mapper == nil {
-			errChan <- "expecting Mapper, got nil"
-			return
-		}
-		close(done)
-	}()
+		Context("when creating the reader", func() {
+			red, err = cons.Object()
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 
-	select {
-	case <-done:
-	case msg := <-errChan:
-		t.Error(msg)
-	case msg := <-fatalChan:
-		t.Fatal(msg)
-	case <-time.After(5 * time.Second):
-		t.Error("expected the reader to receive the job, but it blocked")
-	}
+		Context("when pinging", func() {
+			err = red.Ping()
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("When reading from the endpoint", func() {
+
+			ctx := context.Background()
+			result, err := red.Read(token.New(ctx))
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+			Specify("result should not be nil", func() {
+				Expect(result).NotTo(BeNil())
+			})
+			Specify("result.ID should not be empty", func() {
+				Expect(result.ID).NotTo(BeEmpty())
+			})
+			Specify("result.TypeName should not be empty", func() {
+				Expect(result.TypeName).NotTo(BeEmpty())
+			})
+			Specify("result.Content should not be nil", func() {
+				Expect(result.Content).NotTo(BeNil())
+			})
+			Specify("result.Mapper should not be nil", func() {
+				Expect(result.Mapper).NotTo(BeNil())
+			})
+		})
+	})
 }
 
 // testReaderReturnsSameID is a test helper to test the reader returns the same ID in the response
-func testReaderReturnsSameID(t *testing.T, cons Constructor) {
-	cons.SetName("the name")
-	cons.SetTypeName("my type")
-	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetInterval(time.Hour)
-	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(5)
-	red, err := cons.Object()
-	if err != nil {
-		t.Fatalf("unexpected error occurred during reader creation: %v", err)
-	}
-	err = red.Ping()
-	if err != nil {
-		t.Fatal(err)
-	}
+func testReaderReturnsSameID(cons Constructor) {
+	Context("Having a reader set up", func() {
+		var (
+			red reader.DataReader
+			err error
+		)
+		cons.SetName("the name")
+		cons.SetTypeName("my type")
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetInterval(time.Hour)
+		cons.SetTimeout(time.Hour)
+		cons.SetBackoff(5)
 
-	done := make(chan struct{})
-	errChan := make(chan string)
-	fatalChan := make(chan string)
-	go func() {
-		ctx := context.Background()
-		job := token.New(ctx)
-		result, err := red.Read(job)
-		if err != nil {
-			errChan <- fmt.Sprintf("want nil, got (%v)", err)
-		}
-		if result == nil {
-			fatalChan <- "expecting results, got nil"
-		}
-		if result.ID != job.ID() {
-			errChan <- fmt.Sprintf("want (%v), got (%v)", job.ID(), result.ID)
-		}
+		Context("when creating the reader", func() {
+			red, err = cons.Object()
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+		Context("when pinging the endpoint", func() {
+			err = red.Ping()
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 
-		close(done)
-	}()
+		Context("when reading from the endpoint", func() {
 
-	select {
-	case <-done:
-	case msg := <-errChan:
-		t.Error(msg)
-	case msg := <-fatalChan:
-		t.Fatal(msg)
-	case <-time.After(5 * time.Second):
-		t.Error("expected the reader to receive the job, but it blocked")
-	}
+			ctx := context.Background()
+			job := token.New(ctx)
+			result, err := red.Read(job)
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+			Specify("result should not be nil", func() {
+				Expect(result).NotTo(BeNil())
+			})
+			Specify("result.ID should be job.ID", func() {
+				Expect(result.ID).To(Equal(job.ID()))
+			})
+		})
+	})
 }

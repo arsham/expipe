@@ -5,13 +5,10 @@
 package testing
 
 import (
-	"net/url"
-	"path"
 	"time"
 
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
-	"github.com/pkg/errors"
 )
 
 // Config holds the necessary configuration for setting up an elasticsearch recorder endpoint.
@@ -38,12 +35,7 @@ func NewConfig(name string, log internal.FieldLogger, endpoint string, timeout t
 
 // NewInstance returns a mocked object
 func (c *Config) NewInstance() (recorder.DataRecorder, error) {
-	endpoint, err := url.Parse(c.Endpoint())
-	if err != nil {
-		return nil, errors.Wrap(err, "new config")
-	}
-	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
-	d, err := New(
+	return New(
 		recorder.SetLogger(c.Logger()),
 		recorder.SetEndpoint(c.Endpoint()),
 		recorder.SetName(c.Name()),
@@ -51,7 +43,6 @@ func (c *Config) NewInstance() (recorder.DataRecorder, error) {
 		recorder.SetTimeout(c.Timeout()),
 		recorder.SetBackoff(c.Backoff()),
 	)
-	return d, err
 }
 
 // Name is the mocked version
@@ -62,9 +53,6 @@ func (c *Config) IndexName() string { return c.MockIndexName }
 
 // Endpoint is the mocked version
 func (c *Config) Endpoint() string { return c.MockEndpoint }
-
-// RoutePath is the mocked version
-func (c *Config) RoutePath() string { return "" }
 
 // Timeout is the mocked version
 func (c *Config) Timeout() time.Duration { return c.MockTimeout }

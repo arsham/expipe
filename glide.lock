@@ -1,5 +1,5 @@
-hash: 5f22d461002c265e14a183c57d5c583e94bec62f697ed497b490ab37a029abdc
-updated: 2017-09-22T13:37:36.99681145+01:00
+hash: bf9de91082b80c16d00651e3e833b85af28881ca8f40be468df666cc42575f80
+updated: 2017-09-25T09:29:03.16111356+01:00
 imports:
 - name: github.com/antonholmquist/jason
   version: c23cef7eaa75a6a5b8810120e167bd590d8fd2ab
@@ -27,7 +27,7 @@ imports:
 - name: github.com/olivere/elastic
   version: 575dcf5070608328cb017251b40a8f06c5fa99b7
 - name: github.com/pelletier/go-toml
-  version: 1d6b12b7cb290426e27e6b4e38b89fcda3aeef03
+  version: 16398bac157da96aa88f98a2df640c7f32af1da2
 - name: github.com/pkg/errors
   version: 2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb
 - name: github.com/satori/go.uuid
@@ -57,6 +57,9 @@ imports:
   subpackages:
   - context
   - context/ctxhttp
+  - html
+  - html/atom
+  - html/charset
 - name: golang.org/x/sys
   version: 429f518978ab01db8bb6f44b66785088e7fba58b
   subpackages:
@@ -64,6 +67,20 @@ imports:
 - name: golang.org/x/text
   version: 1cbadb444a806fd9430d14ad08967ed91da4fa0a
   subpackages:
+  - encoding
+  - encoding/charmap
+  - encoding/htmlindex
+  - encoding/internal
+  - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/korean
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
+  - encoding/unicode
+  - internal/tag
+  - internal/utf8internal
+  - language
+  - runes
   - transform
   - unicode/norm
 - name: gopkg.in/olivere/elastic.v5
@@ -73,4 +90,38 @@ imports:
   - uritemplates
 - name: gopkg.in/yaml.v2
   version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
-testImports: []
+testImports:
+- name: github.com/onsi/ginkgo
+  version: 11459a886d9cd66b319dac7ef1e917ee221372c9
+  subpackages:
+  - config
+  - internal/codelocation
+  - internal/containernode
+  - internal/failer
+  - internal/leafnodes
+  - internal/remote
+  - internal/spec
+  - internal/spec_iterator
+  - internal/specrunner
+  - internal/suite
+  - internal/testingtproxy
+  - internal/writer
+  - reporters
+  - reporters/stenographer
+  - reporters/stenographer/support/go-colorable
+  - reporters/stenographer/support/go-isatty
+  - types
+- name: github.com/onsi/gomega
+  version: dcabb60a477c2b6f456df65037cb6708210fbb02
+  subpackages:
+  - format
+  - internal/assertion
+  - internal/asyncassertion
+  - internal/oraclematcher
+  - internal/testingtsupport
+  - matchers
+  - matchers/support/goraph/bipartitegraph
+  - matchers/support/goraph/edge
+  - matchers/support/goraph/node
+  - matchers/support/goraph/util
+  - types
