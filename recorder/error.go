@@ -35,9 +35,7 @@ func (e ErrInvalidEndpoint) Error() string { return fmt.Sprintf("invalid endpoin
 // ErrLowBackoffValue is the error when the endpoint is not a valid url
 type ErrLowBackoffValue int64
 
-// LowBackoffValue defines the behaviour of the error
-func (ErrLowBackoffValue) LowBackoffValue() {}
-func (e ErrLowBackoffValue) Error() string  { return fmt.Sprintf("back off should be at least 5: %d", e) }
+func (e ErrLowBackoffValue) Error() string { return fmt.Sprintf("back off should be at least 5: %d", e) }
 
 // ErrParseTimeOut is for when the timeout cannot be parsed
 type ErrParseTimeOut struct {

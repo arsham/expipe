@@ -2,12 +2,13 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package internal
+package internal_test
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/arsham/expipe/internal"
 	"github.com/pkg/errors"
 )
 
@@ -31,18 +32,16 @@ func TestSanitiseURLErrors(t *testing.T) {
 	for i, tc := range tcs {
 		name := fmt.Sprintf("error_case_%d", i)
 		t.Run(name, func(t *testing.T) {
-			res, err := SanitiseURL(tc.input)
+			res, err := internal.SanitiseURL(tc.input)
 			if res != tc.expected {
 				t.Errorf("want (%v), got (%v)", tc.expected, res)
 			}
 			err = errors.Cause(err)
-			if _, ok := err.(interface {
-				InvalidURL()
-			}); !ok {
-				t.Errorf("want (InvalidURL) type, got (%v)", err)
+			if _, ok := err.(internal.ErrInvalidURL); !ok {
+				t.Errorf("want (ErrInvalidURL) type, got (%v)", err)
 			}
-			if err.Error() != errInvalidURL(tc.input).Error() {
-				t.Errorf("want (%v), got (%v)", errInvalidURL(tc.input), err)
+			if err.Error() != internal.ErrInvalidURL(tc.input).Error() {
+				t.Errorf("want (%v), got (%v)", internal.ErrInvalidURL(tc.input), err)
 			}
 		})
 	}
@@ -70,7 +69,7 @@ func TestSanitiseURLPasses(t *testing.T) {
 	for i, tc := range tcs {
 		name := fmt.Sprintf("pass_case_%d", i)
 		t.Run(name, func(t *testing.T) {
-			res, err := SanitiseURL(tc.input)
+			res, err := internal.SanitiseURL(tc.input)
 			if res != tc.expected {
 				t.Errorf("want (%v), got (%v)", tc.expected, res)
 			}
