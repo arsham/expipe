@@ -5,13 +5,12 @@
 package testing
 
 import (
-	"reflect"
 	"strconv"
-	"strings"
-	"testing"
 	"time"
 
 	"github.com/arsham/expipe/reader"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 )
 
@@ -20,131 +19,171 @@ const (
 	typeName = "my type"
 )
 
-func testShouldNotChangeTheInput(t *testing.T, cons Constructor) {
-	endpoint := cons.TestServer().URL
-	interval := time.Hour
-	timeout := time.Hour
-	backoff := 5
-	cons.SetName(name)
-	cons.SetTypeName(typeName)
-	cons.SetEndpoint(endpoint)
-	cons.SetInterval(interval)
-	cons.SetTimeout(timeout)
-	cons.SetBackoff(backoff)
+func testShouldNotChangeTheInput(cons Constructor) {
+	Context("With given input", func() {
 
-	red, err := cons.Object()
-	if err != nil {
-		t.Fatalf("unexpected error occurred during reader creation: %v", err)
-	}
+		endpoint := cons.TestServer().URL
+		interval := time.Second
+		timeout := time.Second
+		backoff := 5
+		cons.SetName(name)
+		cons.SetTypeName(typeName)
+		cons.SetEndpoint(endpoint)
+		cons.SetInterval(interval)
+		cons.SetTimeout(timeout)
+		cons.SetBackoff(backoff)
 
-	if red.Name() != name {
-		t.Errorf("given name should not be changed: %v", red.Name())
-	}
-	if red.TypeName() != typeName {
-		t.Errorf("given type name should not be changed: %v", red.TypeName())
-	}
-	if red.Interval() != interval {
-		t.Errorf("given interval should not be changed: %v", red.Timeout())
-	}
-	if red.Timeout() != timeout {
-		t.Errorf("given timeout should not be changed: %v", red.Timeout())
-	}
+		red, err := cons.Object()
+		It("should not error", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+		Specify("name should not be changed", func() {
+			Expect(red.Name()).To(Equal(name))
+		})
+		Specify("type name should not be changed", func() {
+			Expect(red.TypeName()).To(Equal(typeName))
+		})
+		Specify("interval value should not be changed", func() {
+			Expect(red.Interval()).To(Equal(interval))
+		})
+		Specify("timeout value should not be changed", func() {
+			Expect(red.Timeout()).To(Equal(timeout))
+		})
+	})
 }
 
-func testNameCheck(t *testing.T, cons Constructor) {
-	endpoint := cons.TestServer().URL
-	cons.SetName("")
-	cons.SetEndpoint(endpoint)
+func testNameCheck(cons Constructor) {
+	var (
+		err      error
+		red      reader.DataReader
+		name     string
+		typeName string
+	)
 
-	red, err := cons.Object()
-	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("expected nil, got (%v)", red)
-	}
-	if errors.Cause(err) != reader.ErrEmptyName {
-		t.Errorf("expected ErrEmptyName, got (%v)", err)
-	}
+	BeforeEach(func() {
+		name = "The name"
+		typeName = "the_type_name"
+		cons.SetName(name)
+		cons.SetTypeName(typeName)
+		cons.SetTimeout(time.Hour)
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetBackoff(5)
+	})
+
+	Context("given empty name", func() {
+		BeforeEach(func() {
+			cons.SetName("")
+			red, err = cons.Object()
+		})
+
+		It("should error", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(Equal(reader.ErrEmptyName))
+		})
+		Specify("reader should be nil", func() {
+			Expect(red).To(BeNil())
+		})
+	})
 }
 
-func testTypeNameCheck(t *testing.T, cons Constructor) {
-	endpoint := cons.TestServer().URL
+func testTypeNameCheck(cons Constructor) {
+	var (
+		err error
+		red reader.DataReader
+	)
+
 	cons.SetName(name)
 	cons.SetTypeName("")
-	cons.SetEndpoint(endpoint)
+	cons.SetEndpoint(cons.TestServer().URL)
 
-	red, err := cons.Object()
-	if !reflect.ValueOf(red).IsNil() {
-		t.Fatalf("expected nil, got (%v)", red)
-	}
-	if errors.Cause(err) != reader.ErrEmptyTypeName {
-		t.Errorf("expected ErrEmptyTypeName, got (%v)", err)
-	}
+	Context("given empty type name", func() {
+		red, err = cons.Object()
+
+		It("should error", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(Equal(reader.ErrEmptyTypeName))
+		})
+		Specify("reader should be nil", func() {
+			Expect(red).To(BeNil())
+		})
+	})
+
 }
 
-func testBackoffCheck(t *testing.T, cons Constructor) {
-	endpoint := cons.TestServer().URL
-	backoff := 3
-	cons.SetEndpoint(endpoint)
+func testBackoffCheck(cons Constructor) {
+	Context("with low backoff value", func() {
+
+		backoff := 3
+		cons.SetName("the name")
+		cons.SetTypeName("my_type_name")
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetTimeout(time.Second)
+		cons.SetBackoff(backoff)
+
+		red, err := cons.Object()
+		Specify("reader to be nil", func() {
+			Expect(red).To(BeNil())
+		})
+		It("should error and mention the backoff value", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(BeAssignableToTypeOf(reader.ErrLowBackoffValue(0)))
+			Expect(err.Error()).To(ContainSubstring(strconv.Itoa(backoff)))
+		})
+	})
+}
+
+func testIntervalCheck(cons Constructor) {
+	Context("with zero interval value", func() {
+		endpoint := cons.TestServer().URL
+		interval := 0
+		cons.SetEndpoint(endpoint)
+		cons.SetName("the name")
+		cons.SetTypeName("my type")
+		cons.SetInterval(time.Duration(interval))
+
+		red, err := cons.Object()
+		Specify("reader to be nil", func() {
+			Expect(red).To(BeNil())
+		})
+		It("should error and mention the interval value", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(BeAssignableToTypeOf(reader.ErrLowInterval(0)))
+			Expect(err.Error()).To(ContainSubstring(strconv.Itoa(interval)))
+		})
+	})
+}
+
+func testEndpointCheck(cons Constructor) {
 	cons.SetName("the name")
 	cons.SetTypeName("my type")
-	cons.SetBackoff(backoff)
+	cons.SetTimeout(time.Second)
+	cons.SetInterval(time.Second)
+	cons.SetBackoff(5)
 
-	red, err := cons.Object()
-	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("expected nil, got (%#v)", red)
-	}
-	err = errors.Cause(err)
-	if _, ok := err.(reader.ErrLowBackoffValue); !ok {
-		t.Fatalf("expected ErrLowBackoffValue, got (%v)", err)
-	}
-	if !strings.Contains(err.Error(), strconv.Itoa(backoff)) {
-		t.Errorf("expected (%d) be mentioned, got (%v)", backoff, err)
-	}
-}
+	Context("With invalid endpoint", func() {
+		invalidEndpoint := "this is invalid"
+		cons.SetEndpoint(invalidEndpoint)
 
-func testIntervalCheck(t *testing.T, cons Constructor) {
-	endpoint := cons.TestServer().URL
-	interval := 0
-	cons.SetEndpoint(endpoint)
-	cons.SetName("the name")
-	cons.SetTypeName("my type")
-	cons.SetInterval(time.Duration(interval))
+		red, err := cons.Object()
+		Specify("reader should be nil", func() {
+			Expect(red).To(BeNil())
+		})
+		It("should error and mention the endpoint", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(BeAssignableToTypeOf(reader.ErrInvalidEndpoint("")))
+			Expect(err.Error()).To(ContainSubstring(invalidEndpoint))
+		})
+	})
 
-	red, err := cons.Object()
-	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("expected nil, got (%v)", red)
-	}
-	err = errors.Cause(err)
-	if _, ok := err.(reader.ErrLowInterval); !ok {
-		t.Fatalf("expected ErrLowInterval, got (%v)", err)
-	}
-	if !strings.Contains(err.Error(), strconv.Itoa(interval)) {
-		t.Errorf("expected (%d) be mentioned, got (%v)", interval, err)
-	}
-}
-
-func testEndpointCheck(t *testing.T, cons Constructor) {
-	cons.SetTypeName("my type")
-	cons.SetEndpoint("")
-
-	red, err := cons.Object()
-	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("expected nil, got (%v)", red)
-	}
-	if errors.Cause(err) != reader.ErrEmptyEndpoint {
-		t.Errorf("expected ErrEmptyEndpoint, got (%v)", err)
-	}
-
-	const invalidEndpoint = "this is invalid"
-	cons.SetEndpoint(invalidEndpoint)
-	red, err = cons.Object()
-	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("expected nil, got (%v)", red)
-	}
-	err = errors.Cause(err)
-	if _, ok := err.(reader.ErrInvalidEndpoint); !ok {
-		t.Fatalf("expected ErrInvalidEndpoint, got (%T)", err)
-	}
-	if !strings.Contains(err.Error(), invalidEndpoint) {
-		t.Errorf("expected (%s) be in the error message, got (%v)", invalidEndpoint, err)
-	}
+	Context("With empty endpoint", func() {
+		cons.SetEndpoint("")
+		red, err := cons.Object()
+		Specify("reader should be nil", func() {
+			Expect(red).To(BeNil())
+		})
+		It("should error", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(Equal(reader.ErrEmptyEndpoint))
+		})
+	})
 }

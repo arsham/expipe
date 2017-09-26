@@ -5,128 +5,152 @@
 package testing
 
 import (
-	"reflect"
-	"strings"
-	"testing"
+	"strconv"
 	"time"
 
 	"github.com/arsham/expipe/recorder"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 )
 
-func testShouldNotChangeTheInput(t *testing.T, cons Constructor) {
-	name := "the name"
-	indexName := "my_index_name"
-	endpoint := cons.TestServer().URL
-	timeout := time.Second
-	backoff := 5
-	cons.SetName(name)
-	cons.SetIndexName(indexName)
-	cons.SetEndpoint(endpoint)
-	cons.SetTimeout(timeout)
-	cons.SetBackoff(backoff)
+func testShouldNotChangeTheInput(cons Constructor) {
+	Context("With given input", func() {
+		name := "recorder name"
+		indexName := "recorder_index_name"
+		endpoint := cons.TestServer().URL
+		timeout := time.Second
+		backoff := 5
+		cons.SetName(name)
+		cons.SetIndexName(indexName)
+		cons.SetEndpoint(endpoint)
+		cons.SetTimeout(timeout)
+		cons.SetBackoff(backoff)
 
-	rec, err := cons.Object()
-	if err != nil {
-		t.Fatalf("unexpected error occurred during reader creation: %v", err)
-	}
-
-	if rec.Name() != name {
-		t.Errorf("given name should not be changed: %v", rec.Name())
-	}
-	if rec.IndexName() != indexName {
-		t.Errorf("given index name should not be changed: %v", rec.IndexName())
-	}
-	if rec.Timeout() != timeout {
-		t.Errorf("given timeout should not be changed: %v", rec.Timeout())
-	}
+		rec, err := cons.Object()
+		It("should not error", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+		Specify("name should not be changed", func() {
+			Expect(rec.Name()).To(Equal(name))
+		})
+		Specify("index name should not be changed", func() {
+			Expect(rec.IndexName()).To(Equal(indexName))
+		})
+		Specify("timeout should not be changed", func() {
+			Expect(rec.Timeout()).To(Equal(timeout))
+		})
+	})
 }
 
-func testBackoffCheck(t *testing.T, cons Constructor) {
-	cons.SetName("the name")
-	cons.SetIndexName("my_index_name")
-	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetTimeout(time.Second)
+func testBackoffCheck(cons Constructor) {
+	Context("with low backoff value", func() {
+		backoff := 3
+		cons.SetName("the name")
+		cons.SetIndexName("my_index_name")
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetTimeout(time.Second)
 
-	cons.SetBackoff(3)
-	rec, err := cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%#v)", rec)
-	}
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
+		cons.SetBackoff(backoff)
+		rec, err := cons.Object()
 
-	err = errors.Cause(err)
-	if _, ok := err.(interface {
-		LowBackoffValue()
-	}); !ok {
-		t.Errorf("expected ErrLowBackoffValue, got (%v)", err)
-	}
-	if !strings.Contains(err.Error(), "3") {
-		t.Errorf("expected 3 be mentioned, got (%v)", err)
-	}
+		Specify("recorder to be nil", func() {
+			Expect(rec).To(BeNil())
+		})
+		It("should error and mention the backoff value", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(BeAssignableToTypeOf(recorder.ErrLowBackoffValue(0)))
+			Expect(err.Error()).To(ContainSubstring(strconv.Itoa(backoff)))
+		})
+	})
 }
 
-func testNameCheck(t *testing.T, cons Constructor) {
-	name := "the name"
-	indexName := "index_name"
-	cons.SetName("")
-	cons.SetIndexName(indexName)
-	cons.SetTimeout(time.Hour)
-	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetBackoff(5)
+func testNameCheck(cons Constructor) {
+	var (
+		err       error
+		rec       recorder.DataRecorder
+		name      string
+		indexName string
+	)
 
-	rec, err := cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%v)", rec)
-	}
-	if errors.Cause(err) != recorder.ErrEmptyName {
-		t.Errorf("expected ErrEmptyName, got (%v)", err)
-	}
+	BeforeEach(func() {
+		name = "The name"
+		indexName = "the_index_name"
+		cons.SetName(name)
+		cons.SetIndexName(indexName)
+		cons.SetTimeout(time.Hour)
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetBackoff(5)
+	})
 
-	cons.SetName(name)
-	cons.SetIndexName("")
-	rec, err = cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%#v)", rec)
-	}
-	if errors.Cause(err) != recorder.ErrEmptyIndexName {
-		t.Errorf("expected ErrEmptyIndexName, got (%v)", err)
-	}
+	Context("given empty name", func() {
+		BeforeEach(func() {
+			cons.SetName("")
+			rec, err = cons.Object()
+		})
 
-	cons.SetName(name)
-	cons.SetIndexName("aa bb")
-	rec, err = cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%#v)", rec)
-	}
-	if _, ok := errors.Cause(err).(recorder.ErrInvalidIndexName); !ok {
-		t.Errorf("expected ErrInvalidIndexName, got (%v)", err)
-	}
+		It("should error", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(Equal(recorder.ErrEmptyName))
+		})
+		Specify("recorder should be nil", func() {
+			Expect(rec).To(BeNil())
+		})
+	})
 }
 
-func testEndpointCheck(t *testing.T, cons Constructor) {
+func testIndexNameCheck(cons Constructor) {
+	var (
+		err       error
+		rec       recorder.DataRecorder
+		name      string
+		indexName string
+	)
 
-	invalidEndpoint := "this is invalid"
-	cons.SetName("the name")
-	cons.SetIndexName("my_index_name")
-	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(5)
-	cons.SetEndpoint(invalidEndpoint)
+	BeforeEach(func() {
+		name = "the name"
+		indexName = "index_name"
+		cons.SetName(name)
+		cons.SetIndexName(indexName)
+		cons.SetTimeout(time.Hour)
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetBackoff(5)
+	})
 
-	rec, err := cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%#v)", rec)
-	}
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%v)", rec)
-	}
-	err = errors.Cause(err)
-	if _, ok := err.(recorder.ErrInvalidEndpoint); !ok {
-		t.Fatalf("expected ErrInvalidEndpoint, got (%v)", err)
-	}
-	if !strings.Contains(err.Error(), invalidEndpoint) {
-		t.Errorf("expected (%s) be in the error message, got (%v)", invalidEndpoint, err)
-	}
+	Context("given invalid index name", func() {
+		BeforeEach(func() {
+			cons.SetIndexName("aa bb")
+			rec, err = cons.Object()
+		})
+
+		It("should error", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(BeAssignableToTypeOf(recorder.ErrInvalidIndexName("")))
+		})
+		Specify("recorder should be nil", func() {
+			Expect(rec).To(BeNil())
+		})
+	})
+}
+
+func testEndpointCheck(cons Constructor) {
+	Context("With invalid endpoint", func() {
+
+		invalidEndpoint := "this is invalid"
+		cons.SetName("the name")
+		cons.SetIndexName("my_index_name")
+		cons.SetTimeout(time.Hour)
+		cons.SetBackoff(5)
+		cons.SetEndpoint(invalidEndpoint)
+		rec, err := cons.Object()
+
+		Specify("recorder should be nil", func() {
+			Expect(rec).To(BeNil())
+		})
+		It("should error and mention the endpoint", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Cause(err)).To(BeAssignableToTypeOf(recorder.ErrInvalidEndpoint("")))
+			Expect(err.Error()).To(ContainSubstring(invalidEndpoint))
+		})
+	})
 }

@@ -37,8 +37,10 @@ func (e *StructureErr) Error() string {
 	return s
 }
 
+// ErrNotSpecified is returned when a section is not specified
 type ErrNotSpecified StructureErr
 
+// NewErrNotSpecified instantiates an ErrNotSpecified with the given input
 func NewErrNotSpecified(section, reason string, err error) *ErrNotSpecified {
 	return &ErrNotSpecified{section, reason, err}
 }
@@ -64,6 +66,7 @@ func (e *ErrNotSpecified) Error() string {
 // The section on this error is the subsection of the route.
 type ErrRouters struct{ StructureErr }
 
+// NewErrRouters instantiates an ErrRouters with the given input
 func NewErrRouters(section, reason string, err error) *ErrRouters {
 	return &ErrRouters{StructureErr{section, reason, err}}
 }

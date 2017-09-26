@@ -5,48 +5,38 @@
 package testing
 
 import (
-	"net/url"
-	"path"
 	"time"
 
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
-	"github.com/pkg/errors"
 )
 
 // Config is used for instantiating a mock reader
 type Config struct {
-	MockName      string
-	MockTypeName  string
-	MockEndpoint  string
-	MockRoutePath string
-	MockTimeout   time.Duration
-	MockInterval  time.Duration
-	MockBackoff   int
-	MockLogger    internal.FieldLogger
+	MockName     string
+	MockTypeName string
+	MockEndpoint string
+	MockTimeout  time.Duration
+	MockInterval time.Duration
+	MockBackoff  int
+	MockLogger   internal.FieldLogger
 }
 
 // NewConfig returns a mocked version of the Config
-func NewConfig(name, typeName string, log internal.FieldLogger, endpoint, routepath string, interval, timeout time.Duration, backoff int) (*Config, error) {
+func NewConfig(name, typeName string, log internal.FieldLogger, endpoint string, interval, timeout time.Duration, backoff int) (*Config, error) {
 	return &Config{
-		MockName:      name,
-		MockTypeName:  typeName,
-		MockEndpoint:  endpoint,
-		MockRoutePath: routepath,
-		MockTimeout:   timeout,
-		MockInterval:  interval,
-		MockLogger:    log,
-		MockBackoff:   backoff,
+		MockName:     name,
+		MockTypeName: typeName,
+		MockEndpoint: endpoint,
+		MockTimeout:  timeout,
+		MockInterval: interval,
+		MockLogger:   log,
+		MockBackoff:  backoff,
 	}, nil
 }
 
 // NewInstance  returns a mocked version of the config
 func (c *Config) NewInstance() (reader.DataReader, error) {
-	endpoint, err := url.Parse(c.Endpoint())
-	if err != nil {
-		return nil, errors.Wrap(err, "new config")
-	}
-	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
 	return New(
 		reader.SetLogger(c.Logger()),
 		reader.SetEndpoint(c.Endpoint()),
@@ -66,9 +56,6 @@ func (c *Config) TypeName() string { return c.MockTypeName }
 
 // Endpoint returns the endpoint
 func (c *Config) Endpoint() string { return c.MockEndpoint }
-
-// RoutePath returns the routepath
-func (c *Config) RoutePath() string { return c.MockRoutePath }
 
 // Interval returns the interval
 func (c *Config) Interval() time.Duration { return c.MockInterval }

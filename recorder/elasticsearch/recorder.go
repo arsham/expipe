@@ -202,8 +202,5 @@ func (r *Recorder) Backoff() int { return r.backoff }
 // SetBackoff sets the backoff of the recorder
 func (r *Recorder) SetBackoff(backoff int) { r.backoff = backoff }
 
-// Logger returns the log
-func (r *Recorder) Logger() internal.FieldLogger { return r.log }
-
 // SetLogger sets the log of the recorder
 func (r *Recorder) SetLogger(log internal.FieldLogger) { r.log = log }

@@ -12,7 +12,7 @@ import (
 
 	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/reader/expvar"
-	reader_test "github.com/arsham/expipe/reader/testing"
+	reader_testing "github.com/arsham/expipe/reader/testing"
 )
 
 var (
@@ -43,15 +43,11 @@ func (c *Construct) Object() (reader.DataReader, error) {
 	)
 }
 
-func TestExpvar(t *testing.T) {
-	for name, fn := range reader_test.TestSuites() {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			r, err := expvar.New(reader.SetName("test"))
-			if err != nil {
-				panic(err)
-			}
-			fn(t, &Construct{r})
-		})
+func TestExpvarReader(t *testing.T) {
+	r, err := expvar.New(reader.SetName("test"))
+	if err != nil {
+		panic(err)
 	}
+	c := &Construct{r}
+	reader_testing.TestSuites(t, c)
 }
