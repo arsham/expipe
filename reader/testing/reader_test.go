@@ -42,14 +42,10 @@ func (c *Construct) Object() (reader.DataReader, error) {
 }
 
 func TestSimpleReader(t *testing.T) {
-	for name, fn := range reader_test.TestSuites() {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			r, err := reader_test.New(reader.SetName("test"))
-			if err != nil {
-				panic(err)
-			}
-			fn(t, &Construct{r})
-		})
+	r, err := reader_test.New(reader.SetName("test"))
+	if err != nil {
+		panic(err)
 	}
+	c := &Construct{r}
+	reader_test.TestSuites(t, c)
 }

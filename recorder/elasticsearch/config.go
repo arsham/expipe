@@ -102,9 +102,6 @@ func (c *Config) IndexName() string { return c.ESIndexName }
 // Endpoint return the endpoint
 func (c *Config) Endpoint() string { return c.ESEndpoint }
 
-// RoutePath return an empty string
-func (c *Config) RoutePath() string { return "" }
-
 // Timeout return the timeout
 func (c *Config) Timeout() time.Duration { return c.timeout }
 

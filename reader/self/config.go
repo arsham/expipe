@@ -77,9 +77,6 @@ func (c *Config) TypeName() string { return c.SelfTypeName }
 // Endpoint returns the endpoint
 func (c *Config) Endpoint() string { return c.SelfEndpoint }
 
-// RoutePath returns the routepath
-func (c *Config) RoutePath() string { return "" }
-
 // Interval returns the interval
 func (c *Config) Interval() time.Duration { return c.interval }
 

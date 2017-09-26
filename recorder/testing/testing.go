@@ -6,16 +6,13 @@
 // an object that implements the Constructor interface then run:
 //
 //    import recorder_test "github.com/arsham/expipe/recorder/testing"
-//
-//    for name, fn := range recorder_test.TestSuites() {
-//        t.Run(name, func(t *testing.T) {
-//            r, err := recorder_test.New(recorder.SetName("test"))
-//            if err != nil {
-//                panic(err)
-//            }
-//            fn(t, &Construct{r})
-//        })
+//    ....
+//    r, err := recorder_test.New()
+//    if err != nil {
+//        panic(err)
 //    }
+//    c := &Construct{r, getTestServer()}
+//    recorder_test.TestSuites(t, c)
 //
 // The test suit will pick it up and does all the tests.
 //
@@ -30,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/arsham/expipe/recorder"
+	gin "github.com/onsi/ginkgo"
 )
 
 // Constructor is an interface for setting up an object for testing.
@@ -50,41 +48,63 @@ type Constructor interface {
 }
 
 // TestSuites returns a map of test name to the runner function.
-func TestSuites() map[string]func(t *testing.T, cons Constructor) {
-	return map[string]func(t *testing.T, cons Constructor){
-		"Construction": func(t *testing.T, cons Constructor) {
-			testShouldNotChangeTheInput(t, cons)
-		},
-		"NameCheck": func(t *testing.T, cons Constructor) {
-			testNameCheck(t, cons)
-		},
-		"BackoffCheck": func(t *testing.T, cons Constructor) {
-			testBackoffCheck(t, cons)
-		},
-		"EndpointCheck": func(t *testing.T, cons Constructor) {
-			testEndpointCheck(t, cons)
-		},
-		"ReceivesPayload": func(t *testing.T, cons Constructor) {
-			testRecorderReceivesPayload(t, cons)
-		},
+func TestSuites(t *testing.T, cons Constructor) {
 
-		"SendsResult": func(t *testing.T, cons Constructor) {
-			testRecorderSendsResult(t, cons)
-		},
+	t.Run("Construction", func(*testing.T) {
+		gin.Describe("Checking input", func() {
+			testShouldNotChangeTheInput(cons)
+		})
+	})
+	t.Run("NameCheck", func(*testing.T) {
+		gin.Describe("Checking name", func() {
+			testNameCheck(cons)
+		})
+	})
+	t.Run("IndexNameCheck", func(*testing.T) {
+		gin.Describe("Checking index name", func() {
+			testIndexNameCheck(cons)
+		})
+	})
+	t.Run("BackoffCheck", func(*testing.T) {
+		gin.Describe("Checking backoff value", func() {
+			testBackoffCheck(cons)
+		})
+	})
+	t.Run("EndpointCheck", func(*testing.T) {
+		gin.Describe("Checking endpoint value", func() {
+			testEndpointCheck(cons)
+		})
+	})
+	t.Run("ReceivesPayload", func(*testing.T) {
+		gin.Describe("Sending payload to recorder", func() {
+			testRecorderReceivesPayload(cons)
+		})
+	})
 
-		"ErrorsOnUnavailableESServer": func(t *testing.T, cons Constructor) {
-			if testing.Short() {
-				t.Skip("Skipping ErrorsOnUnavailableESServer in short mod,")
-			}
-			testRecorderErrorsOnUnavailableEndpoint(t, cons)
-		},
+	t.Run("SendsResult", func(*testing.T) {
+		gin.Describe("Sending results", func() {
+			testRecorderSendsResult(cons)
+		})
+	})
 
-		"BacksOffOnEndpointGone": func(t *testing.T, cons Constructor) {
-			testRecorderBacksOffOnEndpointGone(t, cons)
-		},
+	t.Run("ErrorsOnUnavailableESServer", func(*testing.T) {
+		gin.Describe("Errors", func() {
+			testRecorderErrorsOnUnavailableEndpoint(cons)
+		})
+	})
 
-		"RecordingReturnsErrorIfNotPingedYet": func(t *testing.T, cons Constructor) {
-			testRecordingReturnsErrorIfNotPingedYet(t, cons)
-		},
-	}
+	t.Run("BacksOffOnEndpointGone", func(*testing.T) {
+		if testing.Short() {
+			t.Skip("Skipping BacksOffOnEndpointGone in short mod,")
+		}
+		gin.Describe("Backing off when the endpoint is gone", func() {
+			testRecorderBacksOffOnEndpointGone(cons)
+		})
+	})
+
+	t.Run("RecordingReturnsErrorIfNotPingedYet", func(*testing.T) {
+		gin.Describe("Recording without pinging", func() {
+			testRecordingReturnsErrorIfNotPingedYet(cons)
+		})
+	})
 }

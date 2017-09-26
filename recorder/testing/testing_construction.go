@@ -5,128 +5,152 @@
 package testing
 
 import (
-	"reflect"
-	"strings"
-	"testing"
+	"strconv"
 	"time"
 
 	"github.com/arsham/expipe/recorder"
+	gin "github.com/onsi/ginkgo"
+	gom "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 )
 
-func testShouldNotChangeTheInput(t *testing.T, cons Constructor) {
-	name := "the name"
-	indexName := "my_index_name"
-	endpoint := cons.TestServer().URL
-	timeout := time.Second
-	backoff := 5
-	cons.SetName(name)
-	cons.SetIndexName(indexName)
-	cons.SetEndpoint(endpoint)
-	cons.SetTimeout(timeout)
-	cons.SetBackoff(backoff)
+func testShouldNotChangeTheInput(cons Constructor) {
+	gin.Context("With given input", func() {
+		name := "recorder name"
+		indexName := "recorder_index_name"
+		endpoint := cons.TestServer().URL
+		timeout := time.Second
+		backoff := 5
+		cons.SetName(name)
+		cons.SetIndexName(indexName)
+		cons.SetEndpoint(endpoint)
+		cons.SetTimeout(timeout)
+		cons.SetBackoff(backoff)
 
-	rec, err := cons.Object()
-	if err != nil {
-		t.Fatalf("unexpected error occurred during reader creation: %v", err)
-	}
-
-	if rec.Name() != name {
-		t.Errorf("given name should not be changed: %v", rec.Name())
-	}
-	if rec.IndexName() != indexName {
-		t.Errorf("given index name should not be changed: %v", rec.IndexName())
-	}
-	if rec.Timeout() != timeout {
-		t.Errorf("given timeout should not be changed: %v", rec.Timeout())
-	}
+		rec, err := cons.Object()
+		gin.It("should not error", func() {
+			gom.Expect(err).NotTo(gom.HaveOccurred())
+		})
+		gin.Specify("name should not be changed", func() {
+			gom.Expect(rec.Name()).To(gom.Equal(name))
+		})
+		gin.Specify("index name should not be changed", func() {
+			gom.Expect(rec.IndexName()).To(gom.Equal(indexName))
+		})
+		gin.Specify("timeout should not be changed", func() {
+			gom.Expect(rec.Timeout()).To(gom.Equal(timeout))
+		})
+	})
 }
 
-func testBackoffCheck(t *testing.T, cons Constructor) {
-	cons.SetName("the name")
-	cons.SetIndexName("my_index_name")
-	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetTimeout(time.Second)
+func testBackoffCheck(cons Constructor) {
+	gin.Context("with low backoff value", func() {
+		backoff := 3
+		cons.SetName("the name")
+		cons.SetIndexName("my_index_name")
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetTimeout(time.Second)
 
-	cons.SetBackoff(3)
-	rec, err := cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%#v)", rec)
-	}
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
+		cons.SetBackoff(backoff)
+		rec, err := cons.Object()
 
-	err = errors.Cause(err)
-	if _, ok := err.(interface {
-		LowBackoffValue()
-	}); !ok {
-		t.Errorf("expected ErrLowBackoffValue, got (%v)", err)
-	}
-	if !strings.Contains(err.Error(), "3") {
-		t.Errorf("expected 3 be mentioned, got (%v)", err)
-	}
+		gin.Specify("recorder to be nil", func() {
+			gom.Expect(rec).To(gom.BeNil())
+		})
+		gin.It("should error and mention the backoff value", func() {
+			gom.Expect(err).To(gom.HaveOccurred())
+			gom.Expect(errors.Cause(err)).To(gom.BeAssignableToTypeOf(recorder.ErrLowBackoffValue(0)))
+			gom.Expect(err.Error()).To(gom.ContainSubstring(strconv.Itoa(backoff)))
+		})
+	})
 }
 
-func testNameCheck(t *testing.T, cons Constructor) {
-	name := "the name"
-	indexName := "index_name"
-	cons.SetName("")
-	cons.SetIndexName(indexName)
-	cons.SetTimeout(time.Hour)
-	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetBackoff(5)
+func testNameCheck(cons Constructor) {
+	var (
+		err       error
+		rec       recorder.DataRecorder
+		name      string
+		indexName string
+	)
 
-	rec, err := cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%v)", rec)
-	}
-	if errors.Cause(err) != recorder.ErrEmptyName {
-		t.Errorf("expected ErrEmptyName, got (%v)", err)
-	}
+	gin.BeforeEach(func() {
+		name = "The name"
+		indexName = "the_index_name"
+		cons.SetName(name)
+		cons.SetIndexName(indexName)
+		cons.SetTimeout(time.Hour)
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetBackoff(5)
+	})
 
-	cons.SetName(name)
-	cons.SetIndexName("")
-	rec, err = cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%#v)", rec)
-	}
-	if errors.Cause(err) != recorder.ErrEmptyIndexName {
-		t.Errorf("expected ErrEmptyIndexName, got (%v)", err)
-	}
+	gin.Context("given empty name", func() {
+		gin.BeforeEach(func() {
+			cons.SetName("")
+			rec, err = cons.Object()
+		})
 
-	cons.SetName(name)
-	cons.SetIndexName("aa bb")
-	rec, err = cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%#v)", rec)
-	}
-	if _, ok := errors.Cause(err).(recorder.ErrInvalidIndexName); !ok {
-		t.Errorf("expected ErrInvalidIndexName, got (%v)", err)
-	}
+		gin.It("should error", func() {
+			gom.Expect(err).To(gom.HaveOccurred())
+			gom.Expect(errors.Cause(err)).To(gom.MatchError(recorder.ErrEmptyName))
+		})
+		gin.Specify("recorder should be nil", func() {
+			gom.Expect(rec).To(gom.BeNil())
+		})
+	})
 }
 
-func testEndpointCheck(t *testing.T, cons Constructor) {
+func testIndexNameCheck(cons Constructor) {
+	var (
+		err       error
+		rec       recorder.DataRecorder
+		name      string
+		indexName string
+	)
 
-	invalidEndpoint := "this is invalid"
-	cons.SetName("the name")
-	cons.SetIndexName("my_index_name")
-	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(5)
-	cons.SetEndpoint(invalidEndpoint)
+	gin.BeforeEach(func() {
+		name = "the name"
+		indexName = "index_name"
+		cons.SetName(name)
+		cons.SetIndexName(indexName)
+		cons.SetTimeout(time.Hour)
+		cons.SetEndpoint(cons.TestServer().URL)
+		cons.SetBackoff(5)
+	})
 
-	rec, err := cons.Object()
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%#v)", rec)
-	}
-	if !reflect.ValueOf(rec).IsNil() {
-		t.Errorf("expected nil, got (%v)", rec)
-	}
-	err = errors.Cause(err)
-	if _, ok := err.(recorder.ErrInvalidEndpoint); !ok {
-		t.Fatalf("expected ErrInvalidEndpoint, got (%v)", err)
-	}
-	if !strings.Contains(err.Error(), invalidEndpoint) {
-		t.Errorf("expected (%s) be in the error message, got (%v)", invalidEndpoint, err)
-	}
+	gin.Context("given invalid index name", func() {
+		gin.BeforeEach(func() {
+			cons.SetIndexName("aa bb")
+			rec, err = cons.Object()
+		})
+
+		gin.It("should error", func() {
+			gom.Expect(err).To(gom.HaveOccurred())
+			gom.Expect(errors.Cause(err)).To(gom.BeAssignableToTypeOf(recorder.ErrInvalidIndexName("")))
+		})
+		gin.Specify("recorder should be nil", func() {
+			gom.Expect(rec).To(gom.BeNil())
+		})
+	})
+}
+
+func testEndpointCheck(cons Constructor) {
+	gin.Context("With invalid endpoint", func() {
+
+		invalidEndpoint := "this is invalid"
+		cons.SetName("the name")
+		cons.SetIndexName("my_index_name")
+		cons.SetTimeout(time.Hour)
+		cons.SetBackoff(5)
+		cons.SetEndpoint(invalidEndpoint)
+		rec, err := cons.Object()
+
+		gin.Specify("recorder should be nil", func() {
+			gom.Expect(rec).To(gom.BeNil())
+		})
+		gin.It("should error and mention the endpoint", func() {
+			gom.Expect(err).To(gom.HaveOccurred())
+			gom.Expect(errors.Cause(err)).To(gom.BeAssignableToTypeOf(recorder.ErrInvalidEndpoint("")))
+			gom.Expect(err.Error()).To(gom.ContainSubstring(invalidEndpoint))
+		})
+	})
 }

@@ -101,17 +101,11 @@ func (c *Construct) InvalidEndpoints() []string {
 	}
 }
 
-func TestElasticsearch(t *testing.T) {
-	for name, fn := range recorder_testing.TestSuites() {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			r, err := elasticsearch.New()
-			if err != nil {
-				panic(err)
-			}
-			c := &Construct{r, getTestServer()}
-			defer c.testServer.Close()
-			fn(t, c)
-		})
+func TestElasticsearchRecorder(t *testing.T) {
+	r, err := elasticsearch.New()
+	if err != nil {
+		panic(err)
 	}
+	c := &Construct{r, getTestServer()}
+	recorder_testing.TestSuites(t, c)
 }

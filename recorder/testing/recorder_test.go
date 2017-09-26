@@ -68,16 +68,11 @@ func (c *Construct) InvalidEndpoints() []string {
 }
 
 func TestMockRecorder(t *testing.T) {
-	for name, fn := range recorder_test.TestSuites() {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			r, err := recorder_test.New()
-			if err != nil {
-				panic(err)
-			}
-			c := &Construct{r, getTestServer()}
-			defer c.testServer.Close()
-			fn(t, c)
-		})
+	r, err := recorder_test.New()
+	if err != nil {
+		panic(err)
 	}
+	c := &Construct{r, getTestServer()}
+
+	recorder_test.TestSuites(t, c)
 }
