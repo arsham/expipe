@@ -1,5 +1,5 @@
 settings:
-    log_level: debug
+    log_level: info
 
 readers:
     my_app: # service name
@@ -56,8 +56,8 @@ routes:
             - my_app2
         recorders:
             - elastic2
-    # self_route:
-    #     readers:
-    #         - self
-    #     recorders:
-    #         - elastic3
+    self_route:
+        readers:
+            - self
+        recorders:
+            - elastic3

@@ -12,7 +12,6 @@
 //      Readers                   | expReaders
 //      Read Jobs                 | readJobs
 //      Record Jobs               | recordJobs
-//      Records Distributed       | recordsDistributed
 //      DataType Objects          | datatypeObjs
 //      DataType Objects Errors   | datatypeErrs
 //      Unidentified JSON Count   | unidentifiedJSON

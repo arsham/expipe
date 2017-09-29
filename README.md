@@ -61,8 +61,8 @@ You also need elasticsearch and kibana, here is a couple of docker images you ca
 
 ```bash
 docker volume create expipe
-docker run -d --name expipe --restart always --ulimit nofile=98304:98304 -v expipe:/usr/share/elasticsearch/data -e ES_JAVA_OPTS='-Xms10G -Xmx10G' -e "xpack.security.enabled=false" -e "xpack.monitoring.enabled=true" -e "xpack.graph.enabled=true" -e "xpack.watcher.enabled=false" -p 9200:9200 -e "http.cors.enabled=true" -e 'http.cors.allow-origin=*' docker.elastic.co/elasticsearch/elasticsearch:5.4.2
-docker run -d --name kibana --restart always -p 80:5601 --link expipe:elasticsearch docker.elastic.co/kibana/kibana:5.4.2
+docker run -d --name expipe --restart always --ulimit nofile=98304:98304 -v expipe:/usr/share/elasticsearch/data -e ES_JAVA_OPTS='-Xms10G -Xmx10G' -e "xpack.security.enabled=false" -e "xpack.monitoring.enabled=true" -e "xpack.graph.enabled=true" -e "xpack.watcher.enabled=false" -p 9200:9200 -e "http.cors.enabled=true" -e 'http.cors.allow-origin=*' docker.elastic.co/elasticsearch/elasticsearch:5.5.3
+docker run -d --name kibana --restart always -p 80:5601 --link expipe:elasticsearch docker.elastic.co/kibana/kibana:5.5.3
 ```
 
 ## Kibana

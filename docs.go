@@ -68,7 +68,7 @@
 //
 // Then run the application:
 //
-//    expvasyml -c expipe.yml
+//    expipe -c expipe.yml
 //
 // You can mix and match the routes, but the engine will choose the best set-up to achieve your goal without duplicating the results. For instance assume you set the routes like this:
 //
