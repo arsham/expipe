@@ -40,7 +40,6 @@ func benchmarkContainerRead(containerCount, itemCount int, b *testing.B) {
 			container.Add(randomFloatType(), randomStringType(), randomByteType(), randomKiloByteType(), randomMegaByteType())
 		}
 		_ = container.Bytes(time.Now())
-		// fmt.Fprint(ioutil.Discard, container.Bytes(time.Now()))
 	}
 }
 

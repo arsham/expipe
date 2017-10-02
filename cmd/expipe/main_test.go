@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/config"
+	"github.com/arsham/expipe/internal/config"
 )
 
 func errTestCases() [][]byte {

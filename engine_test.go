@@ -26,8 +26,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TODO: test engine closes readers when recorder goes out of scope
-
 var (
 	log        internal.FieldLogger
 	testServer *httptest.Server

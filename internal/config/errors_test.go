@@ -7,7 +7,7 @@ package config_test
 import (
 	"fmt"
 
-	"github.com/arsham/expipe/config"
+	"github.com/arsham/expipe/internal/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"

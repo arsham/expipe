@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/arsham/expipe"
-	"github.com/arsham/expipe/config"
 	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/internal/config"
 	"github.com/arsham/expipe/reader/expvar"
 	"github.com/arsham/expipe/recorder/elasticsearch"
 	"github.com/namsral/flag"

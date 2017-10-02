@@ -127,7 +127,7 @@ func (c *Config) NewInstance() (reader.DataReader, error) {
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
 	return New(
-		reader.SetLogger(c.Logger()), // TODO: test this against the binary. Errors are not caught
+		reader.SetLogger(c.Logger()),
 		reader.SetEndpoint(endpoint.String()),
 		reader.SetMapper(c.mapper),
 		reader.SetName(c.Name()),

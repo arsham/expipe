@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/arsham/expipe/config"
 	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/internal/config"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )

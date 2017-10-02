@@ -29,11 +29,6 @@ type Constructor interface {
 	// SetEndpoint is for setting the Endpoint
 	SetEndpoint(endpoint string)
 
-	// TODO:
-	// SetRoutePath is for setting the rest of the endpoint
-	// This is useful when the target is a URI
-	//SetRoutePath(endpoint string)
-
 	// SetMapper is for setting the SetMapper
 	SetMapper(mapper datatype.Mapper)
 

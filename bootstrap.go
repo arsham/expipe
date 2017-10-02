@@ -9,8 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/arsham/expipe/config"
 	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/internal/config"
 	"github.com/arsham/expipe/reader"
 	"github.com/pkg/errors"
 )

@@ -28,16 +28,6 @@ var (
 	defaultMap            *MapConvert
 )
 
-// Mapper generates DataTypes based on the given name/value inputs.
-type Mapper interface {
-	// Values closes the channel once all input has been exhausted.
-	Values(prefix string, values map[string]*jason.Value) []DataType
-
-	// Copy returns a new copy of the Mapper.
-	// You should always copy the mapper if you are using it concurrently.
-	Copy() Mapper
-}
-
 type memType string
 
 // MapConvert can produce output from GC string list and memory type input.
@@ -52,7 +42,6 @@ type MapConvert struct {
 func MapsFromViper(v *viper.Viper) *MapConvert {
 	m := &MapConvert{}
 	def := DefaultMapper()
-	// TODO: make ignore values. It helps get rid of cmdline
 	if v.IsSet("gc_types") {
 		m.gcTypes = gcTypes(v, def.gcTypes)
 	}

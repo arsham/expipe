@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
 	gin "github.com/onsi/ginkgo"
 	gom "github.com/onsi/gomega"
@@ -26,12 +27,14 @@ func testShouldNotChangeTheInput(cons Constructor) {
 		interval := time.Second
 		timeout := time.Second
 		backoff := 5
+		logger := internal.DiscardLogger()
 		cons.SetName(name)
 		cons.SetTypeName(typeName)
 		cons.SetEndpoint(endpoint)
 		cons.SetInterval(interval)
 		cons.SetTimeout(timeout)
 		cons.SetBackoff(backoff)
+		cons.SetLogger(logger)
 
 		red, err := cons.Object()
 		gin.It("should not error", func() {
@@ -48,6 +51,9 @@ func testShouldNotChangeTheInput(cons Constructor) {
 		})
 		gin.Specify("timeout value should not be changed", func() {
 			gom.Expect(red.Timeout()).To(gom.Equal(timeout))
+		})
+		gin.Specify("logger should not be changed", func() {
+			gom.Expect(logger).To(gom.BeIdenticalTo(logger))
 		})
 	})
 }

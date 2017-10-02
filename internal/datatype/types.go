@@ -28,18 +28,6 @@ const (
 // or the container ends up empty.
 var ErrUnidentifiedJason = errors.New("unidentified jason value")
 
-// DataType represents a single paired data. The key of the json value
-// is mapped to Key, and the value is to Value.
-type DataType interface {
-	// Bytes returns the []byte representation of the value.
-	// It includes both Key and Value.
-	Bytes() []byte
-
-	// Equal compares the current object to the other returns true if they have
-	// equal values. The value comparison is not ordered.
-	Equal(other DataType) bool
-}
-
 // FloatType represents a pair of key values that the value is a float64.
 type FloatType struct {
 	Key   string

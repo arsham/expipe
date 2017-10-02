@@ -38,6 +38,8 @@ func (c *Construct) Object() (reader.DataReader, error) {
 		reader.SetInterval(c.Interval()),
 		reader.SetTimeout(c.Timeout()),
 		reader.SetBackoff(c.Backoff()),
+		reader.SetMapper(c.Mapper()),
+		reader.SetLogger(c.Logger()),
 	)
 }
 

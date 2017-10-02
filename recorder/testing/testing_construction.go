@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
 	gin "github.com/onsi/ginkgo"
 	gom "github.com/onsi/gomega"
@@ -21,11 +22,13 @@ func testShouldNotChangeTheInput(cons Constructor) {
 		endpoint := cons.TestServer().URL
 		timeout := time.Second
 		backoff := 5
+		logger := internal.DiscardLogger()
 		cons.SetName(name)
 		cons.SetIndexName(indexName)
 		cons.SetEndpoint(endpoint)
 		cons.SetTimeout(timeout)
 		cons.SetBackoff(backoff)
+		cons.SetLogger(logger)
 
 		rec, err := cons.Object()
 		gin.It("should not error", func() {
@@ -40,6 +43,10 @@ func testShouldNotChangeTheInput(cons Constructor) {
 		gin.Specify("timeout should not be changed", func() {
 			gom.Expect(rec.Timeout()).To(gom.Equal(timeout))
 		})
+		gin.Specify("logger should not be changed", func() {
+			gom.Expect(logger).To(gom.BeIdenticalTo(logger))
+		})
+
 	})
 }
 

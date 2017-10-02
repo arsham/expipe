@@ -94,9 +94,6 @@ func TestSuites(t *testing.T, cons Constructor) {
 	})
 
 	t.Run("BacksOffOnEndpointGone", func(*testing.T) {
-		if testing.Short() {
-			t.Skip("Skipping BacksOffOnEndpointGone in short mod,")
-		}
 		gin.Describe("Backing off when the endpoint is gone", func() {
 			testRecorderBacksOffOnEndpointGone(cons)
 		})

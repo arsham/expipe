@@ -11,25 +11,8 @@ import (
 	"time"
 )
 
-// DataContainer is an interface for holding a list of DataType.
-// I'm aware of the container/list package, which is awesome, but I needed
-// a simple interface to do this job.
-type DataContainer interface {
-	// List returns the list. You should not update this list as it is a shared
-	// list and anyone can read from it. If you append to this list, there is a
-	// chance you are not referring to the same underlying array in memory.
-	List() []DataType
-
-	// Len returns the length of the container.
-	Len() int
-
-	// Bytes returns the []byte representation of the container by collecting
-	// all []byte values of its contents.
-	Bytes(timestamp time.Time) []byte
-
-	// Returns the Err value.
-	Error() error
-}
+// TimeStampFormat specifies the format that all timestamps should be formatted with.
+var TimeStampFormat = "2006-01-02T15:04:05.999999-07:00"
 
 // Container satisfies the DataContainer and error interfaces.
 type Container struct {
@@ -74,7 +57,7 @@ func (c *Container) Error() error {
 // Bytes prepends a timestamp pair and value to the list, and generates
 // a json object suitable for recording into a document store.
 func (c *Container) Bytes(timestamp time.Time) []byte {
-	ts := fmt.Sprintf(`"@timestamp":"%s"`, timestamp.Format("2006-01-02T15:04:05.999999-07:00"))
+	ts := fmt.Sprintf(`"@timestamp":"%s"`, timestamp.Format(TimeStampFormat))
 	l := make([][]byte, c.Len()+1)
 	l[0] = []byte(ts)
 	for i, v := range c.List() {
