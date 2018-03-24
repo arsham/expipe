@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/datatype"
 	"github.com/arsham/expipe/reader"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -51,8 +51,12 @@ func NewConfig(log internal.FieldLogger, name, typeName string, endpoint, routep
 	return withConfig(c)
 }
 
+type unmarshaller interface {
+	UnmarshalKey(key string, rawVal interface{}) error
+}
+
 // FromViper constructs the necessary configuration for bootstrapping the expvar reader.
-func FromViper(v *viper.Viper, log internal.FieldLogger, name, key string) (*Config, error) {
+func FromViper(v unmarshaller, log internal.FieldLogger, name, key string) (*Config, error) {
 	var (
 		c                 Config
 		interval, timeout time.Duration
@@ -78,7 +82,7 @@ func FromViper(v *viper.Viper, log internal.FieldLogger, name, key string) (*Con
 }
 
 func withConfig(c *Config) (*Config, error) {
-	// TODO: these checks are also in the reader, remove them
+	// TODO: these checks are also in the reader, remove them (0)
 	if c.name == "" {
 		return nil, reader.ErrEmptyName
 	}
@@ -121,20 +125,20 @@ func withConfig(c *Config) (*Config, error) {
 
 // NewInstance returns an instance of the expvar reader.
 func (c *Config) NewInstance() (reader.DataReader, error) {
-	endpoint, err := url.Parse(c.Endpoint()) // TODO: check this part
+	endpoint, err := url.Parse(c.Endpoint()) // TODO: check this part [not sure]
 	if err != nil {
 		return nil, errors.Wrap(err, "new config")
 	}
 	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
 	return New(
-		reader.SetLogger(c.Logger()),
-		reader.SetEndpoint(endpoint.String()),
-		reader.SetMapper(c.mapper),
-		reader.SetName(c.Name()),
-		reader.SetTypeName(c.EXPTypeName),
-		reader.SetInterval(c.Interval()),
-		reader.SetTimeout(c.Timeout()),
-		reader.SetBackoff(c.Backoff()),
+		reader.WithLogger(c.Logger()),
+		reader.WithEndpoint(endpoint.String()),
+		reader.WithMapper(c.mapper),
+		reader.WithName(c.Name()),
+		reader.WithTypeName(c.EXPTypeName),
+		reader.WithInterval(c.Interval()),
+		reader.WithTimeout(c.Timeout()),
+		reader.WithBackoff(c.Backoff()),
 	)
 }
 

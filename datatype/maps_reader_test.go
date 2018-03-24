@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/antonholmquist/jason"
-	"github.com/arsham/expipe/internal/datatype"
+	"github.com/arsham/expipe/datatype"
 	"github.com/spf13/viper"
 )
 
@@ -93,7 +93,7 @@ func TestNestedPauseNsRegression(t *testing.T) {
 	input := bytes.NewBuffer([]byte(`{"memstats": {"PauseNs":[438238,506913]}}`))
 	expected := &datatype.GCListType{Key: "memstats.PauseNs", Value: []uint64{438238, 506913}}
 	mapper := datatype.DefaultMapper()
-	container := datatype.JobResultDataTypes(input.Bytes(), mapper)
+	container, _ := datatype.JobResultDataTypes(input.Bytes(), mapper)
 	if !container.List()[0].Equal(expected) {
 		t.Errorf("want (%#v), got (%#v)", expected, container.List()[0])
 	}

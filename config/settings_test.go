@@ -11,11 +11,60 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/arsham/expipe/config"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/config"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
+
+func TestLoadYAML(t *testing.T) {
+	t.Parallel()
+	v := viper.New()
+	v.SetConfigType("yaml")
+	log := internal.DiscardLogger()
+
+	input := bytes.NewBuffer([]byte(`
+    readers:
+        reader1:
+            no_type: true
+    recorders:
+        recorder1:
+            type: elasticsearch
+    `))
+	v.ReadConfig(input)
+	_, err := config.LoadYAML(log, v)
+
+	var (
+		val *config.ErrNotSpecified
+		ok  bool
+	)
+	if val, ok = errors.Cause(err).(*config.ErrNotSpecified); !ok {
+		t.Fatalf("want notSpecifiedErr, got (%v)", err)
+	}
+
+	if !strings.Contains(val.Section, "reader1") {
+		t.Errorf("want error for (reader1) section, got for (%s)", val.Section)
+	}
+
+	input = bytes.NewBuffer([]byte(`
+    readers:
+        reader1:
+            type: expvar
+    recorders:
+        recorder1:
+            no_type: true
+    `))
+	v.ReadConfig(input)
+	_, err = config.LoadYAML(log, v)
+
+	if val, ok = errors.Cause(err).(*config.ErrNotSpecified); !ok {
+		t.Fatalf("want notSpecifiedErr, got (%v)", err)
+	}
+
+	if val.Section != "recorder1" {
+		t.Errorf("want error for (recorder1) section, got for (%s)", val.Section)
+	}
+}
 
 func TestLoadSettingsErrors(t *testing.T) {
 	t.Parallel()

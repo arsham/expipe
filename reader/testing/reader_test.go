@@ -32,19 +32,19 @@ type Construct struct {
 func (c *Construct) TestServer() *httptest.Server { return testServer }
 func (c *Construct) Object() (reader.DataReader, error) {
 	return reader_test.New(
-		reader.SetEndpoint(c.Endpoint()),
-		reader.SetName(c.Name()),
-		reader.SetTypeName(c.TypeName()),
-		reader.SetInterval(c.Interval()),
-		reader.SetTimeout(c.Timeout()),
-		reader.SetBackoff(c.Backoff()),
-		reader.SetMapper(c.Mapper()),
-		reader.SetLogger(c.Logger()),
+		reader.WithEndpoint(c.Endpoint()),
+		reader.WithName(c.Name()),
+		reader.WithTypeName(c.TypeName()),
+		reader.WithInterval(c.Interval()),
+		reader.WithTimeout(c.Timeout()),
+		reader.WithBackoff(c.Backoff()),
+		reader.WithMapper(c.Mapper()),
+		reader.WithLogger(c.Logger()),
 	)
 }
 
 func TestSimpleReader(t *testing.T) {
-	r, err := reader_test.New(reader.SetName("test"))
+	r, err := reader_test.New(reader.WithName("test"))
 	if err != nil {
 		panic(err)
 	}

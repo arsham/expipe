@@ -8,8 +8,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/arsham/expipe/internal/token"
 	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/token"
 	gin "github.com/onsi/ginkgo"
 	gom "github.com/onsi/gomega"
 )

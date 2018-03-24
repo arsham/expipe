@@ -31,7 +31,7 @@ var (
 // Engine represents an engine that receives information from readers and ships
 // them to a recorder. The Engine is allowed to change the index and type names
 // at will. When the context times out or cancelled, the engine will close and
-// return.  Use the shutdown channel to signal the engine to stop recording.
+// return. Use the shutdown channel to signal the engine to stop recording.
 // The ctx context will create a new context based on the parent.
 type Engine struct {
 	log        internal.FieldLogger
@@ -39,12 +39,10 @@ type Engine struct {
 	name       string                // Name identifier for this engine.
 	recorder   recorder.DataRecorder // Records to destination client.
 	readerJobs chan *reader.Result   // The results of reader jobs.
-
-	wg      sync.WaitGroup // For keeping reader count.
-	redmu   sync.RWMutex
-	readers map[string]reader.DataReader // Map of active readers name to their objects.
-
-	shutdown chan struct{} // if closed, stops all operations and quits the engine.
+	wg         sync.WaitGroup        // For keeping the reader counts.
+	redmu      sync.RWMutex
+	readers    map[string]reader.DataReader // Map of active readers name to their objects.
+	shutdown   chan struct{}                // if closed, stops all operations and quits the engine.
 }
 
 func (e *Engine) String() string { return e.name }
@@ -58,32 +56,29 @@ func New(options ...func(*Engine) error) (*Engine, error) {
 			return nil, errors.Wrap(err, "option creation")
 		}
 	}
-
 	if e.log == nil {
 		return nil, ErrNoLogger
 	}
-
 	if e.ctx == nil {
 		return nil, ErrNoCtx
 	}
-
 	if len(e.readers) == 0 {
 		return nil, ErrNoReader
 	}
-
+	e.log = e.log.WithField("engine", e.name)
 	return e, nil
 }
 
-// SetCtx uses ctx as the Engine's background context
-func SetCtx(ctx context.Context) func(*Engine) error {
+// WithCtx uses ctx as the Engine's background context
+func WithCtx(ctx context.Context) func(*Engine) error {
 	return func(e *Engine) error {
 		e.ctx = ctx
 		return nil
 	}
 }
 
-// SetReaders builds up the readers and checks them
-func SetReaders(reds ...reader.DataReader) func(*Engine) error {
+// WithReaders builds up the readers and checks them
+func WithReaders(reds ...reader.DataReader) func(*Engine) error {
 	return func(e *Engine) error {
 		failedErrors := make(map[string]error)
 		readers := make(map[string]reader.DataReader)
@@ -98,52 +93,34 @@ func SetReaders(reds ...reader.DataReader) func(*Engine) error {
 			}
 			readers[redConf.Name()] = redConf
 		}
-		if len(readers) == 0 {
+		if len(readers) == 0 { // TEST:
 			return ErrNoReader
 		}
-
-		// if len(failedErrors) > 0 { //TODO: check this part
+		// if len(failedErrors) > 0 { // CHECK:  [not sure]
 		// 	return ErrPing(failedErrors)
 		// }
-
 		e.readers = readers
-
-		// TODO: separate this part
+		// TODO: separate this part [refactor]
 		var readerNames []string
 		for name := range e.readers {
 			readerNames = append(readerNames, name)
 		}
 		e.name = fmt.Sprintf("( %s <-<< %s )", e.recorder.Name(), strings.Join(readerNames, ","))
-		if e.log != nil {
-			decorLog(e)
-		}
-		e.readerJobs = make(chan *reader.Result, len(e.readers)) // TODO: increase this is required
-
+		e.readerJobs = make(chan *reader.Result, len(e.readers)) // TODO: increase this is as required (10)
 		return nil
 	}
 }
 
-// SetLogger sets the logger
-func SetLogger(log internal.FieldLogger) func(*Engine) error {
+// WithLogger sets the logger
+func WithLogger(log internal.FieldLogger) func(*Engine) error {
 	return func(e *Engine) error {
 		e.log = log
-		if e.name != "" {
-			decorLog(e)
-		}
 		return nil
 	}
 }
 
-var once sync.Once
-
-func decorLog(e *Engine) {
-	once.Do(func() {
-		e.log = e.log.WithField("engine", e.name)
-	})
-}
-
-// SetRecorder builds up the recorder
-func SetRecorder(rec recorder.DataRecorder) func(*Engine) error {
+// WithRecorder builds up the recorder
+func WithRecorder(rec recorder.DataRecorder) func(*Engine) error {
 	return func(e *Engine) error {
 		if rec == nil {
 			return errors.New("nil recorder")

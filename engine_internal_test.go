@@ -15,12 +15,13 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/token"
 	"github.com/arsham/expipe/reader"
 	reader_test "github.com/arsham/expipe/reader/testing"
 	"github.com/arsham/expipe/recorder"
 	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	"github.com/arsham/expipe/token"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus/hooks/test"
 )
 
 var (
@@ -35,12 +36,12 @@ func init() {
 
 func withRecorder(ctx context.Context, log internal.FieldLogger) (*Engine, error) {
 	rec, _ := recorder_testing.New(
-		recorder.SetLogger(log),
-		recorder.SetEndpoint(testServer.URL),
-		recorder.SetName("recorder_test"),
-		recorder.SetIndexName("indexName"),
-		recorder.SetTimeout(time.Hour),
-		recorder.SetBackoff(5),
+		recorder.WithLogger(log),
+		recorder.WithEndpoint(testServer.URL),
+		recorder.WithName("recorder_test"),
+		recorder.WithIndexName("indexName"),
+		recorder.WithTimeout(time.Hour),
+		recorder.WithBackoff(5),
 	)
 
 	err := rec.Ping()
@@ -103,7 +104,7 @@ func EngineWithReadRecs(ctx context.Context, log internal.FieldLogger, rec recor
 	cl := &Engine{
 		name:       engineName,
 		ctx:        ctx,
-		readerJobs: make(chan *reader.Result, len(reds)), // TODO: increase this is required
+		readerJobs: make(chan *reader.Result, len(reds)), // NOTE: increase this is as required
 		recorder:   rec,
 		readers:    readers,
 		log:        log,
@@ -121,13 +122,13 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 		t.Fatal(err)
 	}
 	red, err := reader_test.New(
-		reader.SetLogger(internal.DiscardLogger()),
-		reader.SetEndpoint(testServer.URL),
-		reader.SetName("reader_name"),
-		reader.SetTypeName("typeName"),
-		reader.SetInterval(time.Millisecond),
-		reader.SetTimeout(time.Second),
-		reader.SetBackoff(5),
+		reader.WithLogger(internal.DiscardLogger()),
+		reader.WithEndpoint(testServer.URL),
+		reader.WithName("reader_name"),
+		reader.WithTypeName("typeName"),
+		reader.WithInterval(time.Millisecond),
+		reader.WithTimeout(time.Second),
+		reader.WithBackoff(5),
 	)
 
 	if err != nil {
@@ -193,13 +194,13 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	red1, err := reader_test.New(
-		reader.SetLogger(internal.DiscardLogger()),
-		reader.SetEndpoint(testServer.URL),
-		reader.SetName("reader_name"),
-		reader.SetTypeName("typeName"),
-		reader.SetInterval(time.Hour),
-		reader.SetTimeout(time.Hour),
-		reader.SetBackoff(5),
+		reader.WithLogger(internal.DiscardLogger()),
+		reader.WithEndpoint(testServer.URL),
+		reader.WithName("reader_name"),
+		reader.WithTypeName("typeName"),
+		reader.WithInterval(time.Hour),
+		reader.WithTimeout(time.Hour),
+		reader.WithBackoff(5),
 	)
 
 	if err != nil {
@@ -210,13 +211,13 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 	}
 
 	red2, err := reader_test.New(
-		reader.SetLogger(internal.DiscardLogger()),
-		reader.SetEndpoint(testServer.URL),
-		reader.SetName("reader2_name"),
-		reader.SetTypeName("typeName"),
-		reader.SetInterval(time.Hour),
-		reader.SetTimeout(time.Hour),
-		reader.SetBackoff(5),
+		reader.WithLogger(internal.DiscardLogger()),
+		reader.WithEndpoint(testServer.URL),
+		reader.WithName("reader2_name"),
+		reader.WithTypeName("typeName"),
+		reader.WithInterval(time.Hour),
+		reader.WithTimeout(time.Hour),
+		reader.WithBackoff(5),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -248,13 +249,13 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 
 func getReader(t *testing.T, name string, jobContent []byte) *reader_test.Reader {
 	red, err := reader_test.New(
-		reader.SetLogger(internal.DiscardLogger()),
-		reader.SetEndpoint(testServer.URL),
-		reader.SetName(name),
-		reader.SetTypeName("typeName"),
-		reader.SetInterval(time.Hour),
-		reader.SetTimeout(time.Hour),
-		reader.SetBackoff(5),
+		reader.WithLogger(internal.DiscardLogger()),
+		reader.WithEndpoint(testServer.URL),
+		reader.WithName(name),
+		reader.WithTypeName("typeName"),
+		reader.WithInterval(time.Hour),
+		reader.WithTimeout(time.Hour),
+		reader.WithBackoff(5),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -361,13 +362,13 @@ func TestStartReadersTicking(t *testing.T) {
 		t.Fatal(err)
 	}
 	red, err := reader_test.New(
-		reader.SetLogger(internal.DiscardLogger()),
-		reader.SetEndpoint(testServer.URL),
-		reader.SetName("reader_name"),
-		reader.SetTypeName("typeName"),
-		reader.SetInterval(10*time.Millisecond),
-		reader.SetTimeout(time.Second),
-		reader.SetBackoff(5),
+		reader.WithLogger(internal.DiscardLogger()),
+		reader.WithEndpoint(testServer.URL),
+		reader.WithName("reader_name"),
+		reader.WithTypeName("typeName"),
+		reader.WithInterval(10*time.Millisecond),
+		reader.WithTimeout(time.Second),
+		reader.WithBackoff(5),
 	)
 	if err != nil {
 		t.Fatalf("unexpected error occurred during reader creation: %v", err)
@@ -403,6 +404,84 @@ func TestStartReadersTicking(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
+		t.Error("expected the engine to quit gracefully")
+	}
+}
+
+func TestRemoveReader(t *testing.T) {
+	r1, _ := reader_test.New(reader.WithName("r1"))
+	r2, _ := reader_test.New(reader.WithName("r2"))
+	r3, _ := reader_test.New(reader.WithName("r3"))
+	r4, _ := reader_test.New(reader.WithName("r4"))
+	e := &Engine{}
+	e.setReaders(map[string]reader.DataReader{
+		r1.Name(): r1,
+		r2.Name(): r2,
+		r3.Name(): r3,
+		r4.Name(): r4,
+	})
+	e.removeReader(r1)
+	if _, ok := e.readers[r1.Name()]; ok {
+		t.Errorf("didn't expect to have (%v) in the map", r1)
+	}
+	for _, r := range []reader.DataReader{r2, r3, r4} {
+		if _, ok := e.readers[r.Name()]; !ok {
+			t.Errorf("didn't expect it to remove (%v)", r)
+		}
+	}
+}
+
+func TestEventLoopCatchesReaderError(t *testing.T) {
+	log, _ := test.NewNullLogger()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	e, err := withRecorder(ctx, log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red, err := reader_test.New(
+		reader.WithLogger(internal.DiscardLogger()),
+		reader.WithEndpoint(testServer.URL),
+		reader.WithName("reader_name"),
+		reader.WithTypeName("typeName"),
+		reader.WithInterval(10*time.Millisecond),
+		reader.WithTimeout(time.Second),
+		reader.WithBackoff(5),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+	}
+	if err = red.Ping(); err != nil {
+		t.Fatal(err)
+	}
+
+	e.setReaders(map[string]reader.DataReader{red.Name(): red})
+
+	errMsg := errMessage("an error happened")
+	recorded := make(chan struct{})
+
+	// Testing the engine catches errors
+	red.ReadFunc = func(job *token.Context) (*reader.Result, error) {
+		recorded <- struct{}{}
+		return nil, errMsg
+	}
+
+	errChan := make(chan ErrJob)
+	stop := make(chan struct{})
+	e.issueReaderJob(red, errChan, stop)
+
+	select {
+	case <-recorded:
+	case <-time.After(5 * time.Second):
+		t.Error("expected to record, didn't happen")
+	}
+	cancel()
+	select {
+	case err := <-errChan:
+		if errors.Cause(err.Err) != errMsg {
+			t.Errorf("want (%v), got (%v)", errMsg, err.Err)
+		}
+	case <-time.After(5 * time.Second):
 		t.Error("expected the engine to quit gracefully")
 	}
 }

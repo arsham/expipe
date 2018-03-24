@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/arsham/expipe"
+	"github.com/arsham/expipe/config"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/config"
 	reader_testing "github.com/arsham/expipe/reader/testing"
 	recorder_testing "github.com/arsham/expipe/recorder/testing"
 )

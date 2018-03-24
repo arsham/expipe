@@ -2,16 +2,17 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package config_test
+package token_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"context"
+	"fmt"
 
-	"testing"
+	"github.com/arsham/expipe/token"
 )
 
-func TestConfig(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Config Suite")
+// This example shows how to create a new job from a context.
+func ExampleNew() {
+	job := token.New(context.Background())
+	fmt.Println(job)
 }

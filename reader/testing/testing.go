@@ -31,13 +31,11 @@ import (
 )
 
 // Constructor is an interface for setting up an object for testing.
+// TestServer() should return a ready to use test server
+// Object() should return the instantiated object
 type Constructor interface {
 	reader.Constructor
-
-	// TestServer should return a ready to use test server
 	TestServer() *httptest.Server
-
-	// Object should return the instantiated object
 	Object() (reader.DataReader, error)
 }
 

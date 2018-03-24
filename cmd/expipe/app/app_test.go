@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package main
+package app
 
 import (
 	"fmt"
@@ -13,7 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal/config"
+	"github.com/arsham/expipe/config"
+	"github.com/arsham/expipe/internal"
 )
 
 func errTestCases() [][]byte {
@@ -125,6 +126,7 @@ routes:
 
 // returns the file base name and tear down function
 func setup(content []byte) (string, func()) {
+	log = internal.DiscardLogger()
 	cwd, _ := os.Getwd()
 	file, err := ioutil.TempFile(cwd, "yaml")
 	if err != nil {
@@ -140,26 +142,8 @@ func setup(content []byte) (string, func()) {
 }
 
 func TestMainAndFromConfigFileErrors(t *testing.T) {
-	var errMsg string
-	var teardown func()
-
-	ExitCommand = func(msg string) {
-		errMsg = msg
-	}
-	shallStartEngines = false
-
 	for i, tc := range errTestCases() {
-		name := fmt.Sprintf("mainCase_%d", i)
-		t.Run(name, func(t *testing.T) {
-			*confFile, teardown = setup(tc)
-			defer teardown()
-			main()
-			if errMsg == "" {
-				t.Error("want error, got nothing")
-			}
-		})
-
-		name = fmt.Sprintf("fromFlagsCase_%d", i)
+		name := fmt.Sprintf("fromFlagsCase_%d", i)
 		t.Run(name, func(t *testing.T) {
 			filename, teardown := setup(tc)
 			defer teardown()
@@ -175,41 +159,19 @@ func TestMainAndFromConfigFileErrors(t *testing.T) {
 }
 
 func TestMainAndFromConfigFilePasses(t *testing.T) {
-	var errMsg string
-	shallStartEngines = false
-	ExitCommand = func(msg string) {
-		errMsg = msg
-	}
-
 	filename, teardown := setup(passingInput())
 	defer teardown()
-
-	t.Run("mainCase", func(t *testing.T) {
-		*confFile = filename
-		main()
-		if errMsg != "" {
-			t.Errorf("want nil, got (%v)", errMsg)
-		}
-	})
-
-	t.Run("flagCase", func(t *testing.T) {
-		result, err := fromConfig(filename)
-		if err != nil {
-			t.Errorf("want nil, got (%v)", err)
-		}
-		if reflect.TypeOf(result) != reflect.TypeOf(&config.ConfMap{}) {
-			t.Errorf("want config.ConfMap, got (%v)", result)
-		}
-	})
+	result, err := fromConfig(filename)
+	if err != nil {
+		t.Errorf("want nil, got (%v)", err)
+	}
+	if reflect.TypeOf(result) != reflect.TypeOf(&config.ConfMap{}) {
+		t.Errorf("want config.ConfMap, got (%v)", result)
+	}
 }
 
 func TestMainAndFromFlagsErrors(t *testing.T) {
-	var errMsg string
-	*confFile = ""
-	shallStartEngines = false
-	ExitCommand = func(msg string) {
-		errMsg = msg
-	}
+	opts.ConfFile = ""
 	fakeDuration, _ := time.ParseDuration("dfdfdf")
 	tcs := []struct {
 		recorder  string
@@ -230,20 +192,12 @@ func TestMainAndFromFlagsErrors(t *testing.T) {
 		{"localhost:9200", fakeDuration, 20, "222", "localhost/dev"},
 	}
 	for i, tc := range tcs {
-		*recorder = tc.recorder
-		*timeout = tc.timeout
-		*backoff = tc.backoff
-		*indexName = tc.indexName
-		*reader = tc.reader
-		name := fmt.Sprintf("mainCase_%d", i)
-		t.Run(name, func(t *testing.T) {
-			main()
-			if errMsg == "" {
-				t.Error("want error, got nothing")
-			}
-		})
-
-		name = fmt.Sprintf("fromFlagsCase_%d", i)
+		opts.Recorder = tc.recorder
+		opts.Timeout = tc.timeout
+		opts.Backoff = tc.backoff
+		opts.IndexName = tc.indexName
+		opts.Reader = tc.reader
+		name := fmt.Sprintf("fromFlagsCase_%d", i)
 		t.Run(name, func(t *testing.T) {
 			result, err := fromFlags()
 			if err == nil {
@@ -257,33 +211,19 @@ func TestMainAndFromFlagsErrors(t *testing.T) {
 }
 
 func TestMainAndFromFlagsPasses(t *testing.T) {
-	var errMsg string
-	*confFile = ""
-	shallStartEngines = false
-	ExitCommand = func(msg string) {
-		errMsg = msg
+	opts.ConfFile = ""
+	opts.Recorder = "localhost:9200"
+	opts.Timeout = time.Second
+	opts.Backoff = 20
+	opts.IndexName = "222"
+	opts.TypeName = "222"
+	opts.Reader = "localhost:222/dev"
+
+	result, err := fromFlags()
+	if err != nil {
+		t.Errorf("want nil, got (%v)", err)
 	}
-
-	*recorder = "localhost:9200"
-	*timeout = time.Second
-	*backoff = 20
-	*indexName = "222"
-	*reader = "localhost:222/dev"
-
-	t.Run("mainCase", func(t *testing.T) {
-		main()
-		if errMsg != "" {
-			t.Errorf("want nil, got (%v)", errMsg)
-		}
-	})
-
-	t.Run("flagCase", func(t *testing.T) {
-		result, err := fromFlags()
-		if err != nil {
-			t.Errorf("want nil, got (%v)", err)
-		}
-		if reflect.TypeOf(result) != reflect.TypeOf(&config.ConfMap{}) {
-			t.Errorf("want config.ConfMap, got (%v)", result)
-		}
-	})
+	if reflect.TypeOf(result) != reflect.TypeOf(&config.ConfMap{}) {
+		t.Errorf("want config.ConfMap, got (%v)", result)
+	}
 }

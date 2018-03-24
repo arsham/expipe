@@ -1,20 +1,18 @@
 package: github.com/arsham/expipe
 import:
-- package: github.com/Sirupsen/logrus
-  version: ^0.11.0
-  subpackages:
-  - hooks/test
+- package: github.com/sirupsen/logrus
 - package: github.com/antonholmquist/jason
-  version: ^1.0.0
 - package: github.com/asaskevich/govalidator
-  version: ^5.0.0
-- package: github.com/namsral/flag
-  version: ^1.7.4-pre
 - package: github.com/olivere/elastic
-  version: ^5.0.13
+- package: github.com/onsi/ginkgo
+- package: github.com/onsi/gomega
+- package: github.com/pkg/errors
 - package: github.com/satori/go.uuid
-  version: ^1.1.0
+- package: github.com/shurcooL/go
+  subpackages:
+  - ctxhttp
 - package: github.com/spf13/viper
 - package: golang.org/x/net
   subpackages:
   - context/ctxhttp
+- package: github.com/jessevdk/go-flags

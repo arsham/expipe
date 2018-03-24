@@ -5,12 +5,13 @@
 package datatype_test
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal/datatype"
+	"github.com/arsham/expipe/datatype"
 )
 
 func TestGetByteRepresentation(t *testing.T) {
@@ -67,9 +68,16 @@ func TestGetByteRepresentation(t *testing.T) {
 		name := fmt.Sprintf("case %d", i)
 		t.Run(name, func(t *testing.T) {
 			contaner := datatype.New(tc.input)
-			results := contaner.Bytes(now)
-			if !reflect.DeepEqual(results, []byte(tc.expected)) {
-				t.Errorf("want (%s) got (%s)", tc.expected, results)
+			results := new(bytes.Buffer)
+			n, err := contaner.Generate(results, now)
+			if err != nil {
+				t.Errorf("want (nil), got (%v)", err)
+			}
+			if n != len(tc.expected) {
+				t.Errorf("want (%d), got (%d)", len(tc.expected), n)
+			}
+			if !reflect.DeepEqual(results.String(), tc.expected) {
+				t.Errorf("want (%s) got (%s)", tc.expected, results.String())
 			}
 		})
 	}

@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/arsham/expipe/internal/datatype"
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/recorder"
 	"github.com/arsham/expipe/recorder/testing"
 )

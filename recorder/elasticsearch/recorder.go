@@ -7,13 +7,14 @@
 package elasticsearch
 
 import (
+	"bytes"
 	"context"
 	"expvar"
 	"net/url"
 	"time"
 
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/datatype"
 	"github.com/arsham/expipe/recorder"
 	"github.com/olivere/elastic"
 	"github.com/pkg/errors"
@@ -54,25 +55,20 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 			return nil, errors.Wrap(err, "option creation")
 		}
 	}
-
 	if r.log == nil {
 		r.log = internal.GetLogger("error")
 	}
 	r.log = r.log.WithField("engine", "expipe")
-
 	if r.backoff < 5 {
 		r.backoff = 5
 	}
-
 	if r.indexName == "" {
 		r.indexName = r.name
 	}
-
 	if r.timeout == 0 {
 		r.timeout = 5 * time.Second
 	}
 	r.log.Debug("connecting to: ", r.Endpoint())
-
 	return r, nil
 }
 
@@ -91,7 +87,6 @@ func (r *Recorder) Ping() error {
 	defer cancel()
 	addr := elastic.SetURL(r.endpoint)
 	logger := elastic.SetErrorLog(r.log)
-
 	r.client, err = elastic.NewClient(
 		addr,
 		logger,
@@ -103,10 +98,10 @@ func (r *Recorder) Ping() error {
 		return recorder.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
 	}
 	_, _, err = r.client.Ping(r.endpoint).Do(ctx)
+	if err != nil && ctx.Err() != nil {
+		return errors.Wrapf(err, "timeout: %s", ctx.Err())
+	}
 	if err != nil {
-		if ctx.Err() != nil {
-			return errors.Wrapf(err, "timeout: %s", ctx.Err())
-		}
 		return errors.Wrap(err, "ping failed")
 	}
 
@@ -114,7 +109,6 @@ func (r *Recorder) Ping() error {
 	if err != nil {
 		return errors.Wrap(err, "querying index")
 	}
-
 	if !exists {
 		_, err := r.client.CreateIndex(r.indexName).Do(ctx)
 		if err != nil {
@@ -138,7 +132,6 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, r.Timeout())
 	defer cancel()
-
 	err := r.record(ctx, job.TypeName, job.Time, job.Payload)
 	if err != nil {
 		err = errors.Cause(err)
@@ -159,7 +152,9 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 // otherwise continues as normal.
 // Although this doesn't change the state of the Client, it is a part of its behaviour.
 func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
-	payload := string(list.Bytes(timestamp))
+	w := new(bytes.Buffer)
+	list.Generate(w, timestamp)
+	payload := w.String()
 	_, err := r.client.Index().
 		Index(r.indexName).
 		Type(typeName).

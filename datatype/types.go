@@ -9,9 +9,8 @@ package datatype
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
-
-	"github.com/arsham/expipe/internal"
 )
 
 const (
@@ -34,9 +33,9 @@ type FloatType struct {
 	Value float64
 }
 
-// Bytes returns the byte slice representation of the type.
-func (f FloatType) Bytes() []byte {
-	return []byte(fmt.Sprintf(`"%s":%f`, f.Key, f.Value))
+// Write includes both Key and Value.
+func (f FloatType) Write(p io.Writer) (n int, err error) {
+	return p.Write([]byte(fmt.Sprintf(`"%s":%f`, f.Key, f.Value)))
 }
 
 // Equal compares both keys and values and returns true if they are equal.
@@ -54,9 +53,9 @@ type StringType struct {
 	Value string
 }
 
-// Bytes returns the byte slice representation of the type.
-func (s StringType) Bytes() []byte {
-	return []byte(fmt.Sprintf(`"%s":"%s"`, s.Key, s.Value))
+// Write includes both Key and Value.
+func (s StringType) Write(p io.Writer) (n int, err error) {
+	return p.Write([]byte(fmt.Sprintf(`"%s":"%s"`, s.Key, s.Value)))
 }
 
 // Equal compares both keys and values and returns true if they are equal.
@@ -74,13 +73,13 @@ type FloatListType struct {
 	Value []float64
 }
 
-// Bytes returns the byte slice representation of the type.
-func (fl FloatListType) Bytes() []byte {
+// Write includes both Key and Value.
+func (fl FloatListType) Write(p io.Writer) (n int, err error) {
 	list := make([]string, len(fl.Value))
 	for i, v := range fl.Value {
 		list[i] = fmt.Sprintf("%f", v)
 	}
-	return []byte(fmt.Sprintf(`"%s":[%s]`, fl.Key, strings.Join(list, ",")))
+	return p.Write([]byte(fmt.Sprintf(`"%s":[%s]`, fl.Key, strings.Join(list, ","))))
 }
 
 // Equal compares both keys and all values and returns true if they are equal.
@@ -92,7 +91,7 @@ func (fl FloatListType) Equal(other DataType) bool {
 			return false
 		}
 		for _, v := range o.Value {
-			if !internal.FloatInSlice(v, fl.Value) {
+			if !FloatInSlice(v, fl.Value) {
 				return false
 			}
 		}
@@ -107,8 +106,8 @@ type GCListType struct {
 	Value []uint64
 }
 
-// Bytes returns the byte slice representation of the type.
-func (flt GCListType) Bytes() []byte {
+// Write includes both Key and Value.
+func (flt GCListType) Write(p io.Writer) (n int, err error) {
 	// We are filtering, therefore we don't know the size
 	var list []string
 	for _, v := range flt.Value {
@@ -116,7 +115,7 @@ func (flt GCListType) Bytes() []byte {
 			list = append(list, fmt.Sprintf("%d", v/1000))
 		}
 	}
-	return []byte(fmt.Sprintf(`"%s":[%s]`, flt.Key, strings.Join(list, ",")))
+	return p.Write([]byte(fmt.Sprintf(`"%s":[%s]`, flt.Key, strings.Join(list, ","))))
 }
 
 // Equal is not implemented. You should iterate and check yourself.
@@ -128,7 +127,7 @@ func (flt GCListType) Equal(other DataType) bool {
 			return false
 		}
 		for _, v := range o.Value {
-			if !internal.Uint64InSlice(v, flt.Value) {
+			if !Uint64InSlice(v, flt.Value) {
 				return false
 			}
 		}
@@ -144,10 +143,10 @@ type ByteType struct {
 	Value float64
 }
 
-// Bytes returns the byte slice representation of the type.
+// Write includes both Key and Value.
 // It turns the byte into Megabyte.
-func (b ByteType) Bytes() []byte {
-	return []byte(fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE))
+func (b ByteType) Write(p io.Writer) (n int, err error) {
+	return p.Write([]byte(fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE)))
 }
 
 // Equal compares both keys and values and returns true if they are equal.
@@ -166,9 +165,9 @@ type KiloByteType struct {
 	Value float64
 }
 
-// Bytes returns the byte slice representation of the type.
-func (k KiloByteType) Bytes() []byte {
-	return []byte(fmt.Sprintf(`"%s":%f`, k.Key, k.Value/KILOBYTE))
+// Write includes both Key and Value.
+func (k KiloByteType) Write(p io.Writer) (n int, err error) {
+	return p.Write([]byte(fmt.Sprintf(`"%s":%f`, k.Key, k.Value/KILOBYTE)))
 }
 
 // Equal compares both keys and values and returns true if they are equal.
@@ -187,9 +186,9 @@ type MegaByteType struct {
 	Value float64
 }
 
-// Bytes returns the byte slice representation of the type.
-func (m MegaByteType) Bytes() []byte {
-	return []byte(fmt.Sprintf(`"%s":%f`, m.Key, m.Value/MEGABYTE))
+// Write includes both Key and Value.
+func (m MegaByteType) Write(p io.Writer) (n int, err error) {
+	return p.Write([]byte(fmt.Sprintf(`"%s":%f`, m.Key, m.Value/MEGABYTE)))
 }
 
 // Equal compares both keys and values and returns true if they are equal.

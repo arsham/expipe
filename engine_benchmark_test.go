@@ -14,11 +14,11 @@ import (
 
 	"github.com/arsham/expipe"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/token"
 	"github.com/arsham/expipe/reader"
 	reader_testing "github.com/arsham/expipe/reader/testing"
 	"github.com/arsham/expipe/recorder"
 	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	"github.com/arsham/expipe/token"
 )
 
 func BenchmarkEngineSingle(b *testing.B) {
@@ -64,35 +64,36 @@ func benchmarkEngineOnManyRecorders(count int, b *testing.B) {
 	log := internal.DiscardLogger()
 	log.Level = internal.ErrorLevel
 	for _, bc := range bcs {
-		ctx, cancel := context.WithCancel(context.Background())
 		name := fmt.Sprintf("Benchmark-%d_%d_%d_%d_(r:%d)", bc.readChanBuff, bc.readResChanBuff, bc.recChanBuff, bc.recResChan, bc.readers)
-
-		// Setting the intervals to an hour so the benchmark can issue jobs
-		rec, _ := recorder_testing.New(
-			recorder.SetLogger(log),
-			recorder.SetEndpoint(ts.URL),
-			recorder.SetName("recorder_example"),
-			recorder.SetIndexName("indexName"),
-			recorder.SetTimeout(time.Hour),
-			recorder.SetBackoff(5),
-		)
-		reds, err := makeReaders(bc.readers, log, ts.URL)
-		if err != nil {
-			b.Fatal(err)
-		}
-		e, _ := expipe.EngineWithReadRecs(ctx, log, rec, reds)
-
-		done := make(chan struct{})
-		go func(done chan struct{}) {
-			e.Start()
-			done <- struct{}{}
-		}(done)
-
 		b.Run(name, func(b *testing.B) {
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			// Setting the intervals to an hour so the benchmark can issue jobs
+			rec, _ := recorder_testing.New(
+				recorder.WithLogger(log),
+				recorder.WithEndpoint(ts.URL),
+				recorder.WithName("recorder_example"),
+				recorder.WithIndexName("indexName"),
+				recorder.WithTimeout(time.Hour),
+				recorder.WithBackoff(5),
+			)
+			reds, err := makeReaders(bc.readers, log, ts.URL)
+			if err != nil {
+				b.Fatal(err)
+			}
+			e, _ := expipe.EngineWithReadRecs(ctx, log, rec, reds)
+
+			done := make(chan struct{})
+			go func(done chan struct{}) {
+				e.Start()
+				done <- struct{}{}
+			}(done)
+
 			benchmarkEngine(ctx, reds, b)
+			cancel()
+			<-done
 		})
-		cancel()
-		<-done
 	}
 }
 
@@ -123,13 +124,13 @@ func makeReaders(count int, log internal.FieldLogger, url string) (map[string]re
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("reader_%d", i)
 		red, err := reader_testing.New(
-			reader.SetLogger(log),
-			reader.SetEndpoint(url),
-			reader.SetName(name),
-			reader.SetTypeName("example_type"),
-			reader.SetInterval(time.Hour),
-			reader.SetTimeout(time.Second),
-			reader.SetBackoff(10),
+			reader.WithLogger(log),
+			reader.WithEndpoint(url),
+			reader.WithName(name),
+			reader.WithTypeName("example_type"),
+			reader.WithInterval(time.Hour),
+			reader.WithTimeout(time.Second),
+			reader.WithBackoff(10),
 		)
 		if err != nil {
 			return nil, err

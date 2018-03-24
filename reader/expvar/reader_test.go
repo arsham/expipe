@@ -33,18 +33,18 @@ type Construct struct {
 func (c *Construct) TestServer() *httptest.Server { return testServer }
 func (c *Construct) Object() (reader.DataReader, error) {
 	return expvar.New(
-		reader.SetEndpoint(c.Endpoint()),
-		reader.SetMapper(c.Mapper()),
-		reader.SetName(c.Name()),
-		reader.SetTypeName(c.TypeName()),
-		reader.SetInterval(c.Interval()),
-		reader.SetTimeout(c.Timeout()),
-		reader.SetBackoff(c.Backoff()),
+		reader.WithEndpoint(c.Endpoint()),
+		reader.WithMapper(c.Mapper()),
+		reader.WithName(c.Name()),
+		reader.WithTypeName(c.TypeName()),
+		reader.WithInterval(c.Interval()),
+		reader.WithTimeout(c.Timeout()),
+		reader.WithBackoff(c.Backoff()),
 	)
 }
 
 func TestExpvarReader(t *testing.T) {
-	r, err := expvar.New(reader.SetName("test"))
+	r, err := expvar.New(reader.WithName("test"))
 	if err != nil {
 		panic(err)
 	}

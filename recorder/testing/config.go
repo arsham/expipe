@@ -36,12 +36,12 @@ func NewConfig(name string, log internal.FieldLogger, endpoint string, timeout t
 // NewInstance returns a mocked object
 func (c *Config) NewInstance() (recorder.DataRecorder, error) {
 	return New(
-		recorder.SetLogger(c.Logger()),
-		recorder.SetEndpoint(c.Endpoint()),
-		recorder.SetName(c.Name()),
-		recorder.SetIndexName(c.IndexName()),
-		recorder.SetTimeout(c.Timeout()),
-		recorder.SetBackoff(c.Backoff()),
+		recorder.WithLogger(c.Logger()),
+		recorder.WithEndpoint(c.Endpoint()),
+		recorder.WithName(c.Name()),
+		recorder.WithIndexName(c.IndexName()),
+		recorder.WithTimeout(c.Timeout()),
+		recorder.WithBackoff(c.Backoff()),
 	)
 }
 

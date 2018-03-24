@@ -1,7 +1,6 @@
 # Reccipes
 ## Table of Contents
 
-
 1. [Kibana](#kibana)
     * [Per Application Setup](#per-application-setup)
 3. [Configuration File](#configuration-file)

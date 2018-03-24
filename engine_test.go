@@ -17,11 +17,11 @@ import (
 
 	"github.com/arsham/expipe"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/token"
 	"github.com/arsham/expipe/reader"
 	reader_testing "github.com/arsham/expipe/reader/testing"
 	"github.com/arsham/expipe/recorder"
 	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	"github.com/arsham/expipe/token"
 
 	"github.com/pkg/errors"
 )
@@ -41,24 +41,24 @@ func TestMain(m *testing.M) {
 
 func sampleReader() (*reader_testing.Reader, error) {
 	return reader_testing.New(
-		reader.SetLogger(log),
-		reader.SetEndpoint(testServer.URL),
-		reader.SetName("red_name"),
-		reader.SetTypeName("type_name"),
-		reader.SetInterval(time.Second),
-		reader.SetTimeout(time.Second),
-		reader.SetBackoff(5),
+		reader.WithLogger(log),
+		reader.WithEndpoint(testServer.URL),
+		reader.WithName("red_name"),
+		reader.WithTypeName("type_name"),
+		reader.WithInterval(time.Second),
+		reader.WithTimeout(time.Second),
+		reader.WithBackoff(5),
 	)
 }
 
 func sampleRecorder() (*recorder_testing.Recorder, error) {
 	return recorder_testing.New(
-		recorder.SetLogger(log),
-		recorder.SetEndpoint(testServer.URL),
-		recorder.SetName("rec_name"),
-		recorder.SetIndexName("index_name"),
-		recorder.SetTimeout(time.Second),
-		recorder.SetBackoff(5),
+		recorder.WithLogger(log),
+		recorder.WithEndpoint(testServer.URL),
+		recorder.WithName("rec_name"),
+		recorder.WithIndexName("index_name"),
+		recorder.WithTimeout(time.Second),
+		recorder.WithBackoff(5),
 	)
 }
 
@@ -263,7 +263,7 @@ func TestEngineErrorsIfRecorderNotPinged(t *testing.T) {
 	}
 }
 
-func TestEngineOnlyErrorsIfAllReadersNotPinged(t *testing.T) {
+func TestEngineOnlyErrorsIfNoneOfReadersPinged(t *testing.T) {
 	ctx := context.Background()
 	deadServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	liveServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
@@ -310,7 +310,6 @@ func TestEngineOnlyErrorsIfAllReadersNotPinged(t *testing.T) {
 	if err == nil {
 		t.Error("want ErrPing, got nil")
 	}
-
 	if _, ok := errors.Cause(err).(expipe.ErrPing); !ok {
 		t.Errorf("want ErrPing, got (%v)", err)
 	}
@@ -471,9 +470,9 @@ func TestFailsOnNilReader(t *testing.T) {
 	}
 
 	e, err := expipe.New(
-		expipe.SetCtx(ctx),
-		expipe.SetLogger(log),
-		expipe.SetRecorder(rec),
+		expipe.WithCtx(ctx),
+		expipe.WithLogger(log),
+		expipe.WithRecorder(rec),
 	)
 
 	if errors.Cause(err) != expipe.ErrNoReader {
@@ -484,9 +483,9 @@ func TestFailsOnNilReader(t *testing.T) {
 	}
 
 	e, err = expipe.New(
-		expipe.SetCtx(ctx),
-		expipe.SetLogger(log),
-		expipe.SetRecorder(rec),
+		expipe.WithCtx(ctx),
+		expipe.WithLogger(log),
+		expipe.WithRecorder(rec),
 	)
 	if errors.Cause(err) != expipe.ErrNoReader {
 		t.Errorf("want ErrNoReader, got (%v)", err)
@@ -498,7 +497,7 @@ func TestFailsOnNilReader(t *testing.T) {
 
 func TestFailsOnNilRecorder(t *testing.T) {
 	e, err := expipe.New(
-		expipe.SetRecorder(nil),
+		expipe.WithRecorder(nil),
 	)
 
 	if err == nil {
@@ -520,9 +519,9 @@ func TestEngineFailsNoLog(t *testing.T) {
 	}
 
 	e, err := expipe.New(
-		expipe.SetRecorder(rec),
-		expipe.SetReaders(red),
-		expipe.SetCtx(context.Background()),
+		expipe.WithRecorder(rec),
+		expipe.WithReaders(red),
+		expipe.WithCtx(context.Background()),
 	)
 	if errors.Cause(err) != expipe.ErrNoLogger {
 		t.Errorf("want (expipe.ErrNoLogger), got (%v)", err)
@@ -544,9 +543,9 @@ func TestEngineFailsNoCtx(t *testing.T) {
 	}
 
 	e, err := expipe.New(
-		expipe.SetRecorder(rec),
-		expipe.SetReaders(red),
-		expipe.SetLogger(internal.DiscardLogger()),
+		expipe.WithRecorder(rec),
+		expipe.WithReaders(red),
+		expipe.WithLogger(internal.DiscardLogger()),
 	)
 	if errors.Cause(err) != expipe.ErrNoCtx {
 		t.Errorf("want (expipe.ErrNoCtx), got (%v)", err)

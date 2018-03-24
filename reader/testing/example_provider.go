@@ -15,13 +15,13 @@ import (
 func GetReader(url string) *Reader {
 	log := internal.DiscardLogger()
 	red, err := New(
-		reader.SetLogger(log),
-		reader.SetEndpoint(url),
-		reader.SetName("reader_example"),
-		reader.SetTypeName("reader_example"),
-		reader.SetInterval(10*time.Millisecond),
-		reader.SetTimeout(time.Second),
-		reader.SetBackoff(10),
+		reader.WithLogger(log),
+		reader.WithEndpoint(url),
+		reader.WithName("reader_example"),
+		reader.WithTypeName("reader_example"),
+		reader.WithInterval(10*time.Millisecond),
+		reader.WithTimeout(time.Second),
+		reader.WithBackoff(10),
 	)
 	if err != nil {
 		panic(err)

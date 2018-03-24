@@ -38,13 +38,13 @@ func NewConfig(name, typeName string, log internal.FieldLogger, endpoint string,
 // NewInstance  returns a mocked version of the config
 func (c *Config) NewInstance() (reader.DataReader, error) {
 	return New(
-		reader.SetLogger(c.Logger()),
-		reader.SetEndpoint(c.Endpoint()),
-		reader.SetName(c.Name()),
-		reader.SetTypeName(c.TypeName()),
-		reader.SetInterval(c.Interval()),
-		reader.SetTimeout(c.Timeout()),
-		reader.SetBackoff(c.Backoff()),
+		reader.WithLogger(c.Logger()),
+		reader.WithEndpoint(c.Endpoint()),
+		reader.WithName(c.Name()),
+		reader.WithTypeName(c.TypeName()),
+		reader.WithInterval(c.Interval()),
+		reader.WithTimeout(c.Timeout()),
+		reader.WithBackoff(c.Backoff()),
 	)
 }
 

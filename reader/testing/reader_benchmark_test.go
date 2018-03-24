@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/token"
 	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/token"
 )
 
 func BenchmarkReader0_0(b *testing.B)           { benchmarkReader(0, 0, b) }
@@ -39,13 +39,13 @@ func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
 	defer ts.Close()
 
 	red, err := New(
-		reader.SetLogger(log),
-		reader.SetEndpoint(ts.URL),
-		reader.SetName("reader_example"),
-		reader.SetTypeName("reader_example"),
-		reader.SetInterval(10*time.Millisecond),
-		reader.SetTimeout(time.Second),
-		reader.SetBackoff(10),
+		reader.WithLogger(log),
+		reader.WithEndpoint(ts.URL),
+		reader.WithName("reader_example"),
+		reader.WithTypeName("reader_example"),
+		reader.WithInterval(10*time.Millisecond),
+		reader.WithTimeout(time.Second),
+		reader.WithBackoff(10),
 	)
 
 	if err != nil {

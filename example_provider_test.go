@@ -27,13 +27,13 @@ func getReader(log internal.FieldLogger) (map[string]reader.DataReader, func()) 
 	}))
 
 	red, err := reader_testing.New(
-		reader.SetLogger(log),
-		reader.SetEndpoint(ts.URL),
-		reader.SetName("reader_example"),
-		reader.SetTypeName("typeName"),
-		reader.SetInterval(time.Millisecond*100),
-		reader.SetTimeout(time.Second),
-		reader.SetBackoff(5),
+		reader.WithLogger(log),
+		reader.WithEndpoint(ts.URL),
+		reader.WithName("reader_example"),
+		reader.WithTypeName("typeName"),
+		reader.WithInterval(time.Millisecond*100),
+		reader.WithTimeout(time.Second),
+		reader.WithBackoff(5),
 	)
 
 	if err != nil {
@@ -47,12 +47,12 @@ func getReader(log internal.FieldLogger) (map[string]reader.DataReader, func()) 
 
 func getRecorder(log internal.FieldLogger, url string) recorder.DataRecorder {
 	rec, err := recorder_testing.New(
-		recorder.SetLogger(log),
-		recorder.SetEndpoint(url),
-		recorder.SetName("recorder_example"),
-		recorder.SetIndexName("indexName"),
-		recorder.SetTimeout(time.Second),
-		recorder.SetBackoff(5),
+		recorder.WithLogger(log),
+		recorder.WithEndpoint(url),
+		recorder.WithName("recorder_example"),
+		recorder.WithIndexName("indexName"),
+		recorder.WithTimeout(time.Second),
+		recorder.WithBackoff(5),
 	)
 	if err != nil {
 		panic(err)

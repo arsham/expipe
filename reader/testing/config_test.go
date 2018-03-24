@@ -5,60 +5,85 @@
 package testing_test
 
 import (
+	"testing"
 	"time"
 
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/reader/testing"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	reader_testing "github.com/arsham/expipe/reader/testing"
 )
 
-var _ = Describe("Config", func() {
-	var c *testing.Config
-	Describe("NewConfig", func() {
-		Context("new object with a set of input", func() {
-			var err error
-			name := "name"
-			log := internal.DiscardLogger()
-			endpoint := "http://localhost"
-			timeout := time.Second
-			interval := 100 * time.Millisecond
-			backoff := 5
-			typeName := "type_name"
-			c, err = testing.NewConfig(name, typeName, log, endpoint, interval, timeout, backoff)
+func TestConfig(t *testing.T) {
+	name := "name"
+	log := internal.DiscardLogger()
+	endpoint := "http://localhost"
+	timeout := time.Second
+	interval := 100 * time.Millisecond
+	backoff := 5
+	typeName := "type_name"
+	c, err := reader_testing.NewConfig(name, typeName, log, endpoint, interval, timeout, backoff)
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
+	}
 
-			Specify("has all the input in its fields", func() {
-				Expect(c.Name()).To(Equal(name))
-				Expect(c.Logger()).To(Equal(log))
-				Expect(c.Endpoint()).To(Equal(endpoint))
-				Expect(c.Timeout()).To(Equal(timeout))
-				Expect(c.Interval()).To(Equal(interval))
-				Expect(c.Backoff()).To(Equal(backoff))
-				Expect(c.TypeName()).To(Equal(typeName))
-			})
-			It("error is nil", func() {
-				Expect(err).To(BeNil())
-			})
-		})
-	})
+	if c.Name() != name {
+		t.Errorf("want (%v) to be (%v)", name, c.Name())
+	}
+	if c.Logger() != log {
+		t.Errorf("want (%v) to be (%v)", log, c.Logger())
+	}
+	if c.Endpoint() != endpoint {
+		t.Errorf("want (%v) to be (%v)", endpoint, c.Endpoint())
+	}
+	if c.Timeout() != timeout {
+		t.Errorf("want (%v) to be (%v)", timeout, c.Timeout())
+	}
+	if c.Interval() != interval {
+		t.Errorf("want (%v) to be (%v)", interval, c.Interval())
+	}
+	if c.Backoff() != backoff {
+		t.Errorf("want (%v) to be (%v)", backoff, c.Backoff())
+	}
+	if c.TypeName() != typeName {
+		t.Errorf("want (%v) to be (%v)", typeName, c.TypeName())
+	}
+}
 
-	Describe("NewInstance", func() {
-		Context("new reader set-up from last description", func() {
-			r, err := c.NewInstance()
-			rec, ok := r.(*testing.Reader)
-			Specify("error should be nil", func() {
-				Expect(ok).To(BeTrue())
-				Expect(err).NotTo(HaveOccurred())
-			})
-			Specify("has all the input in its fields", func() {
-				Expect(rec.Name()).To(Equal(c.Name()))
-				Expect(rec.Endpoint()).To(Equal(c.Endpoint()))
-				Expect(rec.Timeout()).To(Equal(c.Timeout()))
-				Expect(rec.Interval()).To(Equal(c.Interval()))
-				Expect(rec.Backoff()).To(Equal(c.Backoff()))
-				Expect(rec.TypeName()).To(Equal(c.TypeName()))
-			})
-		})
-	})
-})
+func TestConfigNewInstance(t *testing.T) {
+	name := "name"
+	log := internal.DiscardLogger()
+	endpoint := "http://localhost"
+	timeout := time.Second
+	interval := 100 * time.Millisecond
+	backoff := 5
+	typeName := "type_name"
+	c, err := reader_testing.NewConfig(name, typeName, log, endpoint, interval, timeout, backoff)
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
+	}
+	r, err := c.NewInstance()
+	rec, ok := r.(*reader_testing.Reader)
+	if !ok {
+		t.Error("want (true), got (false)")
+	}
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
+	}
+	if rec.Name() != c.Name() {
+		t.Errorf("want (%v) to be (%v)", c.Name(), rec.Name())
+	}
+	if rec.Endpoint() != c.Endpoint() {
+		t.Errorf("want (%v) to be (%v)", c.Endpoint(), rec.Endpoint())
+	}
+	if rec.Timeout() != c.Timeout() {
+		t.Errorf("want (%v) to be (%v)", c.Timeout(), rec.Timeout())
+	}
+	if rec.Interval() != c.Interval() {
+		t.Errorf("want (%v) to be (%v)", c.Interval(), rec.Interval())
+	}
+	if rec.Backoff() != c.Backoff() {
+		t.Errorf("want (%v) to be (%v)", c.Backoff(), rec.Backoff())
+	}
+	if rec.TypeName() != c.TypeName() {
+		t.Errorf("want (%v) to be (%v)", c.TypeName(), rec.TypeName())
+	}
+}

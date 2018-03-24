@@ -10,7 +10,6 @@ import (
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 )
 
 // Config holds the necessary configuration for setting up an elasticsearch reader endpoint.
@@ -38,8 +37,12 @@ func NewConfig(log internal.FieldLogger, name string, endpoint string, timeout t
 	return withConfig(c)
 }
 
+type unmarshaller interface {
+	UnmarshalKey(key string, rawVal interface{}) error
+}
+
 // FromViper constructs the necessary configuration for bootstrapping the elasticsearch reader
-func FromViper(v *viper.Viper, log internal.FieldLogger, name, key string) (*Config, error) {
+func FromViper(v unmarshaller, log internal.FieldLogger, name, key string) (*Config, error) {
 	var (
 		c       Config
 		timeout time.Duration
@@ -84,12 +87,12 @@ func withConfig(c *Config) (*Config, error) {
 // NewInstance returns an instance of the elasticsearch recorder
 func (c *Config) NewInstance() (recorder.DataRecorder, error) {
 	return New(
-		recorder.SetLogger(c.Logger()),
-		recorder.SetEndpoint(c.Endpoint()),
-		recorder.SetName(c.Name()),
-		recorder.SetIndexName(c.IndexName()),
-		recorder.SetTimeout(c.Timeout()),
-		recorder.SetBackoff(c.Backoff()),
+		recorder.WithLogger(c.Logger()),
+		recorder.WithEndpoint(c.Endpoint()),
+		recorder.WithName(c.Name()),
+		recorder.WithIndexName(c.IndexName()),
+		recorder.WithTimeout(c.Timeout()),
+		recorder.WithBackoff(c.Backoff()),
 	)
 }
 

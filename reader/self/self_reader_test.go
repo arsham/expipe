@@ -10,8 +10,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/datatype"
 	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/reader/self"
 	reader_testing "github.com/arsham/expipe/reader/testing"
@@ -35,14 +35,14 @@ type Construct struct {
 func (c *Construct) TestServer() *httptest.Server { return testServer }
 func (c *Construct) Object() (reader.DataReader, error) {
 	red, err := self.New(
-		reader.SetEndpoint(c.Endpoint()),
-		reader.SetMapper(datatype.DefaultMapper()),
-		reader.SetName(c.Name()),
-		reader.SetTypeName(c.TypeName()),
-		reader.SetInterval(c.Interval()),
-		reader.SetTimeout(c.Timeout()),
-		reader.SetBackoff(c.Backoff()),
-		reader.SetLogger(internal.DiscardLogger()),
+		reader.WithEndpoint(c.Endpoint()),
+		reader.WithMapper(datatype.DefaultMapper()),
+		reader.WithName(c.Name()),
+		reader.WithTypeName(c.TypeName()),
+		reader.WithInterval(c.Interval()),
+		reader.WithTimeout(c.Timeout()),
+		reader.WithBackoff(c.Backoff()),
+		reader.WithLogger(internal.DiscardLogger()),
 	)
 	if err == nil {
 		red.SetTestMode()
@@ -51,7 +51,7 @@ func (c *Construct) Object() (reader.DataReader, error) {
 }
 
 func TestSelfReader(t *testing.T) {
-	r, err := self.New(reader.SetName("test"))
+	r, err := self.New(reader.WithName("test"))
 	if err != nil {
 		panic(err)
 	}

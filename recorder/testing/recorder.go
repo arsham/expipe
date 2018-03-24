@@ -42,32 +42,25 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 			return nil, errors.Wrap(err, "option creation")
 		}
 	}
-
 	if r.log == nil {
 		r.log = internal.GetLogger("error")
 	}
 	r.log = r.log.WithField("engine", "recorder_testing")
-
 	if r.backoff < 5 {
 		r.backoff = 5
 	}
-
 	if r.indexName == "" {
 		r.indexName = r.name
 	}
-
 	if r.timeout == 0 {
 		r.timeout = 5 * time.Second
 	}
-
 	return r, nil
 }
 
 // Ping pings the endpoint and return nil if was successful.
 func (r *Recorder) Ping() error {
 	if r.Pinged {
-		// In tests, we have a strict policy on channels. Therefore if it
-		// is already pinged, we won't bother.
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
@@ -78,7 +71,6 @@ func (r *Recorder) Ping() error {
 	}
 	r.Pinged = true
 	return nil
-
 }
 
 // Record calls the RecordFunc if exists, otherwise continues as normal
@@ -86,7 +78,6 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 	if !r.Pinged {
 		return recorder.ErrPingNotCalled
 	}
-
 	r.Smu.RLock()
 	if r.RecordFunc != nil {
 		r.Smu.RUnlock()

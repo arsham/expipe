@@ -18,6 +18,7 @@ import (
 var tokenID = tokenKey("token-id")
 
 // Context is a context.Context with a token as its value.
+// IDEA: add current time. Then log the creation time if required.
 type Context struct {
 	context.Context
 }
@@ -43,5 +44,6 @@ func (i ID) String() string { return uuid.UUID(i).String() }
 
 // NewUID returns a new unique ID.
 func NewUID() ID {
-	return ID(uuid.NewV4())
+	id, _ := uuid.NewV4()
+	return ID(id)
 }

@@ -17,27 +17,16 @@ import (
 
 // Constructor is an interface for setting up an object for testing.
 type Constructor interface {
-	// SetLogger is for setting the Logger
 	SetLogger(logger internal.FieldLogger)
-
-	// SetName is for setting the Name
 	SetName(name string)
-
-	// SetIndexName is for setting the IndexName
 	SetIndexName(indexName string)
-
-	// SetEndpoint is for setting the Endpoint
 	SetEndpoint(endpoint string)
-
-	// SetTimeout is for setting the Timeout
 	SetTimeout(timeout time.Duration)
-
-	// SetBackoff is for setting the Backoff
 	SetBackoff(backoff int)
 }
 
-// SetLogger sets the log of the recorder
-func SetLogger(log internal.FieldLogger) func(Constructor) error {
+// WithLogger sets the log of the recorder
+func WithLogger(log internal.FieldLogger) func(Constructor) error {
 	return func(e Constructor) error {
 		if log == nil {
 			return errors.New("recorder nil logger")
@@ -47,8 +36,8 @@ func SetLogger(log internal.FieldLogger) func(Constructor) error {
 	}
 }
 
-// SetName sets the name of the recorder
-func SetName(name string) func(Constructor) error {
+// WithName sets the name of the recorder
+func WithName(name string) func(Constructor) error {
 	return func(e Constructor) error {
 		if name == "" {
 			return ErrEmptyName
@@ -58,8 +47,8 @@ func SetName(name string) func(Constructor) error {
 	}
 }
 
-// SetEndpoint sets the endpoint of the recorder
-func SetEndpoint(endpoint string) func(Constructor) error {
+// WithEndpoint sets the endpoint of the recorder
+func WithEndpoint(endpoint string) func(Constructor) error {
 	return func(e Constructor) error {
 		if endpoint == "" {
 			return ErrEmptyEndpoint
@@ -68,14 +57,13 @@ func SetEndpoint(endpoint string) func(Constructor) error {
 		if err != nil {
 			return ErrInvalidEndpoint(endpoint)
 		}
-
 		e.SetEndpoint(url)
 		return nil
 	}
 }
 
-// SetIndexName sets the indexName of the recorder
-func SetIndexName(indexName string) func(Constructor) error {
+// WithIndexName sets the indexName of the recorder
+func WithIndexName(indexName string) func(Constructor) error {
 	return func(e Constructor) error {
 		if indexName == "" {
 			return ErrEmptyIndexName
@@ -88,8 +76,8 @@ func SetIndexName(indexName string) func(Constructor) error {
 	}
 }
 
-// SetTimeout sets the timeout of the recorder
-func SetTimeout(timeout time.Duration) func(Constructor) error {
+// WithTimeout sets the timeout of the recorder
+func WithTimeout(timeout time.Duration) func(Constructor) error {
 	return func(e Constructor) error {
 		if timeout < time.Second {
 			return ErrLowTimeout(timeout)
@@ -99,13 +87,12 @@ func SetTimeout(timeout time.Duration) func(Constructor) error {
 	}
 }
 
-// SetBackoff sets the backoff of the recorder
-func SetBackoff(backoff int) func(Constructor) error {
+// WithBackoff sets the backoff of the recorder
+func WithBackoff(backoff int) func(Constructor) error {
 	return func(e Constructor) error {
 		if backoff < 5 {
 			return ErrLowBackoffValue(backoff)
 		}
-
 		e.SetBackoff(backoff)
 		return nil
 	}

@@ -5,6 +5,7 @@
 package datatype
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"testing"
@@ -19,8 +20,12 @@ type caseType struct {
 }
 
 func inArray(a DataType, b []DataType) bool {
+	ap := new(bytes.Buffer)
+	a.Write(ap)
 	for i := range b {
-		if reflect.DeepEqual(a.Bytes(), b[i].Bytes()) {
+		bp := new(bytes.Buffer)
+		b[i].Write(bp)
+		if reflect.DeepEqual(ap.Bytes(), bp.Bytes()) {
 			return true
 		}
 	}
@@ -166,9 +171,9 @@ func TestFromReader(t *testing.T) {
 		name := fmt.Sprintf("case %d", i)
 		t.Run(name, func(t *testing.T) {
 
-			results := JobResultDataTypes(tc.value, mapper)
-			if results.Error() != nil {
-				t.Errorf("expected no errors, got (%s)", results.Error())
+			results, err := JobResultDataTypes(tc.value, mapper)
+			if err != nil {
+				t.Errorf("expected no errors, got (%s)", err)
 			}
 			if !isIn(results.List(), tc.expected) {
 				t.Errorf("want (%s) got (%s)", tc.expected, results.List())
@@ -182,20 +187,20 @@ func TestJobResultDataTypesErrors(t *testing.T) {
 	mapper := &MapConvertMock{}
 
 	value := []byte(`{"Alloc": "sdsds"}`)
-	results := JobResultDataTypes(value, mapper)
-	if results.Error() == nil {
+	results, err := JobResultDataTypes(value, mapper)
+	if err == nil {
 		t.Error("expected error, got nothing")
 	}
-	if results.Len() != 0 {
-		t.Errorf("expected empty results, got (%s)", results.List())
+	if results != nil {
+		t.Errorf("want (nil), got (%v)", results)
 	}
 
 	value = []byte(`{"Alloc": "sdsds}`)
-	results = JobResultDataTypes(value, mapper)
-	if results.Error() == nil {
+	results, err = JobResultDataTypes(value, mapper)
+	if err == nil {
 		t.Error("expected error, got nothing")
 	}
-	if results.Len() != 0 {
-		t.Errorf("expected empty results, got (%s)", results.List())
+	if results != nil {
+		t.Errorf("want (nil), got (%v)", results)
 	}
 }

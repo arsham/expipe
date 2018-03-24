@@ -6,13 +6,20 @@ package token_test
 
 import (
 	"context"
-	"fmt"
+	"testing"
 
-	"github.com/arsham/expipe/internal/token"
+	"github.com/arsham/expipe/token"
 )
 
-// This example shows how to create a new job from a context.
-func ExampleNew() {
-	job := token.New(context.Background())
-	fmt.Println(job)
+var result *token.Context
+
+func BenchmarkGenerateTokens(b *testing.B) {
+	var t *token.Context
+	ctx := context.Background()
+
+	for n := 0; n < b.N; n++ {
+		t = token.New(ctx)
+	}
+
+	result = t
 }

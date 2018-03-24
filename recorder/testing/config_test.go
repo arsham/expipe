@@ -5,57 +5,67 @@
 package testing_test
 
 import (
+	"testing"
 	"time"
 
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/recorder/testing"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	recorder_testing "github.com/arsham/expipe/recorder/testing"
 )
 
-var _ = Describe("Config", func() {
-	var c *testing.Config
-	Describe("NewConfig", func() {
-		Context("new object with a set of input", func() {
-			var err error
-			name := "name"
-			log := internal.DiscardLogger()
-			endpoint := "http://localhost"
-			timeout := time.Second
-			backoff := 5
-			indexName := "index_name"
-			c, err = testing.NewConfig(name, log, endpoint, timeout, backoff, indexName)
+func TestConfig(t *testing.T) {
+	name := "name"
+	log := internal.DiscardLogger()
+	endpoint := "http://localhost"
+	timeout := time.Second
+	backoff := 5
+	indexName := "index_name"
+	c, err := recorder_testing.NewConfig(name, log, endpoint, timeout, backoff, indexName)
 
-			Specify("has all the input in its fields", func() {
-				Expect(c.Name()).To(Equal(name))
-				Expect(c.Logger()).To(Equal(log))
-				Expect(c.Endpoint()).To(Equal(endpoint))
-				Expect(c.Timeout()).To(Equal(timeout))
-				Expect(c.Backoff()).To(Equal(backoff))
-				Expect(c.IndexName()).To(Equal(indexName))
-			})
-			It("error is nil", func() {
-				Expect(err).To(BeNil())
-			})
-		})
-	})
+	if c.Name() != name {
+		t.Errorf("want (%v) to be (%v)", c.Name(), name)
+	}
+	if c.Logger() != log {
+		t.Errorf("want (%v) to be (%v)", c.Logger(), log)
+	}
+	if c.Endpoint() != endpoint {
+		t.Errorf("want (%v) to be (%v)", c.Endpoint(), endpoint)
+	}
+	if c.Timeout() != timeout {
+		t.Errorf("want (%v) to be (%v)", c.Timeout(), timeout)
+	}
+	if c.Backoff() != backoff {
+		t.Errorf("want (%v) to be (%v)", c.Backoff(), backoff)
+	}
+	if c.IndexName() != indexName {
+		t.Errorf("want (%v) to be (%v)", c.IndexName(), indexName)
+	}
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
+	}
 
-	Describe("NewInstance", func() {
-		Context("new recorder set-up from last description", func() {
-			r, err := c.NewInstance()
-			rec, ok := r.(*testing.Recorder)
-			Specify("error should be nil", func() {
-				Expect(ok).To(BeTrue())
-				Expect(err).NotTo(HaveOccurred())
-			})
-			Specify("has all the input in its fields", func() {
-				Expect(rec.Name()).To(Equal(c.Name()))
-				Expect(rec.Endpoint()).To(Equal(c.Endpoint()))
-				Expect(rec.Timeout()).To(Equal(c.Timeout()))
-				Expect(rec.Backoff()).To(Equal(c.Backoff()))
-				Expect(rec.IndexName()).To(Equal(c.IndexName()))
-			})
-		})
-	})
-})
+	// Testing NewInstance
+
+	r, err := c.NewInstance()
+	rec, ok := r.(*recorder_testing.Recorder)
+	if !ok {
+		t.Error("want (true), got (false)")
+	}
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
+	}
+	if rec.Name() != c.Name() {
+		t.Errorf("want (%v) to be (%v)", rec.Name(), c.Name())
+	}
+	if rec.Endpoint() != c.Endpoint() {
+		t.Errorf("want (%v) to be (%v)", rec.Endpoint(), c.Endpoint())
+	}
+	if rec.Timeout() != c.Timeout() {
+		t.Errorf("want (%v) to be (%v)", rec.Timeout(), c.Timeout())
+	}
+	if rec.Backoff() != c.Backoff() {
+		t.Errorf("want (%v) to be (%v)", rec.Backoff(), c.Backoff())
+	}
+	if rec.IndexName() != c.IndexName() {
+		t.Errorf("want (%v) to be (%v)", rec.IndexName(), c.IndexName())
+	}
+}

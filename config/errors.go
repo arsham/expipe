@@ -9,6 +9,11 @@ import "fmt"
 // EmptyConfigErr is an error when the config file is empty
 var EmptyConfigErr = &StructureErr{"", "empty configuration file", nil}
 
+const (
+	// NilStr is the string used to print nil for an error
+	NilStr = "<nil>"
+)
+
 // StructureErr is an error on reading the configuration file.
 type StructureErr struct {
 	Section string // The section that error happened
@@ -16,14 +21,10 @@ type StructureErr struct {
 	Err     error  // Err is the error that occurred during the operation.
 }
 
-const (
-	nilStr = "<nil>"
-)
-
 // Error returns "<nil>" if the error is nil.
 func (e *StructureErr) Error() string {
 	if e == nil {
-		return nilStr
+		return NilStr
 	}
 
 	s := e.Section
@@ -47,7 +48,7 @@ func NewErrNotSpecified(section, reason string, err error) *ErrNotSpecified {
 
 func (e *ErrNotSpecified) Error() string {
 	if e == nil {
-		return nilStr
+		return NilStr
 	}
 
 	s := e.Section
@@ -73,7 +74,7 @@ func NewErrRouters(section, reason string, err error) *ErrRouters {
 
 func (e *ErrRouters) Error() string {
 	if e == nil {
-		return nilStr
+		return NilStr
 	}
 
 	s := "not specified: " + e.Section

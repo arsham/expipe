@@ -36,10 +36,16 @@ type MapConvert struct {
 	memoryTypes map[string]memType
 }
 
+type treeReader interface {
+	IsSet(key string) bool
+	GetStringSlice(key string) []string
+	GetStringMapString(key string) map[string]string
+}
+
 // MapsFromViper reads from the map file and produces functions for conversion
 // used in type decoder. It first reads from the default settings defined in
 // the maps.yml in the same folder, then overrides with the user specified mappings.
-func MapsFromViper(v *viper.Viper) *MapConvert {
+func MapsFromViper(v treeReader) *MapConvert {
 	m := &MapConvert{}
 	def := DefaultMapper()
 	if v.IsSet("gc_types") {
@@ -145,7 +151,7 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 			continue
 		}
 		expDataTypeObjs.Add(1)
-		if result != nil { // TODO: test
+		if result != nil { // TEST: write tests (7)
 			results = append(results, result)
 		}
 	}
@@ -191,7 +197,7 @@ func (m memType) IsByte() bool     { return string(m) == "b" }
 func (m memType) IsKiloByte() bool { return string(m) == "kb" }
 func (m memType) IsMegaByte() bool { return string(m) == "mb" }
 
-func gcTypes(v *viper.Viper, gcTypes []string) []string {
+func gcTypes(v treeReader, gcTypes []string) []string {
 	var result []string
 	seen := make(map[string]struct{})
 
@@ -207,7 +213,7 @@ func gcTypes(v *viper.Viper, gcTypes []string) []string {
 	return result
 }
 
-func memoryTypes(v *viper.Viper, memoryTypes map[string]memType) map[string]memType {
+func memoryTypes(v treeReader, memoryTypes map[string]memType) map[string]memType {
 	result := make(map[string]memType, len(memoryTypes))
 	for name, memoryType := range v.GetStringMapString("memory_bytes") {
 		result[name] = memType(memoryType)

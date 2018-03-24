@@ -7,43 +7,28 @@ package reader
 import (
 	"time"
 
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/datatype"
 	"github.com/pkg/errors"
 )
 
 // This file contains the construction functions required for instantiating
 // a Reader object. Input variables are sanitised here.
 
-// Constructor is an interface for setting up an object for testing.
+// Constructor is a Reader object that will accept configurations.
 type Constructor interface {
-	// SetLogger is for setting the Logger
 	SetLogger(logger internal.FieldLogger)
-
-	// SetName is for setting the Name
 	SetName(name string)
-
-	// SetTypeName is for setting the TypeName
 	SetTypeName(typeName string)
-
-	// SetEndpoint is for setting the Endpoint
 	SetEndpoint(endpoint string)
-
-	// SetMapper is for setting the SetMapper
 	SetMapper(mapper datatype.Mapper)
-
-	// SetInterval is for setting the Interval
 	SetInterval(interval time.Duration)
-
-	// SetTimeout is for setting the Timeout
 	SetTimeout(timeout time.Duration)
-
-	// SetBackoff is for setting the Backoff
 	SetBackoff(backoff int)
 }
 
-// SetLogger sets the log of the reader
-func SetLogger(log internal.FieldLogger) func(Constructor) error {
+// WithLogger sets the log of the reader
+func WithLogger(log internal.FieldLogger) func(Constructor) error {
 	return func(e Constructor) error {
 		if log == nil {
 			return errors.New("reader nil logger")
@@ -53,8 +38,8 @@ func SetLogger(log internal.FieldLogger) func(Constructor) error {
 	}
 }
 
-// SetName sets the name of the reader
-func SetName(name string) func(Constructor) error {
+// WithName sets the name of the reader
+func WithName(name string) func(Constructor) error {
 	return func(e Constructor) error {
 		if name == "" {
 			return ErrEmptyName
@@ -64,8 +49,8 @@ func SetName(name string) func(Constructor) error {
 	}
 }
 
-// SetEndpoint sets the endpoint of the reader
-func SetEndpoint(endpoint string) func(Constructor) error {
+// WithEndpoint sets the endpoint of the reader
+func WithEndpoint(endpoint string) func(Constructor) error {
 	return func(e Constructor) error {
 		if endpoint == "" {
 			return ErrEmptyEndpoint
@@ -74,14 +59,13 @@ func SetEndpoint(endpoint string) func(Constructor) error {
 		if err != nil {
 			return ErrInvalidEndpoint(endpoint)
 		}
-
 		e.SetEndpoint(url)
 		return nil
 	}
 }
 
-// SetMapper sets the mapper of the reader
-func SetMapper(mapper datatype.Mapper) func(Constructor) error {
+// WithMapper sets the mapper of the reader
+func WithMapper(mapper datatype.Mapper) func(Constructor) error {
 	return func(e Constructor) error {
 		if mapper == nil {
 			return errors.New("nil mapper")
@@ -91,8 +75,8 @@ func SetMapper(mapper datatype.Mapper) func(Constructor) error {
 	}
 }
 
-// SetTypeName sets the typeName of the reader
-func SetTypeName(typeName string) func(Constructor) error {
+// WithTypeName sets the typeName of the reader
+func WithTypeName(typeName string) func(Constructor) error {
 	return func(e Constructor) error {
 		if typeName == "" {
 			return ErrEmptyTypeName
@@ -102,8 +86,8 @@ func SetTypeName(typeName string) func(Constructor) error {
 	}
 }
 
-// SetInterval sets the interval of the reader
-func SetInterval(interval time.Duration) func(Constructor) error {
+// WithInterval sets the interval of the reader
+func WithInterval(interval time.Duration) func(Constructor) error {
 	return func(e Constructor) error {
 		if interval == time.Duration(0) {
 			return ErrLowInterval(interval)
@@ -113,8 +97,8 @@ func SetInterval(interval time.Duration) func(Constructor) error {
 	}
 }
 
-// SetTimeout sets the timeout of the reader
-func SetTimeout(timeout time.Duration) func(Constructor) error {
+// WithTimeout sets the timeout of the reader
+func WithTimeout(timeout time.Duration) func(Constructor) error {
 	return func(e Constructor) error {
 		if timeout < time.Second {
 			return ErrLowTimeout(timeout)
@@ -124,13 +108,12 @@ func SetTimeout(timeout time.Duration) func(Constructor) error {
 	}
 }
 
-// SetBackoff sets the backoff of the reader
-func SetBackoff(backoff int) func(Constructor) error {
+// WithBackoff sets the backoff of the reader
+func WithBackoff(backoff int) func(Constructor) error {
 	return func(e Constructor) error {
 		if backoff < 5 {
 			return ErrLowBackoffValue(backoff)
 		}
-
 		e.SetBackoff(backoff)
 		return nil
 	}

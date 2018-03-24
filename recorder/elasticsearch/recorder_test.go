@@ -74,11 +74,11 @@ type Construct struct {
 func (c *Construct) TestServer() *httptest.Server { return c.testServer }
 func (c *Construct) Object() (recorder.DataRecorder, error) {
 	return elasticsearch.New(
-		recorder.SetEndpoint(c.Endpoint()),
-		recorder.SetName(c.Name()),
-		recorder.SetIndexName(c.IndexName()),
-		recorder.SetTimeout(c.Timeout()),
-		recorder.SetBackoff(c.Backoff()),
+		recorder.WithEndpoint(c.Endpoint()),
+		recorder.WithName(c.Name()),
+		recorder.WithIndexName(c.IndexName()),
+		recorder.WithTimeout(c.Timeout()),
+		recorder.WithBackoff(c.Backoff()),
 	)
 }
 

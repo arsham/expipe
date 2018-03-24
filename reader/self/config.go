@@ -8,11 +8,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/datatype"
 	"github.com/arsham/expipe/reader"
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 )
 
 // Config holds the necessary configuration for setting up an self reading facility.
@@ -28,8 +27,12 @@ type Config struct {
 	log      internal.FieldLogger
 }
 
+type unmarshaller interface {
+	UnmarshalKey(key string, rawVal interface{}) error
+}
+
 // FromViper constructs the necessary configuration for bootstrapping the expvar reader
-func FromViper(v *viper.Viper, log internal.FieldLogger, name, key string) (*Config, error) {
+func FromViper(v unmarshaller, log internal.FieldLogger, name, key string) (*Config, error) {
 	var (
 		c     Config
 		inter time.Duration
@@ -57,14 +60,14 @@ func FromViper(v *viper.Viper, log internal.FieldLogger, name, key string) (*Con
 // NewInstance instantiates a SelfReader
 func (c *Config) NewInstance() (reader.DataReader, error) {
 	return New(
-		reader.SetLogger(c.Logger()),
-		reader.SetEndpoint(c.Endpoint()),
-		reader.SetMapper(c.mapper),
-		reader.SetName(c.Name()),
-		reader.SetTypeName(c.TypeName()),
-		reader.SetInterval(c.Interval()),
-		reader.SetTimeout(c.Timeout()),
-		reader.SetBackoff(c.Backoff()),
+		reader.WithLogger(c.Logger()),
+		reader.WithEndpoint(c.Endpoint()),
+		reader.WithMapper(c.mapper),
+		reader.WithName(c.Name()),
+		reader.WithTypeName(c.TypeName()),
+		reader.WithInterval(c.Interval()),
+		reader.WithTimeout(c.Timeout()),
+		reader.WithBackoff(c.Backoff()),
 	)
 }
 

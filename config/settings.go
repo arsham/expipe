@@ -85,15 +85,14 @@ func LoadYAML(log *internal.Logger, v *viper.Viper) (*ConfMap, error) {
 	if recorderKeys, err = getRecorders(v); err != nil {
 		return nil, errors.WithMessage(err, "recorderKeys")
 	}
-
 	if routes, err = getRoutes(v); err != nil {
 		return nil, errors.WithMessage(err, "routes")
 	}
-
 	if err = checkAgainstReadRecorders(routes, readerKeys, recorderKeys); err != nil {
 		return nil, errors.WithMessage(err, "checkAgainstReadRecorders")
 	}
 
+	// TEST: write a test that hit this line
 	return loadConfiguration(v, log, routes, readerKeys, recorderKeys)
 }
 
@@ -185,7 +184,6 @@ func checkAgainstReadRecorders(routes routeMap, readerKeys, recorderKeys map[str
 				return NewErrRouters("routers", reader+" not in readers", nil)
 			}
 		}
-
 		for _, recorder := range section.recorders {
 			if !internal.StringInMapKeys(recorder, recorderKeys) {
 				return NewErrRouters("routers", recorder+" not in recorders", nil)
@@ -209,7 +207,6 @@ func loadConfiguration(v *viper.Viper, log internal.FieldLogger, routes routeMap
 		}
 		confMap.Readers[name] = r
 	}
-
 	for name, recorder := range recorderKeys {
 		r, err := readRecorders(v, log, recorder, name)
 		if err != nil {

@@ -31,25 +31,17 @@ import (
 )
 
 // Constructor is an interface for setting up an object for testing.
+// TestServer() should return a ready to use test server
 type Constructor interface {
 	recorder.Constructor
-
-	// ValidEndpoints should return a list of valid endpoints
 	ValidEndpoints() []string
-
-	// InvalidEndpoints should return a list of invalid endpoints
 	InvalidEndpoints() []string
-
-	// TestServer should return a ready to use test server
 	TestServer() *httptest.Server
-
-	// Object should return the instantiated object
 	Object() (recorder.DataRecorder, error)
 }
 
 // TestSuites returns a map of test name to the runner function.
 func TestSuites(t *testing.T, cons Constructor) {
-
 	t.Run("Construction", func(*testing.T) {
 		gin.Describe("Checking input", func() {
 			testShouldNotChangeTheInput(cons)
@@ -80,25 +72,21 @@ func TestSuites(t *testing.T, cons Constructor) {
 			testRecorderReceivesPayload(cons)
 		})
 	})
-
 	t.Run("SendsResult", func(*testing.T) {
 		gin.Describe("Sending results", func() {
 			testRecorderSendsResult(cons)
 		})
 	})
-
 	t.Run("ErrorsOnUnavailableESServer", func(*testing.T) {
 		gin.Describe("Errors", func() {
 			testRecorderErrorsOnUnavailableEndpoint(cons)
 		})
 	})
-
 	t.Run("BacksOffOnEndpointGone", func(*testing.T) {
 		gin.Describe("Backing off when the endpoint is gone", func() {
 			testRecorderBacksOffOnEndpointGone(cons)
 		})
 	})
-
 	t.Run("RecordingReturnsErrorIfNotPingedYet", func(*testing.T) {
 		gin.Describe("Recording without pinging", func() {
 			testRecordingReturnsErrorIfNotPingedYet(cons)

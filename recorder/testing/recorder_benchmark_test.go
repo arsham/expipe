@@ -34,12 +34,12 @@ func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 	defer ts.Close()
 
 	rec, err := New(
-		recorder.SetLogger(log),
-		recorder.SetEndpoint(ts.URL),
-		recorder.SetName("recorder_example"),
-		recorder.SetIndexName("recorder_example"),
-		recorder.SetTimeout(time.Second),
-		recorder.SetBackoff(10),
+		recorder.WithLogger(log),
+		recorder.WithEndpoint(ts.URL),
+		recorder.WithName("recorder_example"),
+		recorder.WithIndexName("recorder_example"),
+		recorder.WithTimeout(time.Second),
+		recorder.WithBackoff(10),
 	)
 	if err != nil {
 		b.Fatal(err)

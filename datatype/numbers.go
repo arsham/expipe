@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-package internal
+package datatype
 
 // FloatInSlice returns true if niddle is in the haystack
 func FloatInSlice(niddle float64, haystack []float64) bool {

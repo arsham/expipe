@@ -7,17 +7,15 @@ package expipe
 import (
 	"fmt"
 	"strings"
+
+	"github.com/arsham/expipe/token"
 )
 
+// Errors returning from Engine operations.
 var (
-	// ErrNoReader is returned when no reader has been provided
 	ErrNoReader = fmt.Errorf("no reader provided")
-
-	// ErrNoLogger is returned when no logger has been provided
 	ErrNoLogger = fmt.Errorf("no logger provided")
-
-	// ErrNoCtx is returned when no ctx has been provided
-	ErrNoCtx = fmt.Errorf("no ctx provided")
+	ErrNoCtx    = fmt.Errorf("no ctx provided")
 )
 
 // ErrPing is the error when one of readers/recorder has a ping error
@@ -29,4 +27,15 @@ func (e ErrPing) Error() string {
 		msgs = append(msgs, name+":"+err.Error())
 	}
 	return fmt.Sprintf("pinging error: %s", strings.Join(msgs, "\n"))
+}
+
+// ErrJob caries an error around in Engine operations.
+type ErrJob struct {
+	Name string // Name of the operator; reader, recorder.
+	ID   token.ID
+	Err  error
+}
+
+func (e ErrJob) Error() string {
+	return fmt.Sprintf("%s - [ID %s]: %s", e.Name, e.ID.String(), e.Err.Error())
 }

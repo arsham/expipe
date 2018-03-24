@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/datatype"
-	"github.com/arsham/expipe/internal/token"
 	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/token"
 	"github.com/pkg/errors"
 
 	"golang.org/x/net/context/ctxhttp"
@@ -80,8 +80,6 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 // Ping pings the endpoint and return nil if was successful.
 func (r *Reader) Ping() error {
 	if r.Pinged {
-		// In tests, we have a strict policy on channels. Therefore if it
-		// is already pinged, we won't bother.
 		return nil
 	}
 

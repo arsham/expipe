@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/internal/datatype"
-	"github.com/arsham/expipe/internal/token"
+	"github.com/arsham/expipe/token"
 )
 
 // The other test goes through a normal path, we need to test the actual path
@@ -56,7 +56,7 @@ func TestSelfReaderReadsExpvar(t *testing.T) {
 		t.Errorf("want (%s), got (%s)", typeName, res.TypeName)
 	}
 
-	container := datatype.JobResultDataTypes(res.Content, mapper)
+	container, _ := datatype.JobResultDataTypes(res.Content, mapper)
 	if container.Len() == 0 {
 		t.Error("empty container")
 	}

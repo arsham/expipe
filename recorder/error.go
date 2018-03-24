@@ -9,22 +9,19 @@ import (
 	"time"
 )
 
+// ErrEmptyName is the error when the package name is empty.
+// ErrEmptyEndpoint is the error when the given endpoint is empty.
+// ErrEmptyIndexName is the error when the index_name is an empty string.
+// ErrBackoffExceeded is the error when the endpoint's absence has exceeded the
+// backoff value. It is not strictly an error, it is however a pointer to an
+// error in the past.
+// ErrPingNotCalled is the error if the caller calls the record without pinging.
 var (
-	// ErrEmptyName is the error when the package name is empty.
-	ErrEmptyName = fmt.Errorf("name cannot be empty")
-
-	// ErrEmptyEndpoint is the error when the given endpoint is empty.
-	ErrEmptyEndpoint = fmt.Errorf("endpoint cannot be empty")
-
-	// ErrEmptyIndexName is the error when the index_name is an empty string.
-	ErrEmptyIndexName = fmt.Errorf("index_name cannot be empty")
-
-	// ErrBackoffExceeded is the error when the endpoint's absence has exceeded the backoff value.
-	// It is not strictly an error, it is however a pointer to an error in the past.
+	ErrEmptyName       = fmt.Errorf("name cannot be empty")
+	ErrEmptyEndpoint   = fmt.Errorf("endpoint cannot be empty")
+	ErrEmptyIndexName  = fmt.Errorf("index_name cannot be empty")
 	ErrBackoffExceeded = fmt.Errorf("endpoint gone too long")
-
-	// ErrPingNotCalled is the error if the caller calls the record without pinging.
-	ErrPingNotCalled = fmt.Errorf("the caller forgot to ask me pinging")
+	ErrPingNotCalled   = fmt.Errorf("the caller forgot to ask me pinging")
 )
 
 // ErrInvalidEndpoint is the error when the endpoint is not a valid url

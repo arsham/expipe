@@ -16,8 +16,8 @@ package reader
 import (
 	"time"
 
-	"github.com/arsham/expipe/internal/datatype"
-	"github.com/arsham/expipe/internal/token"
+	"github.com/arsham/expipe/datatype"
+	"github.com/arsham/expipe/token"
 )
 
 // DataReader receives job requests to read from the target. It returns
@@ -25,32 +25,23 @@ import (
 //
 // Notes
 //
-// Readers should not intercept the engine's decision on the TypeName,
-// unless they have a valid reason.
+// Readers should not intercept the engine's decision on the TypeName, unless
+// they have a valid reason.
+// Name() should return the representation string for this reader.
+// Ping() should ping the endpoint and return nil if was successful. The Engine
+// will not launch the reader if the ping result is an error.
+// When the context is timed-out or cancelled, Read() should return.
+// Mapper() should return an instance of the datatype mapper. Engine uses this
+// object to present the data to recorders.
+// TypeName() is usually the application name and is set by the user in the
+// configuration file.
 type DataReader interface {
-	// Name should return the representation string for this reader.
-	// Choose a very simple and unique name.
 	Name() string
-
-	// Ping should ping the endpoint and return nil if was successful.
-	// The Engine will not launch the reader if the ping result is an error.
 	Ping() error
-
-	// When the context is timed-out or cancelled, the reader should return.
 	Read(*token.Context) (*Result, error)
-
-	// Mapper should return an instance of the datatype mapper.
-	// Engine uses this object to present the data to recorders.
 	Mapper() datatype.Mapper
-
-	// TypeName is usually the application name and is set by the user in
-	// the configuration file.
 	TypeName() string
-
-	// Timeout is required by the Engine so it can read the time-outs.
 	Timeout() time.Duration
-
-	// Interval is required by the Engine so it can read the intervals.
 	Interval() time.Duration
 }
 

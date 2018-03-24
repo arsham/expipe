@@ -15,12 +15,12 @@ import (
 func GetRecorder(url string) *Recorder {
 	log := internal.DiscardLogger()
 	red, err := New(
-		recorder.SetLogger(log),
-		recorder.SetEndpoint(url),
-		recorder.SetName("recorder_example"),
-		recorder.SetIndexName("recorder_example"),
-		recorder.SetTimeout(time.Second),
-		recorder.SetBackoff(5),
+		recorder.WithLogger(log),
+		recorder.WithEndpoint(url),
+		recorder.WithName("recorder_example"),
+		recorder.WithIndexName("recorder_example"),
+		recorder.WithTimeout(time.Second),
+		recorder.WithBackoff(5),
 	)
 	if err != nil {
 		panic(err)
