@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GoDoc](https://godoc.org/github.com/arsham/expipe?status.svg)](http://godoc.org/github.com/arsham/expipe)
 [![Build Status](https://travis-ci.org/arsham/expipe.svg?branch=master)](https://travis-ci.org/arsham/expipe)
-[![Coverage Status](https://coveralls.io/repos/github/arsham/expipe/badge.svg?branch=master)](https://coveralls.io/github/arsham/expipe?branch=master)
+[![Coverage Status](https://codecov.io/gh/arsham/expipe/branch/master/graph/badge.svg)](https://codecov.io/gh/arsham/expipe)
 [![Go Report Card](https://goreportcard.com/badge/github.com/arsham/expipe)](https://goreportcard.com/report/github.com/arsham/expipe)
 
 Expipe can record your application's `metrics` in [ElasticSearch][elasticsearch] and you can view them with [kibana][kibana]. It can read from any applications (written in any language) that provides metrics in `json` format.
