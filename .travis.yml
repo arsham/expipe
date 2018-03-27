@@ -22,7 +22,8 @@ install:
 
 script:
   - glide install
-  - go test $(glide nv)
+  - ./bin/coverage.sh
 
 after_success:
-  - goveralls -service=travis-ci -ignore="reader/testing/example_provider.go,recorder/testing/example_provider.go,.travis.yml"
+  - goveralls -service=travis-ci -ignore="reader/testing/example_provider.go,recorder/testing/example_provider.go"
+  - bash <(curl -s https://codecov.io/bash)
