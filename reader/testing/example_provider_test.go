@@ -7,20 +7,20 @@ package testing_test
 import (
 	"testing"
 
-	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	reader_testing "github.com/arsham/expipe/reader/testing"
 )
 
 func TestGetRecorderGoodURL(t *testing.T) {
 	url := "http://localhost"
-	r := recorder_testing.GetRecorder(url)
+	r := reader_testing.GetReader(url)
 	if r == nil {
 		t.Error("want (Recorder), got (nil)")
 	}
 	if r.Name() == "" {
 		t.Error("Name cannot be empty")
 	}
-	if r.IndexName() == "" {
-		t.Error("IndexName cannot be empty")
+	if r.TypeName() == "" {
+		t.Error("TypeName cannot be empty")
 	}
 	if r.Logger() == nil {
 		t.Error("want (Logger), got (nil)")
@@ -31,6 +31,9 @@ func TestGetRecorderGoodURL(t *testing.T) {
 	if r.Backoff() < 5 {
 		t.Errorf("low backoff: (%d)", r.Backoff())
 	}
+	if r.Interval() == 0 {
+		t.Error("Back off not set")
+	}
 	url = "bad url"
 	var panicked bool
 	func() {
@@ -39,7 +42,7 @@ func TestGetRecorderGoodURL(t *testing.T) {
 				panicked = true
 			}
 		}()
-		recorder_testing.GetRecorder(url)
+		reader_testing.GetReader(url)
 		if !panicked {
 			t.Error("didn't panic on bad url")
 		}

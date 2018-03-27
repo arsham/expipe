@@ -17,7 +17,6 @@ import (
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader/expvar"
 	"github.com/arsham/expipe/recorder/elasticsearch"
-	flag "github.com/jessevdk/go-flags"
 	"github.com/spf13/viper"
 )
 
@@ -27,30 +26,29 @@ var (
 	log *internal.Logger
 )
 
-// opts is the command line flag struct.
+// Opts is the command line flag struct.
 // IDEA: create an interactive wizard for creating a config file.
-var opts struct {
-	ConfFile   string        `long:"c" env:"C" default:"" description:"Configuration file. Should be in yaml format without the extension."`
-	Reader     string        `long:"reader" env:"READER" default:"localhost:1234/debug/vars" description:"Target address and port"`
-	Recorder   string        `long:"recorder" env:"RECORDER" default:"localhost:9200" description:"Elasticsearch URL and port"`
-	DebugLevel string        `long:"loglevel" env:"LOGLEVEL" default:"info" description:"Log level"`
-	IndexName  string        `long:"index" env:"INDEX" default:"expipe" description:"Elasticsearch index name"`
-	TypeName   string        `long:"app" env:"APP" default:"expipe" description:"App name, which will be the Elasticsearch type name"`
-	Interval   time.Duration `long:"int" env:"INT" default:"1s" description:"Interval between pulls from the target"`
-	Timeout    time.Duration `long:"timeout" env:"TIMEOUT" default:"30s" description:"Communication time-outs to both reader and recorder"`
-	Backoff    int           `long:"backoff" env:"BACKOFF" default:"15" description:"After this amount, it will give up accessing unresponsive endpoints"`
+var Opts struct {
+	ConfFile  string        `long:"c" env:"CONFIG" default:"" description:"Configuration file. Should be in yaml format without the extension."`
+	Reader    string        `long:"reader" env:"READER" default:"localhost:1234/debug/vars" description:"Target address and port"`
+	Recorder  string        `long:"recorder" env:"RECORDER" default:"localhost:9200" description:"Elasticsearch URL and port"`
+	LogLevel  string        `long:"loglevel" env:"LOGLEVEL" default:"info" description:"Log level"`
+	IndexName string        `long:"index" env:"INDEX" default:"expipe" description:"Elasticsearch index name"`
+	TypeName  string        `long:"type" env:"TYPE" default:"expipe" description:"Elasticsearch type name"`
+	Interval  time.Duration `long:"int" env:"INT" default:"1s" description:"Interval between pulls from the target"`
+	Timeout   time.Duration `long:"timeout" env:"TIMEOUT" default:"30s" description:"Communication time-outs to both reader and recorder"`
+	Backoff   int           `long:"backoff" env:"BACKOFF" default:"15" description:"After this amount, it will give up accessing unresponsive endpoints"`
 }
 
 // Config returns the ConfMap from a file if it was set in the command flags.
-func Config() (internal.FieldLogger, *config.ConfMap, error) {
-	flag.Parse(&opts)
+func Config() (*internal.Logger, *config.ConfMap, error) {
 	log = internal.GetLogger("info")
-	if opts.ConfFile == "" {
-		log = internal.GetLogger(opts.DebugLevel)
+	if Opts.ConfFile == "" {
+		log = internal.GetLogger(Opts.LogLevel)
 		conf, err := fromFlags()
 		return log, conf, err
 	}
-	conf, err := fromConfig(opts.ConfFile)
+	conf, err := fromConfig(Opts.ConfFile)
 	return log, conf, err
 }
 
@@ -80,15 +78,15 @@ func fromFlags() (*config.ConfMap, error) {
 		Recorders: make(map[string]config.RecorderConf, 1),
 	}
 
-	confMap.Recorders["elasticsearch"], err = elasticsearch.NewConfig(log, "elasticsearch", opts.Recorder, opts.Timeout, opts.Backoff, opts.IndexName)
+	confMap.Recorders["elasticsearch"], err = elasticsearch.NewConfig(log, "elasticsearch", Opts.Recorder, Opts.Timeout, Opts.Backoff, Opts.IndexName)
 	if err != nil {
 		return nil, err
 	}
-	r := strings.SplitN(opts.Reader, "/", 2)
+	r := strings.SplitN(Opts.Reader, "/", 2)
 	if len(r) != 2 {
-		return nil, fmt.Errorf("reader endpoint should have a route: %s", opts.Reader)
+		return nil, fmt.Errorf("reader endpoint should have a route: %s", Opts.Reader)
 	}
-	confMap.Readers["expvar"], err = expvar.NewConfig(log, "expvar", opts.TypeName, r[0], r[1], opts.Interval, opts.Timeout, opts.Backoff, "")
+	confMap.Readers["expvar"], err = expvar.NewConfig(log, "expvar", Opts.TypeName, r[0], r[1], Opts.Interval, Opts.Timeout, Opts.Backoff, "")
 	if err != nil {
 		return nil, err
 	}

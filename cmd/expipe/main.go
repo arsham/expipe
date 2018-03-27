@@ -9,12 +9,12 @@ import (
 
 	"github.com/arsham/expipe"
 	"github.com/arsham/expipe/cmd/expipe/app"
+	flags "github.com/jessevdk/go-flags"
 )
 
 func main() {
-	var (
-		done chan struct{}
-	)
+	var done chan struct{}
+	flags.Parse(&app.Opts)
 	log, confSlice, err := app.Config()
 	if err != nil {
 		log.Fatalf(err.Error())
