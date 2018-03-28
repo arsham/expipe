@@ -5,8 +5,7 @@
 package expvar
 
 import (
-	"net/url"
-	"path"
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -20,14 +19,13 @@ import (
 // Config holds the necessary configuration for setting up an expvar reader endpoint.
 // If MapFile is provided, the data will be mapped, otherwise it uses the DefaultMapper.
 type Config struct {
-	name         string
-	EXPTypeName  string `mapstructure:"type_name"`
-	EXPEndpoint  string `mapstructure:"endpoint"`
-	EXPRoutePath string `mapstructure:"routepath"`
-	EXPInterval  string `mapstructure:"interval"`
-	EXPTimeout   string `mapstructure:"timeout"`
-	EXPBackoff   int    `mapstructure:"backoff"`
-	MapFile      string `mapstructure:"map_file"`
+	name        string
+	EXPTypeName string `mapstructure:"type_name"`
+	EXPEndpoint string `mapstructure:"endpoint"`
+	EXPInterval string `mapstructure:"interval"`
+	EXPTimeout  string `mapstructure:"timeout"`
+	EXPBackoff  int    `mapstructure:"backoff"`
+	MapFile     string `mapstructure:"map_file"`
 
 	log      internal.FieldLogger
 	interval time.Duration
@@ -35,104 +33,40 @@ type Config struct {
 	mapper   datatype.Mapper
 }
 
+// Conf func is used for initializing a Config object.
+type Conf func(*Config) error
+
 // NewConfig returns an instance of the expvar reader
-func NewConfig(log internal.FieldLogger, name, typeName string, endpoint, routepath string, interval, timeout time.Duration, backoff int, mapFile string) (*Config, error) {
-	c := &Config{
-		name:         name,
-		EXPTypeName:  typeName,
-		EXPEndpoint:  endpoint,
-		EXPRoutePath: routepath,
-		timeout:      timeout,
-		interval:     interval,
-		log:          log,
-		EXPBackoff:   backoff,
-		MapFile:      mapFile,
-	}
-	return withConfig(c)
-}
-
-type unmarshaller interface {
-	UnmarshalKey(key string, rawVal interface{}) error
-}
-
-// FromViper constructs the necessary configuration for bootstrapping the expvar reader.
-func FromViper(v unmarshaller, log internal.FieldLogger, name, key string) (*Config, error) {
-	var (
-		c                 Config
-		interval, timeout time.Duration
-	)
-	err := v.UnmarshalKey(key, &c)
-	if err != nil {
-		return nil, errors.Wrap(err, "decoding config")
-	}
-	c.name = name
-	c.log = log
-
-	if interval, err = time.ParseDuration(c.EXPInterval); err != nil {
-		return nil, errors.Wrapf(err, "parse interval (%v)", c.EXPInterval)
-	}
-	c.interval = interval
-
-	if timeout, err = time.ParseDuration(c.EXPTimeout); err != nil {
-		return nil, errors.Wrap(err, "parse timeout")
-	}
-	c.timeout = timeout
-
-	return withConfig(&c)
-}
-
-func withConfig(c *Config) (*Config, error) {
-	// TODO: these checks are also in the reader, remove them (0)
-	if c.name == "" {
-		return nil, reader.ErrEmptyName
-	}
-
-	if c.EXPEndpoint == "" {
-		return nil, reader.ErrEmptyEndpoint
-	}
-
-	url, err := internal.SanitiseURL(c.EXPEndpoint)
-	if err != nil {
-		return nil, reader.ErrInvalidEndpoint(c.EXPEndpoint)
-	}
-	c.EXPEndpoint = url
-
-	if c.EXPTypeName == "" {
-		return nil, reader.ErrEmptyTypeName
-	}
-
-	if c.MapFile != "" {
-		extension := filepath.Ext(c.MapFile)
-		filename := c.MapFile[0 : len(c.MapFile)-len(extension)]
-		v := viper.New()
-		v.SetConfigName(filename)
-		v.SetConfigType("yaml")
-		v.AddConfigPath(".")
-		err := v.ReadInConfig()
+// func NewConfig(log internal.FieldLogger, name, typeName string, endpoint, routepath string, interval, timeout time.Duration, backoff int, mapFile string) (*Config, error) {
+func NewConfig(conf ...Conf) (*Config, error) {
+	obj := new(Config)
+	for _, c := range conf {
+		err := c(obj)
 		if err != nil {
-			c.log.Warnf("Maps file not found or contains error, loading the default settings: %s", err)
-		} else {
-			c.mapper = datatype.MapsFromViper(v)
+			return nil, err
 		}
 	}
 
-	if c.mapper == nil {
-		c.mapper = datatype.DefaultMapper()
+	if obj.name == "" {
+		return nil, reader.ErrEmptyName
 	}
-
-	return c, nil
+	if obj.EXPEndpoint == "" {
+		return nil, reader.ErrEmptyEndpoint
+	}
+	if obj.EXPTypeName == "" {
+		return nil, reader.ErrEmptyTypeName
+	}
+	if obj.mapper == nil {
+		obj.mapper = datatype.DefaultMapper()
+	}
+	return obj, nil
 }
 
 // NewInstance returns an instance of the expvar reader.
 func (c *Config) NewInstance() (reader.DataReader, error) {
-	endpoint, err := url.Parse(c.Endpoint()) // TODO: check this part [not sure]
-	if err != nil {
-		return nil, errors.Wrap(err, "new config")
-	}
-	endpoint.Path = path.Join(endpoint.Path, c.RoutePath())
 	return New(
 		reader.WithLogger(c.Logger()),
-		reader.WithEndpoint(endpoint.String()),
+		reader.WithEndpoint(c.Endpoint()),
 		reader.WithMapper(c.mapper),
 		reader.WithName(c.Name()),
 		reader.WithTypeName(c.EXPTypeName),
@@ -151,9 +85,6 @@ func (c *Config) TypeName() string { return c.EXPTypeName }
 // Endpoint returns endpoint
 func (c *Config) Endpoint() string { return c.EXPEndpoint }
 
-// RoutePath returns routepath
-func (c *Config) RoutePath() string { return c.EXPRoutePath }
-
 // Interval returns interval
 func (c *Config) Interval() time.Duration { return c.interval }
 
@@ -165,3 +96,137 @@ func (c *Config) Logger() internal.FieldLogger { return c.log }
 
 // Backoff returns backoff
 func (c *Config) Backoff() int { return c.EXPBackoff }
+
+// WithLogger produces an error if the log is nil.
+func WithLogger(log internal.FieldLogger) Conf {
+	return func(c *Config) error {
+		if log == nil {
+			return errors.New("nil logger")
+		}
+		c.log = log
+		return nil
+	}
+}
+
+// WithName produces an error if name is empty.
+func WithName(name string) Conf {
+	return func(c *Config) error {
+		if name == "" {
+			return reader.ErrEmptyName
+		}
+		c.name = name
+		return nil
+	}
+}
+
+// WithTypeName produces an error if typeName is empty.
+func WithTypeName(typeName string) Conf {
+	return func(c *Config) error {
+		if typeName == "" {
+			return fmt.Errorf("invalid typeName: %s", typeName)
+		}
+		c.EXPTypeName = typeName
+		return nil
+	}
+}
+
+// WithEndpoint produces an error if endpoint is empty.
+func WithEndpoint(endpoint string) Conf {
+	return func(c *Config) error {
+		if endpoint == "" {
+			return reader.ErrEmptyEndpoint
+		}
+		endpoint, err := internal.SanitiseURL(endpoint)
+		if err != nil {
+			return reader.ErrInvalidEndpoint(endpoint)
+		}
+		c.EXPEndpoint = endpoint
+		return nil
+	}
+}
+
+type unmarshaller interface {
+	UnmarshalKey(key string, rawVal interface{}) error
+	AllKeys() []string
+}
+
+// WithViper produces an error any of the inputs are empty.
+func WithViper(v unmarshaller, name, key string) Conf {
+	return func(c *Config) error {
+		if v == nil {
+			return errors.New("no config file")
+		}
+		err := v.UnmarshalKey(key, &c)
+		if err != nil || v.AllKeys() == nil {
+			return errors.Wrap(err, "decoding config")
+		}
+
+		var interval, timeout time.Duration
+		if interval, err = time.ParseDuration(c.EXPInterval); err != nil {
+			return errors.Wrapf(err, "parse interval (%v)", c.EXPInterval)
+		}
+		c.interval = interval
+
+		if timeout, err = time.ParseDuration(c.EXPTimeout); err != nil {
+			return errors.Wrapf(err, "parse timeout (%v)", c.EXPTimeout)
+		}
+		// if c.SelfTypeName == "" {
+		// 	return nil, fmt.Errorf("type_name cannot be empty: %s", c.SelfTypeName)
+		// }
+
+		c.timeout = timeout
+		c.name = name
+
+		if c.MapFile != "" {
+			WithMapFile(c.MapFile)
+		}
+
+		return nil
+	}
+}
+
+// WithTimeout doesn't produce any errors.
+func WithTimeout(timeout time.Duration) Conf {
+	return func(c *Config) error {
+		c.timeout = timeout
+		return nil
+	}
+}
+
+// WithBackoff doesn't produce any errors.
+func WithBackoff(backoff int) Conf {
+	return func(c *Config) error {
+		c.EXPBackoff = backoff
+		return nil
+	}
+}
+
+// WithInterval doesn't produce any errors.
+func WithInterval(interval time.Duration) Conf {
+	return func(c *Config) error {
+		c.interval = interval
+		return nil
+	}
+}
+
+// WithMapFile returns any errors on reading the file.
+// If the mapFile is empty, it does nothing and returns nil.
+func WithMapFile(mapFile string) Conf {
+	return func(c *Config) error {
+		if mapFile != "" {
+			extension := filepath.Ext(mapFile)
+			filename := mapFile[0 : len(mapFile)-len(extension)]
+			v := viper.New()
+			v.SetConfigName(filename)
+			v.SetConfigType("yaml")
+			v.AddConfigPath(".")
+			err := v.ReadInConfig()
+			if err != nil {
+				return err
+			}
+			c.mapper = datatype.MapsFromViper(v)
+		}
+
+		return nil
+	}
+}

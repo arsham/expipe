@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/internal"
-	reader_testing "github.com/arsham/expipe/reader/testing"
+	rt "github.com/arsham/expipe/reader/testing"
 )
 
 func TestConfig(t *testing.T) {
@@ -20,7 +20,16 @@ func TestConfig(t *testing.T) {
 	interval := 100 * time.Millisecond
 	backoff := 5
 	typeName := "type_name"
-	c, err := reader_testing.NewConfig(name, typeName, log, endpoint, interval, timeout, backoff)
+	c, err := rt.NewConfig(
+		rt.WithName(name),
+		rt.WithLogger(log),
+		rt.WithEndpoint(endpoint),
+		rt.WithTimeout(timeout),
+		rt.WithBackoff(backoff),
+		rt.WithTypeName(typeName),
+		rt.WithInterval(interval),
+	)
+
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -56,12 +65,20 @@ func TestConfigNewInstance(t *testing.T) {
 	interval := 100 * time.Millisecond
 	backoff := 5
 	typeName := "type_name"
-	c, err := reader_testing.NewConfig(name, typeName, log, endpoint, interval, timeout, backoff)
+	c, err := rt.NewConfig(
+		rt.WithName(name),
+		rt.WithLogger(log),
+		rt.WithEndpoint(endpoint),
+		rt.WithTimeout(timeout),
+		rt.WithBackoff(backoff),
+		rt.WithTypeName(typeName),
+		rt.WithInterval(interval),
+	)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
 	r, err := c.NewInstance()
-	rec, ok := r.(*reader_testing.Reader)
+	rec, ok := r.(*rt.Reader)
 	if !ok {
 		t.Error("want (true), got (false)")
 	}

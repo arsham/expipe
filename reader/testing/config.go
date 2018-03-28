@@ -22,17 +22,16 @@ type Config struct {
 	MockLogger   internal.FieldLogger
 }
 
-// NewConfig returns a mocked version of the Config
-func NewConfig(name, typeName string, log internal.FieldLogger, endpoint string, interval, timeout time.Duration, backoff int) (*Config, error) {
-	return &Config{
-		MockName:     name,
-		MockTypeName: typeName,
-		MockEndpoint: endpoint,
-		MockTimeout:  timeout,
-		MockInterval: interval,
-		MockLogger:   log,
-		MockBackoff:  backoff,
-	}, nil
+// Conf func is used for initializing a Config object.
+type Conf func(*Config) error
+
+// NewConfig returns a mocked object
+func NewConfig(conf ...Conf) (*Config, error) {
+	obj := new(Config)
+	for _, c := range conf {
+		c(obj)
+	}
+	return obj, nil
 }
 
 // NewInstance  returns a mocked version of the config
@@ -51,7 +50,7 @@ func (c *Config) NewInstance() (reader.DataReader, error) {
 // Name returns the name
 func (c *Config) Name() string { return c.MockName }
 
-// TypeName returns the typename
+// TypeName returns the typeName
 func (c *Config) TypeName() string { return c.MockTypeName }
 
 // Endpoint returns the endpoint
@@ -68,3 +67,59 @@ func (c *Config) Logger() internal.FieldLogger { return c.MockLogger }
 
 // Backoff returns the backoff
 func (c *Config) Backoff() int { return c.MockBackoff }
+
+// WithLogger doesn't produce any errors.
+func WithLogger(log internal.FieldLogger) Conf {
+	return func(c *Config) error {
+		c.MockLogger = log
+		return nil
+	}
+}
+
+// WithName doesn't produce any errors.
+func WithName(name string) Conf {
+	return func(c *Config) error {
+		c.MockName = name
+		return nil
+	}
+}
+
+// WithTypeName doesn't produce any errors.
+func WithTypeName(typeName string) Conf {
+	return func(c *Config) error {
+		c.MockTypeName = typeName
+		return nil
+	}
+}
+
+// WithEndpoint doesn't produce any errors.
+func WithEndpoint(endpoint string) Conf {
+	return func(c *Config) error {
+		c.MockEndpoint = endpoint
+		return nil
+	}
+}
+
+// WithTimeout doesn't produce any errors.
+func WithTimeout(timeout time.Duration) Conf {
+	return func(c *Config) error {
+		c.MockTimeout = timeout
+		return nil
+	}
+}
+
+// WithInterval doesn't produce any errors.
+func WithInterval(internal time.Duration) Conf {
+	return func(c *Config) error {
+		c.MockInterval = internal
+		return nil
+	}
+}
+
+// WithBackoff doesn't produce any errors.
+func WithBackoff(backoff int) Conf {
+	return func(c *Config) error {
+		c.MockBackoff = backoff
+		return nil
+	}
+}

@@ -27,34 +27,33 @@ type Config struct {
 	log      internal.FieldLogger
 }
 
-type unmarshaller interface {
-	UnmarshalKey(key string, rawVal interface{}) error
-}
+// Conf func is used for initializing a Config object.
+type Conf func(*Config) error
 
-// FromViper constructs the necessary configuration for bootstrapping the expvar reader
-func FromViper(v unmarshaller, log internal.FieldLogger, name, key string) (*Config, error) {
-	var (
-		c     Config
-		inter time.Duration
-	)
-	err := v.UnmarshalKey(key, &c)
-	if err != nil {
-		return nil, errors.Wrap(err, "decoding config")
-	}
-	if inter, err = time.ParseDuration(c.SelfInterval); err != nil {
-		return nil, errors.Wrapf(err, "parse interval (%v)", c.SelfInterval)
+// NewConfig returns an instance of the expvar reader
+// func NewConfig(log internal.FieldLogger, name, typeName string, endpoint, routepath string, interval, timeout time.Duration, backoff int, mapFile string) (*Config, error) {
+func NewConfig(conf ...Conf) (*Config, error) {
+	obj := new(Config)
+	for _, c := range conf {
+		err := c(obj)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	if c.SelfTypeName == "" {
-		return nil, fmt.Errorf("type_name cannot be empty: %s", c.SelfTypeName)
+	if obj.name == "" {
+		return nil, reader.ErrEmptyName
 	}
-
-	c.mapper = datatype.DefaultMapper()
-	c.interval = inter
-	c.log = log
-	c.name = name
-	c.SelfEndpoint = "http://127.0.0.1:9200"
-	return &c, nil
+	if obj.SelfEndpoint == "" {
+		return nil, reader.ErrEmptyEndpoint
+	}
+	if obj.SelfTypeName == "" {
+		return nil, reader.ErrEmptyTypeName
+	}
+	if obj.mapper == nil {
+		obj.mapper = datatype.DefaultMapper()
+	}
+	return obj, nil
 }
 
 // NewInstance instantiates a SelfReader
@@ -74,7 +73,7 @@ func (c *Config) NewInstance() (reader.DataReader, error) {
 // Name returns the name
 func (c *Config) Name() string { return c.name }
 
-// TypeName returns the typename
+// TypeName returns the typeName
 func (c *Config) TypeName() string { return c.SelfTypeName }
 
 // Endpoint returns the endpoint
@@ -91,3 +90,99 @@ func (c *Config) Logger() internal.FieldLogger { return c.log }
 
 // Backoff returns the backoff
 func (c *Config) Backoff() int { return c.SelfBackoff }
+
+// WithLogger produces an error if the log is nil.
+func WithLogger(log internal.FieldLogger) Conf {
+	return func(c *Config) error {
+		if log == nil {
+			return errors.New("nil logger")
+		}
+		c.log = log
+		return nil
+	}
+}
+
+// WithName produces an error if name is empty.
+func WithName(name string) Conf {
+	return func(c *Config) error {
+		if name == "" {
+			return reader.ErrEmptyName
+		}
+		c.name = name
+		return nil
+	}
+}
+
+// WithTypeName produces an error if typeName is empty.
+func WithTypeName(typeName string) Conf {
+	return func(c *Config) error {
+		if typeName == "" {
+			return fmt.Errorf("invalid typeName: %s", typeName)
+		}
+		c.SelfTypeName = typeName
+		return nil
+	}
+}
+
+// WithEndpoint produces an error if endpoint is empty.
+func WithEndpoint(endpoint string) Conf {
+	return func(c *Config) error {
+		if endpoint == "" {
+			return reader.ErrEmptyEndpoint
+		}
+		endpoint, err := internal.SanitiseURL(endpoint)
+		if err != nil {
+			return reader.ErrInvalidEndpoint(endpoint)
+		}
+		c.SelfEndpoint = endpoint
+		return nil
+	}
+}
+
+type unmarshaller interface {
+	UnmarshalKey(key string, rawVal interface{}) error
+	AllKeys() []string
+}
+
+// WithViper produces an error any of the inputs are empty.
+func WithViper(v unmarshaller, name, key string) Conf {
+	return func(c *Config) error {
+		if v == nil {
+			return errors.New("no config file")
+		}
+		err := v.UnmarshalKey(key, &c)
+		if err != nil || v.AllKeys() == nil {
+			return errors.Wrap(err, "decoding config")
+		}
+
+		var interval time.Duration
+		if interval, err = time.ParseDuration(c.SelfInterval); err != nil {
+			return errors.Wrapf(err, "parse interval (%v)", c.SelfInterval)
+		}
+		c.interval = interval
+
+		if c.SelfTypeName == "" {
+			return fmt.Errorf("type_name cannot be empty: %s", c.SelfTypeName)
+		}
+		c.name = name
+		c.mapper = datatype.DefaultMapper()
+		c.SelfEndpoint = "http://127.0.0.1:9200"
+		return nil
+	}
+}
+
+// WithBackoff doesn't produce any errors.
+func WithBackoff(backoff int) Conf {
+	return func(c *Config) error {
+		c.SelfBackoff = backoff
+		return nil
+	}
+}
+
+// WithInterval doesn't produce any errors.
+func WithInterval(interval time.Duration) Conf {
+	return func(c *Config) error {
+		c.interval = interval
+		return nil
+	}
+}

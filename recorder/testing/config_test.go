@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/internal"
-	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	rt "github.com/arsham/expipe/recorder/testing"
 )
 
 func TestConfig(t *testing.T) {
@@ -19,7 +19,14 @@ func TestConfig(t *testing.T) {
 	timeout := time.Second
 	backoff := 5
 	indexName := "index_name"
-	c, err := recorder_testing.NewConfig(name, log, endpoint, timeout, backoff, indexName)
+	c, err := rt.NewConfig(
+		rt.WithName(name),
+		rt.WithLogger(log),
+		rt.WithEndpoint(endpoint),
+		rt.WithTimeout(timeout),
+		rt.WithBackoff(backoff),
+		rt.WithIndexName(indexName),
+	)
 
 	if c.Name() != name {
 		t.Errorf("want (%v) to be (%v)", c.Name(), name)
@@ -42,11 +49,26 @@ func TestConfig(t *testing.T) {
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
+}
 
-	// Testing NewInstance
+func TestConfigNewinstance(t *testing.T) {
+	name := "name"
+	log := internal.DiscardLogger()
+	endpoint := "http://localhost"
+	timeout := time.Second
+	backoff := 5
+	indexName := "index_name"
+	c, err := rt.NewConfig(
+		rt.WithName(name),
+		rt.WithLogger(log),
+		rt.WithEndpoint(endpoint),
+		rt.WithTimeout(timeout),
+		rt.WithBackoff(backoff),
+		rt.WithIndexName(indexName),
+	)
 
 	r, err := c.NewInstance()
-	rec, ok := r.(*recorder_testing.Recorder)
+	rec, ok := r.(*rt.Recorder)
 	if !ok {
 		t.Error("want (true), got (false)")
 	}

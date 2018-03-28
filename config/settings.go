@@ -222,10 +222,16 @@ func loadConfiguration(v *viper.Viper, log internal.FieldLogger, routes routeMap
 func parseReader(v *viper.Viper, log internal.FieldLogger, readerType, name string) (ReaderConf, error) {
 	switch readerType {
 	case expvarReader:
-		rc, err := expvar.FromViper(v, log, name, "readers."+name)
+		rc, err := expvar.NewConfig(
+			expvar.WithLogger(log),
+			expvar.WithViper(v, name, "readers."+name),
+		)
 		return rc, errors.Wrap(err, "parsing reader")
 	case selfReader:
-		rc, err := self.FromViper(v, log, name, "readers."+name)
+		rc, err := self.NewConfig(
+			self.WithLogger(log),
+			self.WithViper(v, name, "readers."+name),
+		)
 		return rc, errors.Wrap(err, "parsing reader")
 	}
 	return nil, ErrNotSupported(readerType)
@@ -234,7 +240,10 @@ func parseReader(v *viper.Viper, log internal.FieldLogger, readerType, name stri
 func readRecorders(v *viper.Viper, log internal.FieldLogger, recorderType, name string) (RecorderConf, error) {
 	switch recorderType {
 	case elasticsearchRecorder:
-		rc, err := elasticsearch.FromViper(v, log, name, "recorders."+name)
+		rc, err := elasticsearch.NewConfig(
+			elasticsearch.WithViper(v, name, "recorders."+name),
+			elasticsearch.WithLogger(log),
+		)
 		return rc, errors.Wrap(err, "read-recorders loading from viper")
 	}
 	return nil, ErrNotSupported(recorderType)

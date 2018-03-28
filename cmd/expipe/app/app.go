@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -78,15 +77,27 @@ func fromFlags() (*config.ConfMap, error) {
 		Recorders: make(map[string]config.RecorderConf, 1),
 	}
 
-	confMap.Recorders["elasticsearch"], err = elasticsearch.NewConfig(log, "elasticsearch", Opts.Recorder, Opts.Timeout, Opts.Backoff, Opts.IndexName)
+	confMap.Recorders["elasticsearch"], err = elasticsearch.NewConfig(
+		elasticsearch.WithLogger(log),
+		elasticsearch.WithName("elasticsearch"),
+		elasticsearch.WithEndpoint(Opts.Recorder),
+		elasticsearch.WithTimeout(Opts.Timeout),
+		elasticsearch.WithBackoff(Opts.Backoff),
+		elasticsearch.WithIndexName(Opts.IndexName),
+	)
 	if err != nil {
 		return nil, err
 	}
-	r := strings.SplitN(Opts.Reader, "/", 2)
-	if len(r) != 2 {
-		return nil, fmt.Errorf("reader endpoint should have a route: %s", Opts.Reader)
-	}
-	confMap.Readers["expvar"], err = expvar.NewConfig(log, "expvar", Opts.TypeName, r[0], r[1], Opts.Interval, Opts.Timeout, Opts.Backoff, "")
+	confMap.Readers["expvar"], err = expvar.NewConfig(
+		expvar.WithLogger(log),
+		expvar.WithName("expvar"),
+		expvar.WithTypeName(Opts.TypeName),
+		expvar.WithEndpoint(Opts.Reader),
+		expvar.WithInterval(Opts.Interval),
+		expvar.WithTimeout(Opts.Timeout),
+		expvar.WithBackoff(Opts.Backoff),
+		expvar.WithMapFile(""),
+	)
 	if err != nil {
 		return nil, err
 	}

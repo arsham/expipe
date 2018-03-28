@@ -110,6 +110,7 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 
 // Ping pings the endpoint and return nil if was successful.
 // It returns an error if the endpoint is not available.
+// TODO: this method is duplicated. Create a Pinger type and share the logic.
 func (r *Reader) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()

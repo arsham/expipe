@@ -14,11 +14,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-var anError = errors.New("DataType Error")
+var errExample = errors.New("DataType Error")
 
 type badDataType struct{}
 
-func (badDataType) Write(io.Writer) (int, error) { return 0, anError }
+func (badDataType) Write(io.Writer) (int, error) { return 0, errExample }
 func (badDataType) Equal(datatype.DataType) bool { return true }
 
 func inArray(a datatype.DataType, b []datatype.DataType) bool {
@@ -49,9 +49,9 @@ func TestJobResultDataTypes(t *testing.T) {
 		input []byte
 		err   error
 	}{
-		{"missing leading {", []byte(`"memstats": {"PauseNs":[666,777]}}`), anError},
-		{"missing ending }", []byte(`{"memstats": {"PauseNs":[666,777]}`), anError},
-		{"simple string", []byte(`"memstats PauseNs 666 777"`), anError},
+		{"missing leading {", []byte(`"memstats": {"PauseNs":[666,777]}}`), errExample},
+		{"missing ending }", []byte(`{"memstats": {"PauseNs":[666,777]}`), errExample},
+		{"simple string", []byte(`"memstats PauseNs 666 777"`), errExample},
 		{"string instead of float", []byte(`{"memstats": {"PauseNs":["666"]}}`), datatype.ErrUnidentifiedJason},
 		{"float instead of int", []byte(`{"memstats": {"TotalAlloc":[666.5]}}`), datatype.ErrUnidentifiedJason},
 	}
@@ -59,7 +59,7 @@ func TestJobResultDataTypes(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := datatype.JobResultDataTypes(tc.input, mapper)
-			if tc.err == anError {
+			if tc.err == errExample {
 				if err == nil {
 					t.Error("want (error), got (nil)")
 				}
