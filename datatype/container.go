@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TimeStampFormat specifies the format that all timestamps should be formatted with.
+// TimeStampFormat specifies the format that all timestamps are formatted with.
 var TimeStampFormat = "2006-01-02T15:04:05.999999-07:00"
 
 // Container satisfies the DataContainer
@@ -66,9 +66,9 @@ func (c *Container) Generate(p io.Writer, timestamp time.Time) (int, error) {
 	return p.Write([]byte(fmt.Sprintf("{%s%s}", ts, ls)))
 }
 
-// JobResultDataTypes generates a list of DataType and puts them inside the DataContainer.
-// It returns errors if unmarshaling is unsuccessful or ErrUnidentifiedJason when the container
-// ends up empty.
+// JobResultDataTypes generates a list of DataType and puts them inside the
+// DataContainer. It returns errors if unmarshaling is unsuccessful or
+// ErrUnidentifiedJason when the container ends up empty.
 func JobResultDataTypes(b []byte, mapper Mapper) (DataContainer, error) {
 	obj, err := jason.NewObjectFromBytes(b)
 	if err != nil {

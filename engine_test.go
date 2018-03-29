@@ -18,9 +18,9 @@ import (
 	"github.com/arsham/expipe"
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
-	reader_testing "github.com/arsham/expipe/reader/testing"
+	rdt "github.com/arsham/expipe/reader/testing"
 	"github.com/arsham/expipe/recorder"
-	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	rct "github.com/arsham/expipe/recorder/testing"
 	"github.com/arsham/expipe/token"
 
 	"github.com/pkg/errors"
@@ -39,8 +39,8 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
-func sampleReader() (*reader_testing.Reader, error) {
-	return reader_testing.New(
+func sampleReader() (*rdt.Reader, error) {
+	return rdt.New(
 		reader.WithLogger(log),
 		reader.WithEndpoint(testServer.URL),
 		reader.WithName("red_name"),
@@ -51,8 +51,8 @@ func sampleReader() (*reader_testing.Reader, error) {
 	)
 }
 
-func sampleRecorder() (*recorder_testing.Recorder, error) {
-	return recorder_testing.New(
+func sampleRecorder() (*rct.Recorder, error) {
+	return rct.New(
 		recorder.WithLogger(log),
 		recorder.WithEndpoint(testServer.URL),
 		recorder.WithName("rec_name"),
@@ -79,7 +79,8 @@ func TestNewWithReadRecorder(t *testing.T) {
 	}
 	red2.SetName("d")
 
-	e, err := expipe.EngineWithReadRecs(ctx, log, rec, map[string]reader.DataReader{red.Name(): red, red2.Name(): red2})
+	m := map[string]reader.DataReader{red.Name(): red, red2.Name(): red2}
+	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -119,7 +120,8 @@ func TestEngineSendJob(t *testing.T) {
 		return nil
 	}
 
-	e, err := expipe.EngineWithReadRecs(ctx, log, rec, map[string]reader.DataReader{red.Name(): red})
+	m := map[string]reader.DataReader{red.Name(): red}
+	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
 	}
@@ -163,9 +165,9 @@ func TestEngineMultiReader(t *testing.T) {
 
 	reds := make(map[string]reader.DataReader, count)
 	for i := 0; i < count; i++ {
-
+		var red *rdt.Reader
 		name := fmt.Sprintf("reader_example_%d", i)
-		red, err := sampleReader()
+		red, err = sampleReader()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -219,7 +221,8 @@ func TestEngineErrorsIfReaderNotPinged(t *testing.T) {
 	}
 	red.SetEndpoint(redServer.URL)
 
-	e, err := expipe.EngineWithReadRecs(ctx, log, rec, map[string]reader.DataReader{red.Name(): red})
+	m := map[string]reader.DataReader{red.Name(): red}
+	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err == nil {
 		t.Error("want ErrPing, got nil")
 	}
@@ -250,7 +253,8 @@ func TestEngineErrorsIfRecorderNotPinged(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e, err := expipe.EngineWithReadRecs(ctx, log, rec, map[string]reader.DataReader{red.Name(): red})
+	m := map[string]reader.DataReader{red.Name(): red}
+	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err == nil {
 		t.Error("want ErrPing, got nil")
 	}
@@ -288,11 +292,11 @@ func TestEngineOnlyErrorsIfNoneOfReadersPinged(t *testing.T) {
 	red2.SetName("b")
 	red2.SetTypeName("ddb")
 
-	e, err := expipe.EngineWithReadRecs(ctx, log, rec, map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
+	m := map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2}
+	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
 		t.Errorf("want nil, got (%v)", err)
 	}
-
 	if e == nil {
 		t.Error("want Engine, got nil")
 	}
@@ -318,6 +322,7 @@ func TestEngineOnlyErrorsIfNoneOfReadersPinged(t *testing.T) {
 	}
 }
 
+// FIXME: break this test down
 func TestEngineShutsDownOnAllReadersGoOutOfScope(t *testing.T) {
 	t.Parallel()
 	stopReader1 := uint32(0)
@@ -371,7 +376,8 @@ func TestEngineShutsDownOnAllReadersGoOutOfScope(t *testing.T) {
 	}
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error { return nil }
 
-	e, err := expipe.EngineWithReadRecs(ctx, log, rec, map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
+	m := map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2}
+	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -438,7 +444,8 @@ func TestEngineShutsDownOnRecorderGoOutOfScope(t *testing.T) {
 		return nil
 	}
 
-	e, err := expipe.EngineWithReadRecs(ctx, log, rec, map[string]reader.DataReader{red.Name(): red})
+	m := map[string]reader.DataReader{red.Name(): red}
+	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -474,7 +481,6 @@ func TestFailsOnNilReader(t *testing.T) {
 		expipe.WithLogger(log),
 		expipe.WithRecorder(rec),
 	)
-
 	if errors.Cause(err) != expipe.ErrNoReader {
 		t.Errorf("want ErrNoReader, got (%v)", err)
 	}
@@ -499,7 +505,6 @@ func TestFailsOnNilRecorder(t *testing.T) {
 	e, err := expipe.New(
 		expipe.WithRecorder(nil),
 	)
-
 	if err == nil {
 		t.Error("want (error), got (nil)")
 	}
@@ -526,7 +531,6 @@ func TestEngineFailsNoLog(t *testing.T) {
 	if errors.Cause(err) != expipe.ErrNoLogger {
 		t.Errorf("want (expipe.ErrNoLogger), got (%v)", err)
 	}
-
 	if e != nil {
 		t.Errorf("want (nil), got (%v)", e)
 	}
@@ -550,7 +554,6 @@ func TestEngineFailsNoCtx(t *testing.T) {
 	if errors.Cause(err) != expipe.ErrNoCtx {
 		t.Errorf("want (expipe.ErrNoCtx), got (%v)", err)
 	}
-
 	if e != nil {
 		t.Errorf("want (nil), got (%v)", e)
 	}

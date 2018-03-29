@@ -26,10 +26,26 @@ func TestGetMemoryTypeValues(t *testing.T) {
 		value    string
 		expected datatype.DataType
 	}{
-		{"byte_value", "12", datatype.ByteType{"byte_value", 12}},
-		{"alloc", strconv.Itoa(1 * datatype.KILOBYTE), datatype.KiloByteType{"alloc", 1 * datatype.KILOBYTE}},
-		{"sys", strconv.Itoa(12 * datatype.MEGABYTE), datatype.MegaByteType{"sys", 12 * datatype.MEGABYTE}},
-		{"not_provided", `"anything"`, datatype.StringType{"not_provided", "anything"}},
+		{
+			"byte_value",
+			"12",
+			datatype.ByteType{"byte_value", 12},
+		},
+		{
+			"alloc",
+			strconv.Itoa(1 * datatype.KILOBYTE),
+			datatype.KiloByteType{"alloc", 1 * datatype.KILOBYTE},
+		},
+		{
+			"sys",
+			strconv.Itoa(12 * datatype.MEGABYTE),
+			datatype.MegaByteType{"sys", 12 * datatype.MEGABYTE},
+		},
+		{
+			"not_provided",
+			`"anything"`,
+			datatype.StringType{"not_provided", "anything"},
+		},
 	}
 
 	input := bytes.NewBuffer([]byte(`
@@ -64,9 +80,21 @@ func TestGetFloatListValues(t *testing.T) {
 		value    string
 		expected datatype.DataType
 	}{
-		{"float_list", `[]`, &datatype.FloatListType{"float_list", []float64{}}},
-		{"float_list", `[0.1,1.2,2.3,3.4,666]`, &datatype.FloatListType{"float_list", []float64{0.1, 1.2, 2.3, 3.4, 666}}},
-		{"float_list", `[0.1,1.2,2.3,3.4,666]`, &datatype.FloatListType{"float_list", []float64{2.3, 3.4, 666, 0.1, 1.2}}},
+		{
+			"float_list",
+			`[]`,
+			&datatype.FloatListType{"float_list", []float64{}},
+		},
+		{
+			"float_list",
+			`[0.1,1.2,2.3,3.4,666]`,
+			&datatype.FloatListType{"float_list", []float64{0.1, 1.2, 2.3, 3.4, 666}},
+		},
+		{
+			"float_list",
+			`[0.1,1.2,2.3,3.4,666]`,
+			&datatype.FloatListType{"float_list", []float64{2.3, 3.4, 666, 0.1, 1.2}},
+		},
 	}
 
 	input := bytes.NewBuffer([]byte(``))
@@ -89,7 +117,6 @@ func TestGetFloatListValues(t *testing.T) {
 // Make sure the memstats.PauseNs is not overwritten by PauseNs
 func TestNestedPauseNsRegression(t *testing.T) {
 	t.Parallel()
-	// input := bytes.NewBuffer([]byte(`{"memstats": {"Alloc":6865888,"TotalAlloc":14509024, "PauseNs":[438238,506913]}}`))
 	input := bytes.NewBuffer([]byte(`{"memstats": {"PauseNs":[438238,506913]}}`))
 	expected := &datatype.GCListType{Key: "memstats.PauseNs", Value: []uint64{438238, 506913}}
 	mapper := datatype.DefaultMapper()

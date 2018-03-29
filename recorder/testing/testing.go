@@ -43,9 +43,7 @@ type Constructor interface {
 // TestSuites returns a map of test name to the runner function.
 func TestSuites(t *testing.T, cons Constructor) {
 	t.Run("Construction", func(*testing.T) {
-		gin.Describe("Checking input", func() {
-			testShouldNotChangeTheInput(cons)
-		})
+		testShouldNotChangeTheInput(t, cons)
 	})
 	t.Run("NameCheck", func(*testing.T) {
 		gin.Describe("Checking name", func() {

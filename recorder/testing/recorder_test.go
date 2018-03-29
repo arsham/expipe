@@ -11,11 +11,11 @@ import (
 	"testing"
 
 	"github.com/arsham/expipe/recorder"
-	recorder_test "github.com/arsham/expipe/recorder/testing"
+	rt "github.com/arsham/expipe/recorder/testing"
 )
 
-// The purpose of these tests is to make sure the simple recorder, which is a mock,
-// works perfect, so other tests can rely on it.
+// The purpose of these tests is to make sure the simple recorder, which is
+// a mock, works perfect, so other tests can rely on it.
 
 var (
 	testServer *httptest.Server
@@ -33,13 +33,13 @@ func getTestServer() *httptest.Server {
 }
 
 type Construct struct {
-	*recorder_test.Recorder
+	*rt.Recorder
 	testServer *httptest.Server
 }
 
 func (c *Construct) TestServer() *httptest.Server { return c.testServer }
 func (c *Construct) Object() (recorder.DataRecorder, error) {
-	return recorder_test.New(
+	return rt.New(
 		recorder.WithEndpoint(c.Endpoint()),
 		recorder.WithName(c.Name()),
 		recorder.WithIndexName(c.IndexName()),
@@ -68,11 +68,11 @@ func (c *Construct) InvalidEndpoints() []string {
 }
 
 func TestMockRecorder(t *testing.T) {
-	r, err := recorder_test.New()
+	r, err := rt.New()
 	if err != nil {
 		panic(err)
 	}
 	c := &Construct{r, getTestServer()}
 
-	recorder_test.TestSuites(t, c)
+	rt.TestSuites(t, c)
 }

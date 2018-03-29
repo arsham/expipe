@@ -30,7 +30,8 @@ func TestLoadMapsReaderGCTypes(t *testing.T) {
 	maps := MapsFromViper(v)
 	for _, c := range []string{"PauseEnd", "memstats.PauseNs"} {
 		if !internal.StringInSlice(c, maps.gcTypes) {
-			t.Errorf("(%s) not found in returned valued. got (%s)", c, strings.Join(maps.gcTypes, ", "))
+			v := strings.Join(maps.gcTypes, ", ")
+			t.Errorf("(%s) not found in returned valued. got (%s)", c, v)
 		}
 	}
 	input = bytes.NewBuffer([]byte(`
@@ -54,6 +55,8 @@ func TestLoadMapsReaderGCTypes(t *testing.T) {
 
 func TestLoadMapsReaderMemoryTypes(t *testing.T) {
 	t.Parallel()
+
+	var returnedNames []string
 	v := viper.New()
 	v.SetConfigType("yaml")
 
@@ -71,10 +74,7 @@ func TestLoadMapsReaderMemoryTypes(t *testing.T) {
         HeapSys: mb
     `))
 	v.ReadConfig(input)
-
 	maps := MapsFromViper(v)
-	var returnedNames []string
-
 	for name := range maps.memoryTypes {
 		returnedNames = append(returnedNames, string(name))
 	}
@@ -112,13 +112,13 @@ func TestGetArrayValue(t *testing.T) {
 	m := &MapConvert{}
 
 	expected := &FloatListType{Key: "Mr. Devil", Value: []float64{}}
-	result := m.getArrayValue(prefix, name, []*jason.Value{})
+	result := m.arrayValue(prefix, name, []*jason.Value{})
 	if !result.Equal(expected) {
 		t.Errorf("want (%v), got (%v)", expected, result)
 	}
 
 	str, _ := jason.NewValueFromBytes([]byte(`{"sdss":"sdfs"}`))
-	result = m.getArrayValue(prefix, name, []*jason.Value{str})
+	result = m.arrayValue(prefix, name, []*jason.Value{str})
 	if result != nil {
 		t.Errorf("want nil, got (%v)", result)
 	}

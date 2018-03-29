@@ -14,7 +14,7 @@ import (
 
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
-	reader_test "github.com/arsham/expipe/reader/testing"
+	rt "github.com/arsham/expipe/reader/testing"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 )
@@ -46,7 +46,7 @@ func TestEventLoopClosingContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.New(
+	red, err := rt.New(
 		reader.WithLogger(internal.DiscardLogger()),
 		reader.WithEndpoint(testServer.URL),
 		reader.WithName("reader_name"),

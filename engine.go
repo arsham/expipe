@@ -69,7 +69,7 @@ func New(options ...func(*Engine) error) (*Engine, error) {
 	return e, nil
 }
 
-// WithCtx uses ctx as the Engine's background context
+// WithCtx uses ctx as the Engine's background context.
 func WithCtx(ctx context.Context) func(*Engine) error {
 	return func(e *Engine) error {
 		e.ctx = ctx
@@ -77,7 +77,7 @@ func WithCtx(ctx context.Context) func(*Engine) error {
 	}
 }
 
-// WithReaders builds up the readers and checks them
+// WithReaders builds up the readers and checks them.
 func WithReaders(reds ...reader.DataReader) func(*Engine) error {
 	return func(e *Engine) error {
 		failedErrors := make(map[string]error)
@@ -111,7 +111,7 @@ func WithReaders(reds ...reader.DataReader) func(*Engine) error {
 	}
 }
 
-// WithLogger sets the logger
+// WithLogger sets the logger.
 func WithLogger(log internal.FieldLogger) func(*Engine) error {
 	return func(e *Engine) error {
 		e.log = log
@@ -119,7 +119,7 @@ func WithLogger(log internal.FieldLogger) func(*Engine) error {
 	}
 }
 
-// WithRecorder builds up the recorder
+// WithRecorder builds up the recorder.
 func WithRecorder(rec recorder.DataRecorder) func(*Engine) error {
 	return func(e *Engine) error {
 		if rec == nil {

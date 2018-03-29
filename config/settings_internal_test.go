@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/arsham/expipe/reader"
+
 	"github.com/arsham/expipe/internal"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -65,6 +67,13 @@ func TestLoadConfiguration(t *testing.T) {
 	}
 
 	readers = map[string]string{"reader_1": "expvar", "reader_2": "self"}
+	recorders = map[string]string{"recorder_2": "elasticsearch"}
+	_, err = loadConfiguration(v, log, routeMap, readers, recorders)
+	if err == nil {
+		t.Error("want (error), got (nil)")
+	}
+
+	readers = map[string]string{"reader_1": "expvar", "reader_2": "self"}
 	recorders = map[string]string{"recorder_1": "elasticsearch"}
 	_, err = loadConfiguration(v, log, routeMap, readers, recorders)
 	if err != nil {
@@ -87,6 +96,16 @@ func TestParseReader(t *testing.T) {
 		t.Errorf("expected (non_existence_plugin) in error message, got (%s)", err)
 	}
 
+	_, err = parseReader(v, log, "expvar", "readers.reader1")
+	if errors.Cause(err) == nil {
+		t.Error("want (error), got (nil)")
+	}
+
+	_, err = parseReader(v, log, "self", "readers.reader1")
+	if errors.Cause(err) == nil {
+		t.Error("want (error), got (nil)")
+	}
+
 	input := bytes.NewBuffer([]byte(`
     readers:
         reader1:
@@ -106,8 +125,8 @@ func TestParseReader(t *testing.T) {
 		t.Errorf("want no errors, got (%v)", err)
 	}
 
-	if _, ok := c.(ReaderConf); !ok {
-		t.Errorf("want (ReaderConf) type, got (%v)", c)
+	if _, ok := c.(reader.DataReader); !ok {
+		t.Errorf("want (reader.DataReader) type, got (%v)", c)
 	}
 }
 

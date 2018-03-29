@@ -22,8 +22,8 @@ import (
 
 var elasticsearchRecords = expvar.NewInt("ElasticSearch Records")
 
-// Recorder contains an elasticsearch client and an index name for recording data
-// It implements DataRecorder interface
+// Recorder contains an elasticsearch client and an index name for recording
+// data. It implements DataRecorder interface
 type Recorder struct {
 	name      string
 	client    *elastic.Client // Elasticsearch client
@@ -39,13 +39,13 @@ type Recorder struct {
 // New returns an error if it can't create the index
 // It returns and error on the following occasions:
 //
-//   Condition            |  Error
-//   ---------------------|-------------
-//   Invalid endpoint     | ErrInvalidEndpoint
-//   backoff < 5          | ErrLowBackoffValue
-//   Empty name           | ErrEmptyName
-//   Invalid IndexName    | ErrInvalidIndexName
-//   Empty IndexName      | ErrEmptyIndexName
+//   |     Condition     |        Error        |
+//   |-------------------|---------------------|
+//   | Invalid endpoint  | ErrInvalidEndpoint  |
+//   | backoff < 5       | ErrLowBackoffValue  |
+//   | Empty name        | ErrEmptyName        |
+//   | Invalid IndexName | ErrInvalidIndexName |
+//   | Empty IndexName   | ErrEmptyIndexName   |
 //
 func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 	r := &Recorder{}
@@ -75,11 +75,11 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 // Ping should ping the endpoint and report if was successful.
 // It returns and error on the following occasions:
 //
-//   Condition            |  Error
-//   ---------------------|-------------
-//   Unavailable endpoint | ErrEndpointNotAvailable
-//   Ping errors          | Timeout/Ping failed
-//   Index creation       | elasticsearch's errors
+//   |      Condition       |          Error          |
+//   |----------------------|-------------------------|
+//   | Unavailable endpoint | ErrEndpointNotAvailable |
+//   | Ping errors          | Timeout/Ping failed     |
+//   | Index creation       | elasticsearch's errors  |
 //
 func (r *Recorder) Ping() error {
 	var err error
@@ -145,12 +145,13 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 			Debugf("%s: error making request: %v", r.name, err)
 		return err
 	}
+
 	return nil
 }
 
 // record ships the kv data to elasticsearch. It calls the recordFunc if exists,
-// otherwise continues as normal.
-// Although this doesn't change the state of the Client, it is a part of its behaviour.
+// otherwise continues as normal. Although this doesn't change the state of
+// the Client, it is a part of its behaviour.
 func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
 	w := new(bytes.Buffer)
 	list.Generate(w, timestamp)

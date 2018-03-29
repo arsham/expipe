@@ -17,8 +17,9 @@ import (
 
 // This file contains the operation section of the engine and its event loop.
 
-// Start begins pulling the data from DataReaders and chips them to the DataRecorder.
-// When the context is cancelled or timed out, the engine abandons its operations.
+// Start begins pulling the data from DataReaders and chips them to the
+// DataRecorder. When the context is cancelled or timed out, the engine
+// abandons its operations.
 func (e *Engine) Start() {
 	e.log.Infof("starting with %d readers", len(e.readers))
 	e.shutdown = make(chan struct{})
@@ -177,7 +178,8 @@ func (e *Engine) shipToRecorder(result *reader.Result, errChan chan ErrJob) {
 	case <-timer.C:
 		e.log.Debug("timed-out before receiving the error")
 	case <-e.ctx.Done():
-		e.log.WithField("ID", result.ID).Debug("main context was closed before receiving the error response", e.ctx.Err().Error())
+		e.log.WithField("ID", result.ID).
+			Debug("main context was closed before receiving the error response", e.ctx.Err().Error())
 		if !timer.Stop() {
 			<-timer.C
 		}

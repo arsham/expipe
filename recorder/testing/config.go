@@ -11,7 +11,8 @@ import (
 	"github.com/arsham/expipe/recorder"
 )
 
-// Config holds the necessary configuration for setting up an elasticsearch recorder endpoint.
+// Config holds the necessary configuration for setting up an elasticsearch
+// recorder endpoint.
 type Config struct {
 	MockName      string
 	MockEndpoint  string
@@ -19,18 +20,6 @@ type Config struct {
 	MockBackoff   int
 	MockIndexName string
 	MockLogger    internal.FieldLogger
-}
-
-// Conf func is used for initializing a Config object.
-type Conf func(*Config) error
-
-// NewConfig returns a mocked object
-func NewConfig(conf ...Conf) (*Config, error) {
-	obj := new(Config)
-	for _, c := range conf {
-		c(obj)
-	}
-	return obj, nil
 }
 
 // NewInstance returns a mocked object
@@ -62,51 +51,3 @@ func (c *Config) Logger() internal.FieldLogger { return c.MockLogger }
 
 // Backoff is the mocked version
 func (c *Config) Backoff() int { return c.MockBackoff }
-
-// WithLogger doesn't produce any errors.
-func WithLogger(log internal.FieldLogger) Conf {
-	return func(c *Config) error {
-		c.MockLogger = log
-		return nil
-	}
-}
-
-// WithName doesn't produce any errors.
-func WithName(name string) Conf {
-	return func(c *Config) error {
-		c.MockName = name
-		return nil
-	}
-}
-
-// WithIndexName doesn't produce any errors.
-func WithIndexName(indexName string) Conf {
-	return func(c *Config) error {
-		c.MockIndexName = indexName
-		return nil
-	}
-}
-
-// WithEndpoint doesn't produce any errors.
-func WithEndpoint(endpoint string) Conf {
-	return func(c *Config) error {
-		c.MockEndpoint = endpoint
-		return nil
-	}
-}
-
-// WithTimeout doesn't produce any errors.
-func WithTimeout(timeout time.Duration) Conf {
-	return func(c *Config) error {
-		c.MockTimeout = timeout
-		return nil
-	}
-}
-
-// WithBackoff doesn't produce any errors.
-func WithBackoff(backoff int) Conf {
-	return func(c *Config) error {
-		c.MockBackoff = backoff
-		return nil
-	}
-}

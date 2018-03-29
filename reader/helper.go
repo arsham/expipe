@@ -27,7 +27,7 @@ type Constructor interface {
 	SetBackoff(backoff int)
 }
 
-// WithLogger sets the log of the reader
+// WithLogger sets the log of the reader.
 func WithLogger(log internal.FieldLogger) func(Constructor) error {
 	return func(e Constructor) error {
 		if log == nil {
@@ -38,7 +38,7 @@ func WithLogger(log internal.FieldLogger) func(Constructor) error {
 	}
 }
 
-// WithName sets the name of the reader
+// WithName sets the name of the reader.
 func WithName(name string) func(Constructor) error {
 	return func(e Constructor) error {
 		if name == "" {
@@ -49,7 +49,7 @@ func WithName(name string) func(Constructor) error {
 	}
 }
 
-// WithEndpoint sets the endpoint of the reader
+// WithEndpoint sets the endpoint of the reader.
 func WithEndpoint(endpoint string) func(Constructor) error {
 	return func(e Constructor) error {
 		if endpoint == "" {
@@ -64,7 +64,7 @@ func WithEndpoint(endpoint string) func(Constructor) error {
 	}
 }
 
-// WithMapper sets the mapper of the reader
+// WithMapper sets the mapper of the reader.
 func WithMapper(mapper datatype.Mapper) func(Constructor) error {
 	return func(e Constructor) error {
 		if mapper == nil {
@@ -75,7 +75,7 @@ func WithMapper(mapper datatype.Mapper) func(Constructor) error {
 	}
 }
 
-// WithTypeName sets the typeName of the reader
+// WithTypeName sets the typeName of the reader.
 func WithTypeName(typeName string) func(Constructor) error {
 	return func(e Constructor) error {
 		if typeName == "" {
@@ -86,7 +86,7 @@ func WithTypeName(typeName string) func(Constructor) error {
 	}
 }
 
-// WithInterval sets the interval of the reader
+// WithInterval sets the interval of the reader.
 func WithInterval(interval time.Duration) func(Constructor) error {
 	return func(e Constructor) error {
 		if interval == time.Duration(0) {
@@ -97,7 +97,7 @@ func WithInterval(interval time.Duration) func(Constructor) error {
 	}
 }
 
-// WithTimeout sets the timeout of the reader
+// WithTimeout sets the timeout of the reader.
 func WithTimeout(timeout time.Duration) func(Constructor) error {
 	return func(e Constructor) error {
 		if timeout < time.Second {
@@ -108,7 +108,7 @@ func WithTimeout(timeout time.Duration) func(Constructor) error {
 	}
 }
 
-// WithBackoff sets the backoff of the reader
+// WithBackoff sets the backoff of the reader.
 func WithBackoff(backoff int) func(Constructor) error {
 	return func(e Constructor) error {
 		if backoff < 5 {

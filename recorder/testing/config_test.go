@@ -12,45 +12,6 @@ import (
 	rt "github.com/arsham/expipe/recorder/testing"
 )
 
-func TestConfig(t *testing.T) {
-	name := "name"
-	log := internal.DiscardLogger()
-	endpoint := "http://localhost"
-	timeout := time.Second
-	backoff := 5
-	indexName := "index_name"
-	c, err := rt.NewConfig(
-		rt.WithName(name),
-		rt.WithLogger(log),
-		rt.WithEndpoint(endpoint),
-		rt.WithTimeout(timeout),
-		rt.WithBackoff(backoff),
-		rt.WithIndexName(indexName),
-	)
-
-	if c.Name() != name {
-		t.Errorf("want (%v) to be (%v)", c.Name(), name)
-	}
-	if c.Logger() != log {
-		t.Errorf("want (%v) to be (%v)", c.Logger(), log)
-	}
-	if c.Endpoint() != endpoint {
-		t.Errorf("want (%v) to be (%v)", c.Endpoint(), endpoint)
-	}
-	if c.Timeout() != timeout {
-		t.Errorf("want (%v) to be (%v)", c.Timeout(), timeout)
-	}
-	if c.Backoff() != backoff {
-		t.Errorf("want (%v) to be (%v)", c.Backoff(), backoff)
-	}
-	if c.IndexName() != indexName {
-		t.Errorf("want (%v) to be (%v)", c.IndexName(), indexName)
-	}
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
-	}
-}
-
 func TestConfigNewinstance(t *testing.T) {
 	name := "name"
 	log := internal.DiscardLogger()
@@ -58,14 +19,14 @@ func TestConfigNewinstance(t *testing.T) {
 	timeout := time.Second
 	backoff := 5
 	indexName := "index_name"
-	c, err := rt.NewConfig(
-		rt.WithName(name),
-		rt.WithLogger(log),
-		rt.WithEndpoint(endpoint),
-		rt.WithTimeout(timeout),
-		rt.WithBackoff(backoff),
-		rt.WithIndexName(indexName),
-	)
+	c := &rt.Config{
+		MockLogger:    log,
+		MockName:      name,
+		MockEndpoint:  endpoint,
+		MockTimeout:   timeout,
+		MockBackoff:   backoff,
+		MockIndexName: indexName,
+	}
 
 	r, err := c.NewInstance()
 	rec, ok := r.(*rt.Recorder)

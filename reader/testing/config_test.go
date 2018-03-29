@@ -12,51 +12,6 @@ import (
 	rt "github.com/arsham/expipe/reader/testing"
 )
 
-func TestConfig(t *testing.T) {
-	name := "name"
-	log := internal.DiscardLogger()
-	endpoint := "http://localhost"
-	timeout := time.Second
-	interval := 100 * time.Millisecond
-	backoff := 5
-	typeName := "type_name"
-	c, err := rt.NewConfig(
-		rt.WithName(name),
-		rt.WithLogger(log),
-		rt.WithEndpoint(endpoint),
-		rt.WithTimeout(timeout),
-		rt.WithBackoff(backoff),
-		rt.WithTypeName(typeName),
-		rt.WithInterval(interval),
-	)
-
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
-	}
-
-	if c.Name() != name {
-		t.Errorf("want (%v) to be (%v)", name, c.Name())
-	}
-	if c.Logger() != log {
-		t.Errorf("want (%v) to be (%v)", log, c.Logger())
-	}
-	if c.Endpoint() != endpoint {
-		t.Errorf("want (%v) to be (%v)", endpoint, c.Endpoint())
-	}
-	if c.Timeout() != timeout {
-		t.Errorf("want (%v) to be (%v)", timeout, c.Timeout())
-	}
-	if c.Interval() != interval {
-		t.Errorf("want (%v) to be (%v)", interval, c.Interval())
-	}
-	if c.Backoff() != backoff {
-		t.Errorf("want (%v) to be (%v)", backoff, c.Backoff())
-	}
-	if c.TypeName() != typeName {
-		t.Errorf("want (%v) to be (%v)", typeName, c.TypeName())
-	}
-}
-
 func TestConfigNewInstance(t *testing.T) {
 	name := "name"
 	log := internal.DiscardLogger()
@@ -65,17 +20,14 @@ func TestConfigNewInstance(t *testing.T) {
 	interval := 100 * time.Millisecond
 	backoff := 5
 	typeName := "type_name"
-	c, err := rt.NewConfig(
-		rt.WithName(name),
-		rt.WithLogger(log),
-		rt.WithEndpoint(endpoint),
-		rt.WithTimeout(timeout),
-		rt.WithBackoff(backoff),
-		rt.WithTypeName(typeName),
-		rt.WithInterval(interval),
-	)
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+	c := rt.Config{
+		MockLogger:   log,
+		MockName:     name,
+		MockEndpoint: endpoint,
+		MockTimeout:  timeout,
+		MockBackoff:  backoff,
+		MockTypeName: typeName,
+		MockInterval: interval,
 	}
 	r, err := c.NewInstance()
 	rec, ok := r.(*rt.Reader)

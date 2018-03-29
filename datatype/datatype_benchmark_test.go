@@ -50,10 +50,12 @@ func benchmarkContainerRead(containerCount, itemCount int, b *testing.B) {
 	for i := 0; i <= containerCount; i++ {
 		wg.Add(1)
 		go func() {
+			b.StopTimer()
 			container := Container{}
 			for j := 0; j < itemCount; j++ {
 				container.Add(rFT[j], rST[j], rBT[j], rKBT[j], rMBT[j])
 			}
+			b.StartTimer()
 			container.Generate(ioutil.Discard, time.Now())
 			wg.Done()
 		}()
@@ -86,13 +88,13 @@ func BenchmarkJobResultDataTypes(b *testing.B) {
 }
 
 func benchmarkJobResultDataTypes(mapper Mapper, containerCount, itemCount int, b *testing.B) {
+	var wg sync.WaitGroup
 	b.StopTimer()
 	rFT := randomFloatType(itemCount)
 	rST := randomStringType(itemCount)
 	rBT := randomByteType(itemCount)
 	rKBT := randomKiloByteType(itemCount)
 	rMBT := randomMegaByteType(itemCount)
-	var wg sync.WaitGroup
 	b.StartTimer()
 	for i := 0; i <= containerCount; i++ {
 		wg.Add(1)

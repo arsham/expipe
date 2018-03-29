@@ -2,15 +2,17 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package reader contains logic for reading from a provider. Any types that implements the DataReader interface
-// can be used in this system. The Result should provide a byte slice that is JSON unmarshallable, otherwise
-// the data will be rejected.
+// Package reader contains logic for reading from a provider. Any types that
+// implements the DataReader interface can be used in this system. The Result
+// should provide a byte slice that is JSON unmarshallable, otherwise the data
+// will be rejected.
 //
 // Important Notes
 //
-// When the token's context is cancelled, the reader should finish its job and return. The Time should be set when the data is
-// read from the endpoint, otherwise it will lose its meaning. The engine will issue jobs based on the Interval, which
-// is set in the configuration file.
+// When the token's context is cancelled, the reader should finish its job and
+// return. The Time should be set when the data is read from the endpoint,
+// otherwise it will lose its meaning. The engine will issue jobs based on the
+// Interval, which is set in the configuration file.
 package reader
 
 import (
@@ -27,13 +29,11 @@ import (
 //
 // Readers should not intercept the engine's decision on the TypeName, unless
 // they have a valid reason.
-// Name() should return the representation string for this reader.
-// Ping() should ping the endpoint and return nil if was successful. The Engine
+// Ping should ping the endpoint and return nil if was successful. The Engine
 // will not launch the reader if the ping result is an error.
-// When the context is timed-out or cancelled, Read() should return.
-// Mapper() should return an instance of the datatype mapper. Engine uses this
-// object to present the data to recorders.
-// TypeName() is usually the application name and is set by the user in the
+// When the context is timed-out or cancelled, Read should return.
+// The Engine uses returned object from Mapper to present the data to recorders.
+// TypeName is usually the application name and is set by the user in the
 // configuration file.
 type DataReader interface {
 	Name() string

@@ -31,38 +31,6 @@ func TestWithLogger(t *testing.T) {
 	}
 }
 
-// tests any with.. that has a string input
-func TestWithStrings(t *testing.T) {
-	c := new(elasticsearch.Config)
-	tcs := []struct {
-		tcName   string
-		input    string
-		badInput string
-		f        func(string) elasticsearch.Conf
-		check    func() string
-	}{
-		{"name", "name", "", elasticsearch.WithName, c.Name},
-		{"index name", "name", "", elasticsearch.WithIndexName, c.IndexName},
-		{"bad endpoint", "http://localhost", "bad url", elasticsearch.WithEndpoint, c.Endpoint},
-		{"empty endpoint", "http://localhost", "", elasticsearch.WithEndpoint, c.Endpoint},
-	}
-	for _, tc := range tcs {
-		t.Run(tc.tcName, func(t *testing.T) {
-			err := tc.f(tc.badInput)(c)
-			if err == nil {
-				t.Error("want (error), got (nil)")
-			}
-			err = tc.f(tc.input)(c)
-			if err != nil {
-				t.Errorf("want (nil), got (%v)", err)
-			}
-			if tc.check() != tc.input {
-				t.Errorf("want (%v), got (%v)", tc.input, tc.check())
-			}
-		})
-	}
-}
-
 type unmarshaller interface {
 	UnmarshalKey(key string, rawVal interface{}) error
 }
@@ -158,9 +126,6 @@ func TestNewConfig(t *testing.T) {
 	log := internal.DiscardLogger()
 	c, err := elasticsearch.NewConfig(
 		elasticsearch.WithLogger(log),
-		elasticsearch.WithName("name"),
-		elasticsearch.WithIndexName("name"),
-		elasticsearch.WithEndpoint("http://localhost"),
 	)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
@@ -170,69 +135,15 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
-func TestNewConfigErrors(t *testing.T) {
-	tcs := []struct {
-		name string
-		args []elasticsearch.Conf
-	}{
-		{"error from conf", []elasticsearch.Conf{elasticsearch.WithName("")}},
-		{"empty name", []elasticsearch.Conf{
-			elasticsearch.WithEndpoint("http://localhost"),
-			elasticsearch.WithIndexName("indexName")},
-		},
-		{"empty index name", []elasticsearch.Conf{
-			elasticsearch.WithEndpoint("http://localhost"),
-			elasticsearch.WithName("name")},
-		},
-		{"empty endpoint", []elasticsearch.Conf{
-			elasticsearch.WithName("name"),
-			elasticsearch.WithIndexName("indexName")},
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			c, err := elasticsearch.NewConfig(tc.args...)
-			if err == nil {
-				t.Error("want (error), got (nil)")
-			}
-			if c != nil {
-				t.Errorf("want (nil), got (%v)", c)
-			}
-		})
-	}
-}
-func TestWithTimeout(t *testing.T) {
-	c := new(elasticsearch.Config)
-	err := elasticsearch.WithTimeout(time.Second)(c)
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
-	}
-	if c.Timeout() != time.Second {
-		t.Errorf("want (%v), got (%v)", time.Second, c.Timeout())
-	}
-}
-
-func TestWithBackoff(t *testing.T) {
-	c := new(elasticsearch.Config)
-	err := elasticsearch.WithBackoff(666)(c)
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
-	}
-	if c.Backoff() != 666 {
-		t.Errorf("want (%v), got (%v)", 666, c.Backoff())
-	}
-}
-
 func TestNewInstance(t *testing.T) {
 	log := internal.DiscardLogger()
 	c, err := elasticsearch.NewConfig(
 		elasticsearch.WithLogger(log),
-		elasticsearch.WithName("name"),
-		elasticsearch.WithIndexName("name"),
-		elasticsearch.WithEndpoint("http://localhost"),
 	)
-	elasticsearch.WithTimeout(0)(c)
+	c.ESName = "name"
+	c.ESIndexName = "name"
+	c.ESEndpoint = "http://localhost"
+	c.ESBackoff = 5
 	if err != nil {
 		t.Fatalf("want (nil), got (%v)", err)
 	}
@@ -244,7 +155,7 @@ func TestNewInstance(t *testing.T) {
 		t.Errorf("want (nil), got (%v)", e)
 	}
 
-	elasticsearch.WithTimeout(time.Second)(c)
+	c.ConfTimeout = time.Second
 	e, err = c.NewInstance()
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)

@@ -13,7 +13,7 @@ import (
 
 	"github.com/arsham/expipe/recorder"
 	"github.com/arsham/expipe/recorder/elasticsearch"
-	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	rt "github.com/arsham/expipe/recorder/testing"
 )
 
 func getTestServer() *httptest.Server {
@@ -107,5 +107,5 @@ func TestElasticsearchRecorder(t *testing.T) {
 		panic(err)
 	}
 	c := &Construct{r, getTestServer()}
-	recorder_testing.TestSuites(t, c)
+	rt.TestSuites(t, c)
 }

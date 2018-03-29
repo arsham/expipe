@@ -61,7 +61,8 @@ func testRecorderErrorsOnUnavailableEndpoint(cons Constructor) {
 	})
 }
 
-// testRecorderBacksOffOnEndpointGone is a helper to test the recorder backs off when the endpoint goes away.
+// testRecorderBacksOffOnEndpointGone is a helper to test the recorder backs off
+// when the endpoint goes away.
 func testRecorderBacksOffOnEndpointGone(cons Constructor) {
 	gin.Context("by initiating a recorder and having a running endpoint", func() {
 		var (
@@ -108,7 +109,8 @@ func testRecorderBacksOffOnEndpointGone(cons Constructor) {
 			}
 			gin.Context("while draining the recorder", func() {
 
-				// We don't know the backoff amount set in the recorder, so we try 100 times until it closes.
+				// We don't know the backoff amount set in the recorder, so we
+				// try 100 times until it closes.
 				backedOff := false
 				for i := 0; i < 100; i++ {
 					err := rec.Record(ctx, payload)
@@ -139,8 +141,8 @@ func testRecorderBacksOffOnEndpointGone(cons Constructor) {
 	})
 }
 
-// testRecordingReturnsErrorIfNotPingedYet is a helper to test the recorder returns an error
-// if the caller hasn't called the Ping() method.
+// testRecordingReturnsErrorIfNotPingedYet is a helper to test the recorder
+// returns an error if the caller hasn't called the Ping() method.
 func testRecordingReturnsErrorIfNotPingedYet(cons Constructor) {
 	gin.Context("With a recorder initialised", func() {
 		var (

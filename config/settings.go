@@ -7,6 +7,9 @@ package config
 import (
 	"strings"
 
+	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/recorder"
+
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader/expvar"
 	"github.com/arsham/expipe/reader/self"
@@ -34,11 +37,11 @@ type route struct {
 
 // ConfMap holds the relation between readers and recorders.
 type ConfMap struct {
-	// Readers contains a map of reader names to their configuration.
-	Readers map[string]ReaderConf
+	// Readers contains a map of reader names to their instantiated objects.
+	Readers map[string]reader.DataReader
 
-	// Recorders contains a map of recorder names to their configuration.
-	Recorders map[string]RecorderConf
+	// Recorders contains a map of recorder names to their instantiated objects.
+	Recorders map[string]recorder.DataRecorder
 
 	// Routes contains a map of recorder names to a list of readers.
 	// map["rec1"][]string{"red1", "red2"}: means whatever is read
@@ -92,7 +95,6 @@ func LoadYAML(log *internal.Logger, v *viper.Viper) (*ConfMap, error) {
 		return nil, errors.WithMessage(err, "checkAgainstReadRecorders")
 	}
 
-	// TEST: write a test that hit this line
 	return loadConfiguration(v, log, routes, readerKeys, recorderKeys)
 }
 
@@ -196,8 +198,8 @@ func checkAgainstReadRecorders(routes routeMap, readerKeys, recorderKeys map[str
 
 func loadConfiguration(v *viper.Viper, log internal.FieldLogger, routes routeMap, readerKeys, recorderKeys map[string]string) (*ConfMap, error) {
 	confMap := &ConfMap{
-		Readers:   make(map[string]ReaderConf, len(readerKeys)),
-		Recorders: make(map[string]RecorderConf, len(recorderKeys)),
+		Readers:   make(map[string]reader.DataReader, len(readerKeys)),
+		Recorders: make(map[string]recorder.DataRecorder, len(recorderKeys)),
 	}
 
 	for name, reader := range readerKeys {
@@ -219,32 +221,41 @@ func loadConfiguration(v *viper.Viper, log internal.FieldLogger, routes routeMap
 	return confMap, nil
 }
 
-func parseReader(v *viper.Viper, log internal.FieldLogger, readerType, name string) (ReaderConf, error) {
+func parseReader(v *viper.Viper, log internal.FieldLogger, readerType, name string) (reader.DataReader, error) {
 	switch readerType {
 	case expvarReader:
 		rc, err := expvar.NewConfig(
 			expvar.WithLogger(log),
 			expvar.WithViper(v, name, "readers."+name),
 		)
-		return rc, errors.Wrap(err, "parsing reader")
+		if err != nil {
+			return nil, errors.Wrap(err, "parsing reader")
+		}
+		return rc.NewInstance()
 	case selfReader:
 		rc, err := self.NewConfig(
 			self.WithLogger(log),
 			self.WithViper(v, name, "readers."+name),
 		)
-		return rc, errors.Wrap(err, "parsing reader")
+		if err != nil {
+			return nil, errors.Wrap(err, "parsing reader")
+		}
+		return rc.NewInstance()
 	}
 	return nil, ErrNotSupported(readerType)
 }
 
-func readRecorders(v *viper.Viper, log internal.FieldLogger, recorderType, name string) (RecorderConf, error) {
+func readRecorders(v *viper.Viper, log internal.FieldLogger, recorderType, name string) (recorder.DataRecorder, error) {
 	switch recorderType {
 	case elasticsearchRecorder:
 		rc, err := elasticsearch.NewConfig(
 			elasticsearch.WithViper(v, name, "recorders."+name),
 			elasticsearch.WithLogger(log),
 		)
-		return rc, errors.Wrap(err, "read-recorders loading from viper")
+		if err != nil {
+			return nil, errors.Wrap(err, "read-recorders loading from viper")
+		}
+		return rc.NewInstance()
 	}
 	return nil, ErrNotSupported(recorderType)
 }

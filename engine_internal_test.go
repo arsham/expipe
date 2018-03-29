@@ -16,9 +16,9 @@ import (
 
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
-	reader_test "github.com/arsham/expipe/reader/testing"
+	rdt "github.com/arsham/expipe/reader/testing"
 	"github.com/arsham/expipe/recorder"
-	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	rct "github.com/arsham/expipe/recorder/testing"
 	"github.com/arsham/expipe/token"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus/hooks/test"
@@ -35,7 +35,7 @@ func init() {
 }
 
 func withRecorder(ctx context.Context, log internal.FieldLogger) (*Engine, error) {
-	rec, _ := recorder_testing.New(
+	rec, _ := rct.New(
 		recorder.WithLogger(log),
 		recorder.WithEndpoint(testServer.URL),
 		recorder.WithName("recorder_test"),
@@ -64,10 +64,10 @@ func (e *Engine) setReaders(readers map[string]reader.DataReader) {
 	e.readers = readers
 }
 
-// EngineWithReadRecs creates an Engine instance with already set-up reader and recorders.
-// The Engine's work starts from here by streaming all readers payloads to the
-// recorder. Returns an error if there are recorders with the same name, or any
-// of constructions results in errors.
+// EngineWithReadRecs creates an Engine instance with already set-up reader and
+// recorders. The Engine's work starts from here by streaming all readers
+// payloads to the recorder. Returns an error if there are recorders with
+// the same name, or any of constructions results in errors.
 //
 // IMPORTANT: only use this for testing.
 //
@@ -121,7 +121,7 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.New(
+	red, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
 		reader.WithEndpoint(testServer.URL),
 		reader.WithName("reader_name"),
@@ -154,7 +154,7 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 		return resp, nil
 	}
 
-	rec := e.recorder.(*recorder_testing.Recorder)
+	rec := e.recorder.(*rct.Recorder)
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if job.ID != jobID {
 			t.Errorf("want (%s), got (%s)", jobID, job.ID)
@@ -193,7 +193,7 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red1, err := reader_test.New(
+	red1, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
 		reader.WithEndpoint(testServer.URL),
 		reader.WithName("reader_name"),
@@ -210,7 +210,7 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	red2, err := reader_test.New(
+	red2, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
 		reader.WithEndpoint(testServer.URL),
 		reader.WithName("reader2_name"),
@@ -231,7 +231,7 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 
 	e.setReaders(map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
 
-	rec := e.recorder.(*recorder_testing.Recorder)
+	rec := e.recorder.(*rct.Recorder)
 	rec.RecordFunc = func(context.Context, *recorder.Job) error { return nil }
 
 	done := make(chan struct{})
@@ -247,8 +247,8 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 	}
 }
 
-func getReader(t *testing.T, name string, jobContent []byte) *reader_test.Reader {
-	red, err := reader_test.New(
+func getReader(t *testing.T, name string, jobContent []byte) *rdt.Reader {
+	red, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
 		reader.WithEndpoint(testServer.URL),
 		reader.WithName(name),
@@ -277,6 +277,7 @@ func getReader(t *testing.T, name string, jobContent []byte) *reader_test.Reader
 	return red
 }
 
+// FIXME: break this test down
 func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 	log := internal.DiscardLogger()
 	log.Level = internal.DebugLevel
@@ -295,7 +296,7 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 	job2 := token.New(ctx)
 	recorded := make(chan struct{})
 
-	rec := e.recorder.(*recorder_testing.Recorder)
+	rec := e.recorder.(*rct.Recorder)
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if job.ID != job1.ID() && job.ID != job2.ID() {
 			t.Errorf("want one of (%s, %s), got (%s)", job1.ID(), job2.ID(), job.ID)
@@ -361,7 +362,7 @@ func TestStartReadersTicking(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.New(
+	red, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
 		reader.WithEndpoint(testServer.URL),
 		reader.WithName("reader_name"),
@@ -409,10 +410,10 @@ func TestStartReadersTicking(t *testing.T) {
 }
 
 func TestRemoveReader(t *testing.T) {
-	r1, _ := reader_test.New(reader.WithName("r1"))
-	r2, _ := reader_test.New(reader.WithName("r2"))
-	r3, _ := reader_test.New(reader.WithName("r3"))
-	r4, _ := reader_test.New(reader.WithName("r4"))
+	r1, _ := rdt.New(reader.WithName("r1"))
+	r2, _ := rdt.New(reader.WithName("r2"))
+	r3, _ := rdt.New(reader.WithName("r3"))
+	r4, _ := rdt.New(reader.WithName("r4"))
 	e := &Engine{}
 	e.setReaders(map[string]reader.DataReader{
 		r1.Name(): r1,
@@ -439,7 +440,7 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	red, err := reader_test.New(
+	red, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
 		reader.WithEndpoint(testServer.URL),
 		reader.WithName("reader_name"),

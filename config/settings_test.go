@@ -66,6 +66,45 @@ func TestLoadYAML(t *testing.T) {
 	}
 }
 
+func TestLoadYAMLSuccess(t *testing.T) {
+	t.Parallel()
+	v := viper.New()
+	v.SetConfigType("yaml")
+	log := internal.DiscardLogger()
+	input := bytes.NewBuffer([]byte(`
+    readers:
+        reader1:
+            type: expvar
+            endpoint: localhost:1234
+            type_name: my_app
+            map_file: maps.yml
+            interval: 2s
+            timeout: 3s
+            backoff: 10
+    recorders:
+        recorder1:
+            type: elasticsearch
+            endpoint: http://127.0.0.1:9200
+            index_name: index
+            timeout: 8s
+            backoff: 10
+    routes:
+        route1:
+            readers:
+                - reader1
+            recorders:
+                - recorder1
+    `))
+	v.ReadConfig(input)
+	confMap, err := config.LoadYAML(log, v)
+	if errors.Cause(err) != nil {
+		t.Errorf("want (nil), got (%v)", err)
+	}
+	if confMap == nil {
+		t.Error("want (confMap), got (nil)")
+	}
+}
+
 func TestLoadSettingsErrors(t *testing.T) {
 	t.Parallel()
 

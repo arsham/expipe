@@ -14,7 +14,7 @@ import (
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/reader/self"
-	reader_testing "github.com/arsham/expipe/reader/testing"
+	rt "github.com/arsham/expipe/reader/testing"
 )
 
 var (
@@ -56,5 +56,5 @@ func TestSelfReader(t *testing.T) {
 		panic(err)
 	}
 	c := &Construct{r}
-	reader_testing.TestSuites(t, c)
+	rt.TestSuites(t, c)
 }

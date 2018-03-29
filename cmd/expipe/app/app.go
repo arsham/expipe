@@ -13,8 +13,11 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/config"
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/reader/expvar"
+	"github.com/arsham/expipe/recorder"
 	"github.com/arsham/expipe/recorder/elasticsearch"
 	"github.com/spf13/viper"
 )
@@ -73,30 +76,30 @@ func fromConfig(confFile string) (*config.ConfMap, error) {
 func fromFlags() (*config.ConfMap, error) {
 	var err error
 	confMap := &config.ConfMap{
-		Readers:   make(map[string]config.ReaderConf, 1),
-		Recorders: make(map[string]config.RecorderConf, 1),
+		Readers:   make(map[string]reader.DataReader, 1),
+		Recorders: make(map[string]recorder.DataRecorder, 1),
 	}
 
-	confMap.Recorders["elasticsearch"], err = elasticsearch.NewConfig(
-		elasticsearch.WithLogger(log),
-		elasticsearch.WithName("elasticsearch"),
-		elasticsearch.WithEndpoint(Opts.Recorder),
-		elasticsearch.WithTimeout(Opts.Timeout),
-		elasticsearch.WithBackoff(Opts.Backoff),
-		elasticsearch.WithIndexName(Opts.IndexName),
+	confMap.Recorders["elasticsearch"], err = elasticsearch.New(
+		recorder.WithLogger(log),
+		recorder.WithName("recorder"),
+		recorder.WithEndpoint(Opts.Recorder),
+		recorder.WithTimeout(Opts.Timeout),
+		recorder.WithBackoff(Opts.Backoff),
+		recorder.WithIndexName(Opts.IndexName),
 	)
 	if err != nil {
 		return nil, err
 	}
-	confMap.Readers["expvar"], err = expvar.NewConfig(
-		expvar.WithLogger(log),
-		expvar.WithName("expvar"),
-		expvar.WithTypeName(Opts.TypeName),
-		expvar.WithEndpoint(Opts.Reader),
-		expvar.WithInterval(Opts.Interval),
-		expvar.WithTimeout(Opts.Timeout),
-		expvar.WithBackoff(Opts.Backoff),
-		expvar.WithMapFile(""),
+	confMap.Readers["expvar"], err = expvar.New(
+		reader.WithLogger(log),
+		reader.WithName("expvar"),
+		reader.WithTypeName(Opts.TypeName),
+		reader.WithEndpoint(Opts.Reader),
+		reader.WithInterval(Opts.Interval),
+		reader.WithTimeout(Opts.Timeout),
+		reader.WithBackoff(Opts.Backoff),
+		reader.WithMapper(datatype.DefaultMapper()),
 	)
 	if err != nil {
 		return nil, err
@@ -107,15 +110,15 @@ func fromFlags() (*config.ConfMap, error) {
 	return confMap, nil
 }
 
-// CaptureSignals cancels the context if receives the SIGINT or SIGTERM.
-func CaptureSignals(cancel context.CancelFunc) {
-	sigCh := make(chan os.Signal, 1)
+// CaptureSignals cancels the context if receives the SIGINT or SIGTERM signal
+// through sigCh, and exits with calling exit(130).
+func CaptureSignals(cancel context.CancelFunc, sigCh chan os.Signal, exit func(int), timeout time.Duration) {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
 		go func() {
-			<-time.After(10 * time.Second)
-			os.Exit(1)
+			<-time.After(timeout)
+			exit(130)
 		}()
 		cancel()
 	}()

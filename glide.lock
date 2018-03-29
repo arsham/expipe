@@ -1,5 +1,5 @@
 hash: 22e57777052455a2a123e2df40b688e2af5af5e7c721302fc12ee07dab719b63
-updated: 2018-03-26T00:34:44.560327572+01:00
+updated: 2018-03-29T21:02:42.00504773+01:00
 imports:
 - name: github.com/antonholmquist/jason
   version: 962e09b85496e2e158eec1567fb4c826ce3d55d1
@@ -93,7 +93,7 @@ imports:
 - name: github.com/spf13/jwalterweatherman
   version: 7c0cea34c8ece3fbeb2b27ab9b59511d360fb394
 - name: github.com/spf13/pflag
-  version: ee5fd03fd6acfd43e44aea0b4135958546ed8e73
+  version: ad68c28ee799163e627e77fcc6e8ecaa866e3535
 - name: github.com/spf13/viper
   version: b5e8006cbee93ec955a89ab31e0e3ce3204f3736
 - name: golang.org/x/crypto
@@ -109,12 +109,12 @@ imports:
   - html/atom
   - html/charset
 - name: golang.org/x/sys
-  version: 91ee8cde435411ca3f1cd365e8f20131aed4d0a1
+  version: 378d26f46672a356c46195c28f61bdb4c0a781dd
   subpackages:
   - unix
   - windows
 - name: golang.org/x/text
-  version: ab48842968a66deafa354805a8b031924668e059
+  version: ece95c760240037f89ebcbdd7155ac8cb52e38fa
   subpackages:
   - encoding
   - encoding/charmap
@@ -135,5 +135,5 @@ imports:
   - transform
   - unicode/norm
 - name: gopkg.in/yaml.v2
-  version: 7f97868eec74b32b0982dd158a51a446d1da7eb5
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports: []

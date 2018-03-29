@@ -7,12 +7,12 @@ package testing_test
 import (
 	"testing"
 
-	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	rt "github.com/arsham/expipe/recorder/testing"
 )
 
 func TestGetRecorderGoodURL(t *testing.T) {
 	url := "http://localhost"
-	r := recorder_testing.GetRecorder(url)
+	r := rt.GetRecorder(url)
 	if r == nil {
 		t.Error("want (Recorder), got (nil)")
 	}
@@ -39,7 +39,7 @@ func TestGetRecorderGoodURL(t *testing.T) {
 				panicked = true
 			}
 		}()
-		recorder_testing.GetRecorder(url)
+		rt.GetRecorder(url)
 		if !panicked {
 			t.Error("didn't panic on bad url")
 		}

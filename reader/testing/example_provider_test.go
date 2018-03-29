@@ -7,12 +7,12 @@ package testing_test
 import (
 	"testing"
 
-	reader_testing "github.com/arsham/expipe/reader/testing"
+	rt "github.com/arsham/expipe/reader/testing"
 )
 
 func TestGetRecorderGoodURL(t *testing.T) {
 	url := "http://localhost"
-	r := reader_testing.GetReader(url)
+	r := rt.GetReader(url)
 	if r == nil {
 		t.Error("want (Recorder), got (nil)")
 	}
@@ -42,7 +42,7 @@ func TestGetRecorderGoodURL(t *testing.T) {
 				panicked = true
 			}
 		}()
-		reader_testing.GetReader(url)
+		rt.GetReader(url)
 		if !panicked {
 			t.Error("didn't panic on bad url")
 		}

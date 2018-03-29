@@ -49,11 +49,31 @@ func TestJobResultDataTypes(t *testing.T) {
 		input []byte
 		err   error
 	}{
-		{"missing leading {", []byte(`"memstats": {"PauseNs":[666,777]}}`), errExample},
-		{"missing ending }", []byte(`{"memstats": {"PauseNs":[666,777]}`), errExample},
-		{"simple string", []byte(`"memstats PauseNs 666 777"`), errExample},
-		{"string instead of float", []byte(`{"memstats": {"PauseNs":["666"]}}`), datatype.ErrUnidentifiedJason},
-		{"float instead of int", []byte(`{"memstats": {"TotalAlloc":[666.5]}}`), datatype.ErrUnidentifiedJason},
+		{
+			"missing leading {",
+			[]byte(`"memstats": {"PauseNs":[666,777]}}`),
+			errExample,
+		},
+		{
+			"missing ending }",
+			[]byte(`{"memstats": {"PauseNs":[666,777]}`),
+			errExample,
+		},
+		{
+			"simple string",
+			[]byte(`"memstats PauseNs 666 777"`),
+			errExample,
+		},
+		{
+			"string instead of float",
+			[]byte(`{"memstats": {"PauseNs":["666"]}}`),
+			datatype.ErrUnidentifiedJason,
+		},
+		{
+			"float instead of int",
+			[]byte(`{"memstats": {"TotalAlloc":[666.5]}}`),
+			datatype.ErrUnidentifiedJason,
+		},
 	}
 
 	for _, tc := range tcs {

@@ -6,6 +6,7 @@ package testing
 
 import (
 	"strconv"
+	"testing"
 	"time"
 
 	"github.com/arsham/expipe/internal"
@@ -15,39 +16,33 @@ import (
 	"github.com/pkg/errors"
 )
 
-func testShouldNotChangeTheInput(cons Constructor) {
-	gin.Context("With given input", func() {
-		name := "recorder name"
-		indexName := "recorder_index_name"
-		endpoint := cons.TestServer().URL
-		timeout := time.Second
-		backoff := 5
-		logger := internal.DiscardLogger()
-		cons.SetName(name)
-		cons.SetIndexName(indexName)
-		cons.SetEndpoint(endpoint)
-		cons.SetTimeout(timeout)
-		cons.SetBackoff(backoff)
-		cons.SetLogger(logger)
+func testShouldNotChangeTheInput(t *testing.T, cons Constructor) {
+	name := "recorder name"
+	indexName := "recorder_index_name"
+	endpoint := cons.TestServer().URL
+	timeout := time.Second
+	backoff := 5
+	logger := internal.DiscardLogger()
+	cons.SetName(name)
+	cons.SetIndexName(indexName)
+	cons.SetEndpoint(endpoint)
+	cons.SetTimeout(timeout)
+	cons.SetBackoff(backoff)
+	cons.SetLogger(logger)
 
-		rec, err := cons.Object()
-		gin.It("should not error", func() {
-			gom.Expect(err).NotTo(gom.HaveOccurred())
-		})
-		gin.Specify("name should not be changed", func() {
-			gom.Expect(rec.Name()).To(gom.Equal(name))
-		})
-		gin.Specify("index name should not be changed", func() {
-			gom.Expect(rec.IndexName()).To(gom.Equal(indexName))
-		})
-		gin.Specify("timeout should not be changed", func() {
-			gom.Expect(rec.Timeout()).To(gom.Equal(timeout))
-		})
-		gin.Specify("logger should not be changed", func() {
-			gom.Expect(logger).To(gom.BeIdenticalTo(logger))
-		})
-
-	})
+	rec, err := cons.Object()
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
+	}
+	if rec.Name() != name {
+		t.Errorf("want (%s), got (%s)", name, rec.Name())
+	}
+	if rec.IndexName() != indexName {
+		t.Errorf("want (%s), got (%s)", indexName, rec.IndexName())
+	}
+	if rec.Timeout() != timeout {
+		t.Errorf("want (%s), got (%s)", timeout, rec.Timeout())
+	}
 }
 
 func testBackoffCheck(cons Constructor) {

@@ -15,16 +15,18 @@ import (
 type ErrInvalidURL string
 
 // Error returns the string representation of the error.
-func (i ErrInvalidURL) Error() string { return fmt.Sprintf("invalid url: %s", string(i)) }
+func (i ErrInvalidURL) Error() string {
+	return fmt.Sprintf("invalid url: %s", string(i))
+}
 
-// SanitiseURL prepends a protocol to the url if not defined, and checks if it's a valid url.
+// SanitiseURL prepends a protocol to the url if not defined, and checks if
+// it's a valid url.
 func SanitiseURL(url string) (string, error) {
-	if govalidator.IsURL(url) {
-		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-			url = "http://" + url
-		}
-		return url, nil
+	if !govalidator.IsURL(url) {
+		return "", ErrInvalidURL(url)
 	}
-
-	return "", ErrInvalidURL(url)
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		url = "http://" + url
+	}
+	return url, nil
 }

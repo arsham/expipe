@@ -43,9 +43,7 @@ type Constructor interface {
 func TestSuites(t *testing.T, cons Constructor) {
 
 	t.Run("Should NotChangeTheInput", func(t *testing.T) {
-		gin.Describe("Checking input", func() {
-			testShouldNotChangeTheInput(cons)
-		})
+		testShouldNotChangeTheInput(t, cons)
 	})
 
 	t.Run("NameCheck", func(t *testing.T) {

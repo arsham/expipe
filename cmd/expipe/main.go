@@ -6,6 +6,8 @@ package main
 
 import (
 	"context"
+	"os"
+	"time"
 
 	"github.com/arsham/expipe"
 	"github.com/arsham/expipe/cmd/expipe/app"
@@ -21,7 +23,8 @@ func main() {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	app.CaptureSignals(cancel)
+	sigCh := make(chan os.Signal, 1)
+	app.CaptureSignals(cancel, sigCh, os.Exit, 10*time.Second)
 	done, err = expipe.StartEngines(ctx, log, confSlice)
 	if err != nil {
 		log.Fatalf(err.Error())

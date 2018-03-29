@@ -16,22 +16,20 @@ import (
 
 // Config holds the necessary configuration for setting up an self reading facility.
 type Config struct {
-	name         string
+	log          internal.FieldLogger
+	SelfName     string
 	SelfTypeName string `mapstructure:"type_name"`
 	SelfInterval string `mapstructure:"interval"`
 	SelfBackoff  int    `mapstructure:"backoff"`
 	SelfEndpoint string // this is for testing purposes and you are not supposed to set it
 	mapper       datatype.Mapper
-
-	interval time.Duration
-	log      internal.FieldLogger
+	Cinterval    time.Duration
 }
 
 // Conf func is used for initializing a Config object.
 type Conf func(*Config) error
 
 // NewConfig returns an instance of the expvar reader
-// func NewConfig(log internal.FieldLogger, name, typeName string, endpoint, routepath string, interval, timeout time.Duration, backoff int, mapFile string) (*Config, error) {
 func NewConfig(conf ...Conf) (*Config, error) {
 	obj := new(Config)
 	for _, c := range conf {
@@ -39,16 +37,6 @@ func NewConfig(conf ...Conf) (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	if obj.name == "" {
-		return nil, reader.ErrEmptyName
-	}
-	if obj.SelfEndpoint == "" {
-		return nil, reader.ErrEmptyEndpoint
-	}
-	if obj.SelfTypeName == "" {
-		return nil, reader.ErrEmptyTypeName
 	}
 	if obj.mapper == nil {
 		obj.mapper = datatype.DefaultMapper()
@@ -71,7 +59,7 @@ func (c *Config) NewInstance() (reader.DataReader, error) {
 }
 
 // Name returns the name
-func (c *Config) Name() string { return c.name }
+func (c *Config) Name() string { return c.SelfName }
 
 // TypeName returns the typeName
 func (c *Config) TypeName() string { return c.SelfTypeName }
@@ -80,7 +68,7 @@ func (c *Config) TypeName() string { return c.SelfTypeName }
 func (c *Config) Endpoint() string { return c.SelfEndpoint }
 
 // Interval returns the interval
-func (c *Config) Interval() time.Duration { return c.interval }
+func (c *Config) Interval() time.Duration { return c.Cinterval }
 
 // Timeout returns the timeout
 func (c *Config) Timeout() time.Duration { return time.Second }
@@ -98,43 +86,6 @@ func WithLogger(log internal.FieldLogger) Conf {
 			return errors.New("nil logger")
 		}
 		c.log = log
-		return nil
-	}
-}
-
-// WithName produces an error if name is empty.
-func WithName(name string) Conf {
-	return func(c *Config) error {
-		if name == "" {
-			return reader.ErrEmptyName
-		}
-		c.name = name
-		return nil
-	}
-}
-
-// WithTypeName produces an error if typeName is empty.
-func WithTypeName(typeName string) Conf {
-	return func(c *Config) error {
-		if typeName == "" {
-			return fmt.Errorf("invalid typeName: %s", typeName)
-		}
-		c.SelfTypeName = typeName
-		return nil
-	}
-}
-
-// WithEndpoint produces an error if endpoint is empty.
-func WithEndpoint(endpoint string) Conf {
-	return func(c *Config) error {
-		if endpoint == "" {
-			return reader.ErrEmptyEndpoint
-		}
-		endpoint, err := internal.SanitiseURL(endpoint)
-		if err != nil {
-			return reader.ErrInvalidEndpoint(endpoint)
-		}
-		c.SelfEndpoint = endpoint
 		return nil
 	}
 }
@@ -159,30 +110,14 @@ func WithViper(v unmarshaller, name, key string) Conf {
 		if interval, err = time.ParseDuration(c.SelfInterval); err != nil {
 			return errors.Wrapf(err, "parse interval (%v)", c.SelfInterval)
 		}
-		c.interval = interval
+		c.Cinterval = interval
 
 		if c.SelfTypeName == "" {
 			return fmt.Errorf("type_name cannot be empty: %s", c.SelfTypeName)
 		}
-		c.name = name
+		c.SelfName = name
 		c.mapper = datatype.DefaultMapper()
 		c.SelfEndpoint = "http://127.0.0.1:9200"
-		return nil
-	}
-}
-
-// WithBackoff doesn't produce any errors.
-func WithBackoff(backoff int) Conf {
-	return func(c *Config) error {
-		c.SelfBackoff = backoff
-		return nil
-	}
-}
-
-// WithInterval doesn't produce any errors.
-func WithInterval(interval time.Duration) Conf {
-	return func(c *Config) error {
-		c.interval = interval
 		return nil
 	}
 }

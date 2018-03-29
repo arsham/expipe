@@ -5,12 +5,14 @@
 package app_test
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"reflect"
 	"strconv"
+	"syscall"
 	"testing"
 	"time"
 
@@ -305,5 +307,30 @@ func TestMainAndFromFlagsPasses(t *testing.T) {
 	}
 	if reflect.TypeOf(result) != reflect.TypeOf(&config.ConfMap{}) {
 		t.Errorf("want config.ConfMap, got (%v)", result)
+	}
+}
+
+func TestCaptureSignals(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal)
+	exitCh := make(chan int)
+	exit := func(code int) {
+		exitCh <- code
+	}
+	timeout := 10 * time.Millisecond
+	app.CaptureSignals(cancel, sigCh, exit, timeout)
+	sigCh <- syscall.SIGINT
+	select {
+	case <-ctx.Done():
+	case <-time.After(timeout):
+		t.Error("context wasn't cancelled")
+	}
+	select {
+	case code := <-exitCh:
+		if code != 130 {
+			t.Errorf("want to exit with code (130), got (%d)", code)
+		}
+	case <-time.After(timeout * 2):
+		t.Error("exit function wasn't called")
 	}
 }

@@ -152,7 +152,6 @@ func TestGetJasonValuesAddToContainer(t *testing.T) {
 			for _, value := range mapper.Values(tc.prefix, obj.Map()) {
 				container.Add(value)
 			}
-
 			if !isIn(container.List(), tc.expected) {
 				t.Errorf("expected (%v), got (%v)", tc.expected, container.List())
 			}
@@ -167,10 +166,8 @@ func TestFromReader(t *testing.T) {
 		if tc.prefix != "" {
 			continue
 		}
-
 		name := fmt.Sprintf("case %d", i)
 		t.Run(name, func(t *testing.T) {
-
 			results, err := JobResultDataTypes(tc.value, mapper)
 			if err != nil {
 				t.Errorf("expected no errors, got (%s)", err)

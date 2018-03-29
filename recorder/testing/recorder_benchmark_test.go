@@ -15,18 +15,7 @@ import (
 	"github.com/arsham/expipe/recorder"
 )
 
-func BenchmarkRecorder0_0(b *testing.B)       { benchmarkRecorder(0, 0, b) }
-func BenchmarkRecorder0_10(b *testing.B)      { benchmarkRecorder(0, 10, b) }
-func BenchmarkRecorder10_0(b *testing.B)      { benchmarkRecorder(10, 0, b) }
-func BenchmarkRecorder20_20(b *testing.B)     { benchmarkRecorder(20, 20, b) }
-func BenchmarkRecorder100_100(b *testing.B)   { benchmarkRecorder(100, 100, b) }
-func BenchmarkRecorder100_10(b *testing.B)    { benchmarkRecorder(100, 10, b) }
-func BenchmarkRecorder10_100(b *testing.B)    { benchmarkRecorder(10, 100, b) }
-func BenchmarkRecorder1000_1000(b *testing.B) { benchmarkRecorder(1000, 1000, b) }
-func BenchmarkRecorder1000_0(b *testing.B)    { benchmarkRecorder(1000, 0, b) }
-func BenchmarkRecorder0_1000(b *testing.B)    { benchmarkRecorder(0, 1000, b) }
-
-func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
+func BenchmarkRecorder(b *testing.B) {
 	log := internal.DiscardLogger()
 	ctx := context.Background()
 
@@ -48,7 +37,7 @@ func benchmarkRecorder(jobBuffC, doneBuffC int, b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		job := &recorder.Job{
 			Payload:   nil,

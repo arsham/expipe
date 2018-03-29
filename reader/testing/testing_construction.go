@@ -6,6 +6,7 @@ package testing
 
 import (
 	"strconv"
+	"testing"
 	"time"
 
 	"github.com/arsham/expipe/internal"
@@ -20,42 +21,37 @@ const (
 	typeName = "my type"
 )
 
-func testShouldNotChangeTheInput(cons Constructor) {
-	gin.Context("With given input", func() {
+func testShouldNotChangeTheInput(t *testing.T, cons Constructor) {
 
-		endpoint := cons.TestServer().URL
-		interval := time.Second
-		timeout := time.Second
-		backoff := 5
-		logger := internal.DiscardLogger()
-		cons.SetName(name)
-		cons.SetTypeName(typeName)
-		cons.SetEndpoint(endpoint)
-		cons.SetInterval(interval)
-		cons.SetTimeout(timeout)
-		cons.SetBackoff(backoff)
-		cons.SetLogger(logger)
+	endpoint := cons.TestServer().URL
+	interval := time.Second
+	timeout := time.Second
+	backoff := 5
+	logger := internal.DiscardLogger()
+	cons.SetName(name)
+	cons.SetTypeName(typeName)
+	cons.SetEndpoint(endpoint)
+	cons.SetInterval(interval)
+	cons.SetTimeout(timeout)
+	cons.SetBackoff(backoff)
+	cons.SetLogger(logger)
 
-		red, err := cons.Object()
-		gin.It("should not error", func() {
-			gom.Expect(err).NotTo(gom.HaveOccurred())
-		})
-		gin.Specify("name should not be changed", func() {
-			gom.Expect(red.Name()).To(gom.Equal(name))
-		})
-		gin.Specify("type name should not be changed", func() {
-			gom.Expect(red.TypeName()).To(gom.Equal(typeName))
-		})
-		gin.Specify("interval value should not be changed", func() {
-			gom.Expect(red.Interval()).To(gom.Equal(interval))
-		})
-		gin.Specify("timeout value should not be changed", func() {
-			gom.Expect(red.Timeout()).To(gom.Equal(timeout))
-		})
-		gin.Specify("logger should not be changed", func() {
-			gom.Expect(logger).To(gom.BeIdenticalTo(logger))
-		})
-	})
+	red, err := cons.Object()
+	if err != nil {
+		t.Errorf("want (nil), got (%v)", err)
+	}
+	if red.Name() != name {
+		t.Errorf("want (%s), got (%s)", red.Name(), name)
+	}
+	if red.TypeName() != typeName {
+		t.Errorf("want (%s), got (%s)", red.TypeName(), typeName)
+	}
+	if red.Interval() != interval {
+		t.Errorf("want (%s), got (%s)", red.Interval().String(), interval.String())
+	}
+	if red.Timeout() != timeout {
+		t.Errorf("want (%d), got (%d)", red.Timeout(), timeout)
+	}
 }
 
 func testNameCheck(cons Constructor) {

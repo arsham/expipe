@@ -31,38 +31,6 @@ func TestWithLogger(t *testing.T) {
 	}
 }
 
-// tests any with.. that has a string input
-func TestWithStrings(t *testing.T) {
-	c := new(self.Config)
-	tcs := []struct {
-		tcName   string
-		input    string
-		badInput string
-		f        func(string) self.Conf
-		check    func() string
-	}{
-		{"name", "name", "", self.WithName, c.Name},
-		{"index name", "name", "", self.WithTypeName, c.TypeName},
-		{"bad endpoint", "http://localhost", "bad url", self.WithEndpoint, c.Endpoint},
-		{"empty endpoint", "http://localhost", "", self.WithEndpoint, c.Endpoint},
-	}
-	for _, tc := range tcs {
-		t.Run(tc.tcName, func(t *testing.T) {
-			err := tc.f(tc.badInput)(c)
-			if err == nil {
-				t.Error("want (error), got (nil)")
-			}
-			err = tc.f(tc.input)(c)
-			if err != nil {
-				t.Errorf("want (nil), got (%v)", err)
-			}
-			if tc.check() != tc.input {
-				t.Errorf("want (%v), got (%v)", tc.input, tc.check())
-			}
-		})
-	}
-}
-
 type unmarshaller interface {
 	UnmarshalKey(key string, rawVal interface{}) error
 	AllKeys() []string
@@ -168,9 +136,6 @@ func TestNewConfig(t *testing.T) {
 	log := internal.DiscardLogger()
 	c, err := self.NewConfig(
 		self.WithLogger(log),
-		self.WithName("name"),
-		self.WithTypeName("name"),
-		self.WithEndpoint("http://localhost"),
 	)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
@@ -178,60 +143,14 @@ func TestNewConfig(t *testing.T) {
 	if c == nil {
 		t.Error("want (Config), got (nil)")
 	}
-}
-
-func TestNewConfigErrors(t *testing.T) {
-	tcs := []struct {
-		name string
-		args []self.Conf
-	}{
-		{"error from conf", []self.Conf{self.WithName("")}},
-		{"empty name", []self.Conf{
-			self.WithEndpoint("http://localhost"),
-			self.WithTypeName("indexName")},
-		},
-		{"empty index name", []self.Conf{
-			self.WithEndpoint("http://localhost"),
-			self.WithName("name")},
-		},
-		{"empty endpoint", []self.Conf{
-			self.WithName("name"),
-			self.WithTypeName("indexName")},
-		},
+	c, err = self.NewConfig(
+		self.WithLogger(nil),
+	)
+	if err == nil {
+		t.Error("want (error), got (nil)")
 	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			c, err := self.NewConfig(tc.args...)
-			if err == nil {
-				t.Error("want (error), got (nil)")
-			}
-			if c != nil {
-				t.Errorf("want (nil), got (%v)", c)
-			}
-		})
-	}
-}
-
-func TestWithBackoff(t *testing.T) {
-	c := new(self.Config)
-	err := self.WithBackoff(666)(c)
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
-	}
-	if c.Backoff() != 666 {
-		t.Errorf("want (%v), got (%v)", 666, c.Backoff())
-	}
-}
-
-func TestWithInterval(t *testing.T) {
-	c := new(self.Config)
-	err := self.WithInterval(10 * time.Second)(c)
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
-	}
-	if c.Interval() != 10*time.Second {
-		t.Errorf("want (%v), got (%v)", 10*time.Second, c.Interval())
+	if c != nil {
+		t.Errorf("want (nil), got (%v)", c)
 	}
 }
 
@@ -239,12 +158,11 @@ func TestNewInstance(t *testing.T) {
 	log := internal.DiscardLogger()
 	c, err := self.NewConfig(
 		self.WithLogger(log),
-		self.WithName("name"),
-		self.WithTypeName("name"),
-		self.WithEndpoint("http://localhost"),
-		self.WithInterval(time.Second),
 	)
-	self.WithBackoff(0)(c)
+	c.SelfName = "name"
+	c.SelfTypeName = "name"
+	c.SelfEndpoint = "http://localhost"
+	c.Cinterval = time.Second
 	if err != nil {
 		t.Fatalf("want (nil), got (%v)", err)
 	}
@@ -256,7 +174,7 @@ func TestNewInstance(t *testing.T) {
 		t.Errorf("want (nil), got (%v)", e)
 	}
 
-	self.WithBackoff(5)(c)
+	c.SelfBackoff = 5
 	e, err = c.NewInstance()
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)

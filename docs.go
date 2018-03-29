@@ -2,12 +2,15 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package expipe can read from any endpoints that provides expvar data and ships them to elasticsearch. You can inspect the metrics with kibana.
+// Package expipe can read from any endpoints that provides expvar data and ships
+// them to elasticsearch. You can inspect the metrics with kibana.
 //
 // Please refer to golang's expvar documentation for more information.
 // Installation guides can be found on github page: https://github.com/arsham/expipe
 //
-// At the heart of this package, there is Engine. It acts like a glue between multiple Readers and a Recorder. Messages are transferred in a package called DataContainer, which is a list of DataType objects.
+// At the heart of this package, there is Engine. It acts like a glue between
+// multiple Readers and a Recorder. Messages are transferred in a package called
+// DataContainer, which is a list of DataType objects.
 //
 // Example configuration
 //
@@ -70,7 +73,9 @@
 //
 //    expipe -c expipe.yml
 //
-// You can mix and match the routes, but the engine will choose the best set-up to achieve your goal without duplicating the results. For instance assume you set the routes like this:
+// You can mix and match the routes, but the engine will choose the best set-up
+// to achieve your goal without duplicating the results. For instance assume
+// you set the routes like this:
 //
 //     readers:
 //         app_0: type: expvar
@@ -132,9 +137,10 @@
 //
 //    go test ./readers
 //
-// To show the coverage, se this gist https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a. Then run:
+// To show the coverage, use this gist:
+// https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a. Then run:
 //
-//   goverall
+//   gocover
 //
 // It will open a browser tab and show you the coverage.
 //
@@ -149,5 +155,6 @@
 //   go tool pprof -pdf $BASENAME.test cpu.out > cpu.pdf && open cpu.pdf
 //   go tool pprof -pdf $BASENAME.test mem.out > mem.pdf && open mem.pdf
 //
-// Use of this source code is governed by the Apache 2.0 license. License that can be found in the LICENSE file.
+// Use of this source code is governed by the Apache 2.0 license.
+// License that can be found in the LICENSE file.
 package expipe

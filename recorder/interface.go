@@ -2,9 +2,9 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package recorder contains logic to record data into a database. The payload is
-// guaranteed to be json marshallable. Any types that implements the DataRecorder
-// interface can be used in this system.
+// Package recorder contains logic to record data into a database. The payload
+// is guaranteed to be json marshallable. Any types that implements the
+// DataRecorder interface can be used in this system.
 //
 // Important Notes
 //
@@ -42,9 +42,9 @@ type DataRecorder interface {
 }
 
 // Job is sent with a context and a payload to be recorded.
-// If the TypeName and IndexName are different than the previous one, the recorder
-// should use the ones engine provides. If any errors occurred, recorders should
-// return the error on Read return value.
+// If the TypeName and IndexName are different than the previous one, the
+// recorder should use the ones engine provides. If any errors occurred,
+// recorders should return the error on Read return value.
 type Job struct {
 	// ID is the job ID generated at the time the payload was generated.
 	ID token.ID

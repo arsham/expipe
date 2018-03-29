@@ -41,7 +41,9 @@ func pingingEndpoint(cons Constructor) {
 				err := red.Ping()
 				gin.It("should error", func() {
 					gom.Expect(err).To(gom.HaveOccurred())
-					gom.Expect(errors.Cause(err)).To(gom.BeAssignableToTypeOf(reader.ErrEndpointNotAvailable{}))
+					gom.Expect(errors.Cause(err)).To(
+						gom.BeAssignableToTypeOf(reader.ErrEndpointNotAvailable{}),
+					)
 				})
 			})
 		})
@@ -54,7 +56,9 @@ func pingingEndpoint(cons Constructor) {
 				err := red.Ping()
 				gin.It("should error and mention the endpoint", func() {
 					gom.Expect(err).To(gom.HaveOccurred())
-					gom.Expect(errors.Cause(err)).To(gom.BeAssignableToTypeOf(reader.ErrEndpointNotAvailable{}))
+					gom.Expect(errors.Cause(err)).To(
+						gom.BeAssignableToTypeOf(reader.ErrEndpointNotAvailable{}),
+					)
 					gom.Expect(err.Error()).To(gom.ContainSubstring(unavailableEndpoint))
 				})
 			})
@@ -62,7 +66,8 @@ func pingingEndpoint(cons Constructor) {
 	})
 }
 
-// testReaderErrorsOnEndpointDisapears is a helper to test the reader errors when the endpoint goes away.
+// testReaderErrorsOnEndpointDisapears is a helper to test the reader errors
+// when the endpoint goes away.
 func testReaderErrorsOnEndpointDisapears(cons Constructor) {
 	gin.Context("having the reader initiated and pointing to a running endpoint", func() {
 		var (
@@ -100,7 +105,9 @@ func testReaderErrorsOnEndpointDisapears(cons Constructor) {
 				gin.It("should error and mention the url", func() {
 					gom.Expect(err).To(gom.HaveOccurred())
 					err = errors.Cause(err)
-					gom.Expect(err).To(gom.BeAssignableToTypeOf(reader.ErrEndpointNotAvailable{}))
+					gom.Expect(err).To(
+						gom.BeAssignableToTypeOf(reader.ErrEndpointNotAvailable{}),
+					)
 					gom.Expect(err.Error()).To(gom.ContainSubstring(ts.URL))
 				})
 				gin.Specify("the result should be nil", func() {
@@ -111,7 +118,8 @@ func testReaderErrorsOnEndpointDisapears(cons Constructor) {
 	})
 }
 
-// testReaderBacksOffOnEndpointGone is a helper to test the reader backs off when the endpoint goes away.
+// testReaderBacksOffOnEndpointGone is a helper to test the reader backs off
+// when the endpoint goes away.
 func testReaderBacksOffOnEndpointGone(cons Constructor) {
 	gin.Context("having the reader initiated and pointing to a running endpoint", func() {
 		var (
@@ -146,7 +154,8 @@ func testReaderBacksOffOnEndpointGone(cons Constructor) {
 			job := token.New(ctx)
 
 			backedOff := false
-			// We don't know the backoff amount set in the reader, so we try 100 times until it closes.
+			// We don't know the backoff amount set in the reader, so we try
+			// 100 times until it closes.
 			for i := 0; i < 100; i++ {
 				_, err := red.Read(job)
 				if err == reader.ErrBackoffExceeded {
@@ -172,8 +181,8 @@ func testReaderBacksOffOnEndpointGone(cons Constructor) {
 	})
 }
 
-// testReadingReturnsErrorIfNotPingedYet is a helper to test the reader returns an error
-// if the caller hasn't called the Ping() method.
+// testReadingReturnsErrorIfNotPingedYet is a helper to test the reader
+// returns an error if the caller hasn't called the Ping() method.
 func testReadingReturnsErrorIfNotPingedYet(cons Constructor) {
 	gin.Context("With a reader initialised", func() {
 		var (

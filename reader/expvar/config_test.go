@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader/expvar"
 	"github.com/spf13/viper"
@@ -31,38 +32,6 @@ func TestWithLogger(t *testing.T) {
 	}
 	if c.Logger() != l {
 		t.Errorf("want (%v), got (%v)", l, c.Logger())
-	}
-}
-
-// tests any with.. that has a string input
-func TestWithStrings(t *testing.T) {
-	c := new(expvar.Config)
-	tcs := []struct {
-		tcName   string
-		input    string
-		badInput string
-		f        func(string) expvar.Conf
-		check    func() string
-	}{
-		{"name", "name", "", expvar.WithName, c.Name},
-		{"index name", "name", "", expvar.WithTypeName, c.TypeName},
-		{"bad endpoint", "http://localhost", "bad url", expvar.WithEndpoint, c.Endpoint},
-		{"empty endpoint", "http://localhost", "", expvar.WithEndpoint, c.Endpoint},
-	}
-	for _, tc := range tcs {
-		t.Run(tc.tcName, func(t *testing.T) {
-			err := tc.f(tc.badInput)(c)
-			if err == nil {
-				t.Error("want (error), got (nil)")
-			}
-			err = tc.f(tc.input)(c)
-			if err != nil {
-				t.Errorf("want (nil), got (%v)", err)
-			}
-			if tc.check() != tc.input {
-				t.Errorf("want (%v), got (%v)", tc.input, tc.check())
-			}
-		})
 	}
 }
 
@@ -174,9 +143,6 @@ func TestNewConfig(t *testing.T) {
 	log := internal.DiscardLogger()
 	c, err := expvar.NewConfig(
 		expvar.WithLogger(log),
-		expvar.WithName("name"),
-		expvar.WithTypeName("name"),
-		expvar.WithEndpoint("http://localhost"),
 	)
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)
@@ -184,62 +150,22 @@ func TestNewConfig(t *testing.T) {
 	if c == nil {
 		t.Error("want (Config), got (nil)")
 	}
+	if c.Mapper() != datatype.DefaultMapper() {
+		t.Errorf("want (%v), got (%v)", datatype.DefaultMapper(), c.Mapper())
+	}
 }
 
 func TestNewConfigErrors(t *testing.T) {
-	tcs := []struct {
-		name string
-		args []expvar.Conf
-	}{
-		{"error from conf", []expvar.Conf{expvar.WithName("")}},
-		{"empty name", []expvar.Conf{
-			expvar.WithEndpoint("http://localhost"),
-			expvar.WithTypeName("indexName")},
-		},
-		{"empty index name", []expvar.Conf{
-			expvar.WithEndpoint("http://localhost"),
-			expvar.WithName("name")},
-		},
-		{"empty endpoint", []expvar.Conf{
-			expvar.WithName("name"),
-			expvar.WithTypeName("indexName")},
-		},
+	c, err := expvar.NewConfig(
+		expvar.WithLogger(nil),
+	)
+	if err == nil {
+		t.Error("want (error), got (nil)")
 	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			c, err := expvar.NewConfig(tc.args...)
-			if err == nil {
-				t.Error("want (error), got (nil)")
-			}
-			if c != nil {
-				t.Errorf("want (nil), got (%v)", c)
-			}
-		})
+	if c != nil {
+		t.Errorf("want (nil), got (%v)", c)
 	}
 }
-func TestWithTimeout(t *testing.T) {
-	c := new(expvar.Config)
-	err := expvar.WithTimeout(time.Second)(c)
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
-	}
-	if c.Timeout() != time.Second {
-		t.Errorf("want (%v), got (%v)", time.Second, c.Timeout())
-	}
-}
-
-func TestWithBackoff(t *testing.T) {
-	c := new(expvar.Config)
-	err := expvar.WithBackoff(666)(c)
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
-	}
-	if c.Backoff() != 666 {
-		t.Errorf("want (%v), got (%v)", 666, c.Backoff())
-	}
-}
-
 func TestWithMapFile(t *testing.T) {
 	c := new(expvar.Config)
 	err := expvar.WithMapFile("")(c)
@@ -263,28 +189,16 @@ func TestWithMapFile(t *testing.T) {
 	}
 }
 
-func TestWithInterval(t *testing.T) {
-	c := new(expvar.Config)
-	err := expvar.WithInterval(10 * time.Second)(c)
-	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
-	}
-	if c.Interval() != 10*time.Second {
-		t.Errorf("want (%v), got (%v)", 10*time.Second, c.Interval())
-	}
-}
-
 func TestNewInstance(t *testing.T) {
 	log := internal.DiscardLogger()
 	c, err := expvar.NewConfig(
 		expvar.WithLogger(log),
-		expvar.WithName("name"),
-		expvar.WithTypeName("name"),
-		expvar.WithEndpoint("http://localhost"),
-		expvar.WithInterval(time.Second),
-		expvar.WithBackoff(5),
 	)
-	expvar.WithTimeout(0)(c)
+	c.EXPName = "name"
+	c.EXPTypeName = "name"
+	c.EXPEndpoint = "http://localhost"
+	c.ConfInterval = time.Second
+	c.EXPBackoff = 5
 	if err != nil {
 		t.Fatalf("want (nil), got (%v)", err)
 	}
@@ -295,8 +209,7 @@ func TestNewInstance(t *testing.T) {
 	if e.(*expvar.Reader) != nil {
 		t.Errorf("want (nil), got (%v)", e)
 	}
-
-	expvar.WithTimeout(time.Second)(c)
+	c.ConfTimeout = time.Second
 	e, err = c.NewInstance()
 	if err != nil {
 		t.Errorf("want (nil), got (%v)", err)

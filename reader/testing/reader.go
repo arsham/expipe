@@ -82,7 +82,6 @@ func (r *Reader) Ping() error {
 	if r.Pinged {
 		return nil
 	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
@@ -98,7 +97,6 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if !r.Pinged {
 		return nil, reader.ErrPingNotCalled
 	}
-
 	if r.strike > r.backoff {
 		return nil, reader.ErrBackoffExceeded
 	}

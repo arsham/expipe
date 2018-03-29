@@ -2,8 +2,8 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package datatype contains necessary logic to sanitise a JSON object coming from a reader.
-// This package is subjected to change.
+// Package datatype contains necessary logic to sanitise a JSON object coming
+// from a reader. This package is subjected to change.
 package datatype
 
 import (
@@ -35,7 +35,7 @@ type FloatType struct {
 
 // Write includes both Key and Value.
 func (f FloatType) Write(p io.Writer) (n int, err error) {
-	return p.Write([]byte(fmt.Sprintf(`"%s":%f`, f.Key, f.Value)))
+	return fmt.Fprintf(p, `"%s":%f`, f.Key, f.Value)
 }
 
 // Equal compares both keys and values and returns true if they are equal.
@@ -55,7 +55,7 @@ type StringType struct {
 
 // Write includes both Key and Value.
 func (s StringType) Write(p io.Writer) (n int, err error) {
-	return p.Write([]byte(fmt.Sprintf(`"%s":"%s"`, s.Key, s.Value)))
+	return fmt.Fprintf(p, `"%s":"%s"`, s.Key, s.Value)
 }
 
 // Equal compares both keys and values and returns true if they are equal.
@@ -67,19 +67,18 @@ func (s StringType) Equal(other DataType) bool {
 	return false
 }
 
-// FloatListType represents a pair of key values that the value is a list of floats.
+// FloatListType represents a pair of key values. The value is a list of floats.
 type FloatListType struct {
 	Key   string
 	Value []float64
 }
 
-// Write includes both Key and Value.
 func (fl FloatListType) Write(p io.Writer) (n int, err error) {
 	list := make([]string, len(fl.Value))
 	for i, v := range fl.Value {
 		list[i] = fmt.Sprintf("%f", v)
 	}
-	return p.Write([]byte(fmt.Sprintf(`"%s":[%s]`, fl.Key, strings.Join(list, ","))))
+	return fmt.Fprintf(p, `"%s":[%s]`, fl.Key, strings.Join(list, ","))
 }
 
 // Equal compares both keys and all values and returns true if they are equal.
@@ -106,7 +105,6 @@ type GCListType struct {
 	Value []uint64
 }
 
-// Write includes both Key and Value.
 func (flt GCListType) Write(p io.Writer) (n int, err error) {
 	// We are filtering, therefore we don't know the size
 	var list []string
@@ -115,7 +113,7 @@ func (flt GCListType) Write(p io.Writer) (n int, err error) {
 			list = append(list, fmt.Sprintf("%d", v/1000))
 		}
 	}
-	return p.Write([]byte(fmt.Sprintf(`"%s":[%s]`, flt.Key, strings.Join(list, ","))))
+	return fmt.Fprintf(p, `"%s":[%s]`, flt.Key, strings.Join(list, ","))
 }
 
 // Equal is not implemented. You should iterate and check yourself.
@@ -143,10 +141,8 @@ type ByteType struct {
 	Value float64
 }
 
-// Write includes both Key and Value.
-// It turns the byte into Megabyte.
 func (b ByteType) Write(p io.Writer) (n int, err error) {
-	return p.Write([]byte(fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE)))
+	return fmt.Fprintf(p, `"%s":%f`, b.Key, b.Value/MEGABYTE)
 }
 
 // Equal compares both keys and values and returns true if they are equal.
@@ -158,16 +154,15 @@ func (b ByteType) Equal(other DataType) bool {
 	return false
 }
 
-// KiloByteType represents a pair of key values in which the value represents bytes.
-// It converts the value to KB.
+// KiloByteType represents a pair of key values in which the value represents
+// bytes. It converts the value to KB.
 type KiloByteType struct {
 	Key   string
 	Value float64
 }
 
-// Write includes both Key and Value.
 func (k KiloByteType) Write(p io.Writer) (n int, err error) {
-	return p.Write([]byte(fmt.Sprintf(`"%s":%f`, k.Key, k.Value/KILOBYTE)))
+	return fmt.Fprintf(p, `"%s":%f`, k.Key, k.Value/KILOBYTE)
 }
 
 // Equal compares both keys and values and returns true if they are equal.
@@ -179,16 +174,15 @@ func (k KiloByteType) Equal(other DataType) bool {
 	return false
 }
 
-// MegaByteType represents a pair of key values in which the value represents bytes.
-// It converts the value to MB.
+// MegaByteType represents a pair of key values in which the value represents
+// bytes. It converts the value to MB.
 type MegaByteType struct {
 	Key   string
 	Value float64
 }
 
-// Write includes both Key and Value.
 func (m MegaByteType) Write(p io.Writer) (n int, err error) {
-	return p.Write([]byte(fmt.Sprintf(`"%s":%f`, m.Key, m.Value/MEGABYTE)))
+	return fmt.Fprintf(p, `"%s":%f`, m.Key, m.Value/MEGABYTE)
 }
 
 // Equal compares both keys and values and returns true if they are equal.

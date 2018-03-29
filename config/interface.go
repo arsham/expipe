@@ -2,8 +2,8 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package config reads the configurations from a yaml file and produces necessary
-// configuration for instantiating readers and recorders.
+// Package config reads the configurations from a yaml file and produces
+// necessary configuration for instantiating readers and recorders.
 package config
 
 import (

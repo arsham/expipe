@@ -17,19 +17,7 @@ import (
 	"github.com/arsham/expipe/token"
 )
 
-func BenchmarkReader0_0(b *testing.B)           { benchmarkReader(0, 0, b) }
-func BenchmarkReader0_10(b *testing.B)          { benchmarkReader(0, 10, b) }
-func BenchmarkReader10_0(b *testing.B)          { benchmarkReader(10, 0, b) }
-func BenchmarkReader20_20(b *testing.B)         { benchmarkReader(20, 20, b) }
-func BenchmarkReader100_100(b *testing.B)       { benchmarkReader(100, 100, b) }
-func BenchmarkReader100_10(b *testing.B)        { benchmarkReader(100, 10, b) }
-func BenchmarkReader10_100(b *testing.B)        { benchmarkReader(10, 100, b) }
-func BenchmarkReader1000_1000(b *testing.B)     { benchmarkReader(1000, 1000, b) }
-func BenchmarkReader1000_0(b *testing.B)        { benchmarkReader(1000, 0, b) }
-func BenchmarkReader0_1000(b *testing.B)        { benchmarkReader(0, 1000, b) }
-func BenchmarkReader100000_100000(b *testing.B) { benchmarkReader(100000, 100000, b) }
-
-func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
+func BenchmarkReader(b *testing.B) {
 	log := internal.DiscardLogger()
 	ctx := context.Background()
 
@@ -47,11 +35,10 @@ func benchmarkReader(jobBuffC, resBuffC int, b *testing.B) {
 		reader.WithTimeout(time.Second),
 		reader.WithBackoff(10),
 	)
-
 	if err != nil {
 		b.Fatal(err)
 	}
-
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		red.Read(token.New(ctx))
 	}

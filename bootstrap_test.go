@@ -14,36 +14,44 @@ import (
 	"github.com/arsham/expipe"
 	"github.com/arsham/expipe/config"
 	"github.com/arsham/expipe/internal"
-	reader_testing "github.com/arsham/expipe/reader/testing"
-	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	"github.com/arsham/expipe/reader"
+	rdt "github.com/arsham/expipe/reader/testing"
+	"github.com/arsham/expipe/recorder"
+	rct "github.com/arsham/expipe/recorder/testing"
 )
 
-func requirements() (context.Context, *internal.Logger, *reader_testing.Config, *recorder_testing.Config) {
+func requirements(t *testing.T) (context.Context, *internal.Logger, *rdt.Reader, *rct.Recorder) {
 	log := internal.DiscardLogger()
 	ctx := context.Background()
-	mockReader := &reader_testing.Config{
-		MockName:     "name",
-		MockEndpoint: "127.0.0.1",
-		MockTypeName: "s",
-		MockBackoff:  5,
-		MockInterval: time.Second,
-		MockTimeout:  time.Second,
-		MockLogger:   log,
+	mockReader, err := rdt.New(
+		reader.WithName("name"),
+		reader.WithEndpoint("127.0.0.1"),
+		reader.WithTypeName("s"),
+		reader.WithBackoff(5),
+		reader.WithInterval(time.Second),
+		reader.WithTimeout(time.Second),
+		reader.WithLogger(log),
+	)
+	if err != nil {
+		t.Fatalf("getting requirements for reader: %v", err)
 	}
-	mockRecorder := &recorder_testing.Config{
-		MockName:      "name",
-		MockEndpoint:  "127.0.0.1",
-		MockIndexName: "in",
-		MockBackoff:   5,
-		MockTimeout:   time.Second,
-		MockLogger:    log,
+	mockRecorder, err := rct.New(
+		recorder.WithName("name"),
+		recorder.WithEndpoint("127.0.0.1"),
+		recorder.WithIndexName("in"),
+		recorder.WithBackoff(5),
+		recorder.WithTimeout(time.Second),
+		recorder.WithLogger(log),
+	)
+	if err != nil {
+		t.Fatalf("getting requirements for recorder: %v", err)
 	}
 	return ctx, log, mockReader, mockRecorder
 }
 
 func TestEmptyConfmapErrors(t *testing.T) {
 	t.Parallel()
-	ctx, log, _, _ := requirements()
+	ctx, log, _, _ := requirements(t)
 	d, err := expipe.StartEngines(ctx, log, nil)
 	if err == nil {
 		t.Error("want error, got nil")
@@ -55,10 +63,10 @@ func TestEmptyConfmapErrors(t *testing.T) {
 
 func TestEmptyReaderErrors(t *testing.T) {
 	t.Parallel()
-	ctx, log, _, mockRecorder := requirements()
+	ctx, log, _, mockRecorder := requirements(t)
 	confMap := &config.ConfMap{
-		Readers:   map[string]config.ReaderConf{},
-		Recorders: map[string]config.RecorderConf{"rec1": mockRecorder},
+		Readers:   map[string]reader.DataReader{},
+		Recorders: map[string]recorder.DataRecorder{"rec1": mockRecorder},
 		Routes:    map[string][]string{"rec1": {"red1", "red2"}},
 	}
 	d, err := expipe.StartEngines(ctx, log, confMap)
@@ -72,10 +80,10 @@ func TestEmptyReaderErrors(t *testing.T) {
 
 func TestEmptyRecorderErrors(t *testing.T) {
 	t.Parallel()
-	ctx, log, mockReader, _ := requirements()
+	ctx, log, mockReader, _ := requirements(t)
 	confMap := &config.ConfMap{
-		Readers:   map[string]config.ReaderConf{"red1": mockReader},
-		Recorders: map[string]config.RecorderConf{"rec1": nil},
+		Readers:   map[string]reader.DataReader{"red1": mockReader},
+		Recorders: map[string]recorder.DataRecorder{"rec1": nil},
 		Routes:    map[string][]string{"rec1": {"red1", "red2"}},
 	}
 	d, err := expipe.StartEngines(ctx, log, confMap)
@@ -89,14 +97,11 @@ func TestEmptyRecorderErrors(t *testing.T) {
 
 func TestEmptyReaderNameErrors(t *testing.T) {
 	t.Parallel()
-	ctx, log, _, mockRecorder := requirements()
+	ctx, log, mockReader, mockRecorder := requirements(t)
+	mockReader.SetName("")
 	confMap := &config.ConfMap{
-		Readers: map[string]config.ReaderConf{
-			"red1": &reader_testing.Config{
-				MockName: "",
-			},
-		},
-		Recorders: map[string]config.RecorderConf{"rec1": mockRecorder},
+		Readers:   map[string]reader.DataReader{"red1": mockReader},
+		Recorders: map[string]recorder.DataRecorder{"rec1": mockRecorder},
 		Routes:    map[string][]string{"rec1": {"red1", "red2"}},
 	}
 	d, err := expipe.StartEngines(ctx, log, confMap)
@@ -110,15 +115,20 @@ func TestEmptyReaderNameErrors(t *testing.T) {
 
 func TestEmptyRecorderNameErrors(t *testing.T) {
 	t.Parallel()
-	ctx, log, mockReader, mockRecorder := requirements()
-	r := recorder_testing.Config(*mockRecorder)
-	r.MockName = ""
+	var (
+		ctx context.Context
+		log *internal.Logger
+		rec *rct.Recorder
+		red *rdt.Reader
+	)
+	ctx, log, red, rec = requirements(t)
+	rec.SetName("")
 	confMap := &config.ConfMap{
-		Readers: map[string]config.ReaderConf{
-			"red1": mockReader,
+		Readers: map[string]reader.DataReader{
+			"red1": red,
 		},
-		Recorders: map[string]config.RecorderConf{
-			"rec1": &r,
+		Recorders: map[string]recorder.DataRecorder{
+			"rec1": rec,
 		},
 		Routes: map[string][]string{"rec1": {"red1", "red2"}},
 	}
@@ -133,20 +143,24 @@ func TestEmptyRecorderNameErrors(t *testing.T) {
 
 func TestClosesDoneChan(t *testing.T) {
 	t.Parallel()
-	ctx, log, mockReader, mockRecorder := requirements()
+	var (
+		ctx context.Context
+		log *internal.Logger
+		red *rdt.Reader
+		rec *rct.Recorder
+	)
+	ctx, log, red, rec = requirements(t)
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer testServer.Close()
-	rec := recorder_testing.Config(*mockRecorder)
-	red := reader_testing.Config(*mockReader)
-	rec.MockEndpoint = testServer.URL
-	red.MockEndpoint = testServer.URL
+	rec.SetEndpoint(testServer.URL)
+	red.SetEndpoint(testServer.URL)
 
 	confMap := &config.ConfMap{
-		Readers: map[string]config.ReaderConf{
-			"red1": &red,
+		Readers: map[string]reader.DataReader{
+			"red1": red,
 		},
-		Recorders: map[string]config.RecorderConf{
-			"rec1": &rec,
+		Recorders: map[string]recorder.DataRecorder{
+			"rec1": rec,
 		},
 		Routes: map[string][]string{"rec1": {"red1"}},
 	}

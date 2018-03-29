@@ -23,7 +23,8 @@ func ExampleDataReader_read() {
 	}))
 	defer ts.Close()
 
-	red := reader.GetReader(ts.URL) // this is a mocked version, but the example's principals stays the same.
+	// This reader is a mocked version, but the example's principals stays the same.
+	red := reader.GetReader(ts.URL)
 	err := red.Ping()
 	fmt.Println("Ping errors:", err)
 

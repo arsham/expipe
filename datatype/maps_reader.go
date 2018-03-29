@@ -43,24 +43,23 @@ type treeReader interface {
 }
 
 // MapsFromViper reads from the map file and produces functions for conversion
-// used in type decoder. It first reads from the default settings defined in
-// the maps.yml in the same folder, then overrides with the user specified mappings.
+// used in type decoder. It first reads from the default settings defined in the
+// maps.yml in the same folder, then overrides with the user specified mappings.
 func MapsFromViper(v treeReader) *MapConvert {
 	m := &MapConvert{}
 	def := DefaultMapper()
 	if v.IsSet("gc_types") {
 		m.gcTypes = gcTypes(v, def.gcTypes)
 	}
-
 	if v.IsSet("memory_bytes") {
 		m.memoryTypes = memoryTypes(v, def.memoryTypes)
 	}
 	return m
 }
 
-// DefaultMapper returns a MapConvert object that is populated by the default mappings.
-// The data is hard coded in the program, but you can provide your mapping file
-// in your configuration file.
+// DefaultMapper returns a MapConvert object that is populated by the default
+// mappings. The data is hard coded in the program, but you can provide your
+// mapping file in your configuration file.
 func DefaultMapper() *MapConvert {
 	once.Do(func() {
 		v := viper.New()
@@ -70,7 +69,6 @@ func DefaultMapper() *MapConvert {
 		if v.IsSet("gc_types") {
 			defaultMap.gcTypes = gcTypes(v, make([]string, 0))
 		}
-
 		if v.IsSet("memory_bytes") {
 			defaultMap.memoryTypes = memoryTypes(v, make(map[string]memType))
 		}
@@ -78,8 +76,8 @@ func DefaultMapper() *MapConvert {
 	return defaultMap
 }
 
-func (m *MapConvert) getMemoryTypes(prefix, name string, value *jason.Value) (DataType, bool) {
-	v, err := value.Float64()
+func (m *MapConvert) getMemoryTypes(prefix, name string, j *jason.Value) (DataType, bool) {
+	v, err := j.Float64()
 	if err != nil {
 		expDataTypeErrs.Add(1)
 		return nil, false
@@ -95,22 +93,22 @@ func (m *MapConvert) getMemoryTypes(prefix, name string, value *jason.Value) (Da
 	return nil, false
 }
 
-func (m *MapConvert) getArrayValue(prefix, name string, arr []*jason.Value) DataType {
-	if len(arr) == 0 {
+func (m *MapConvert) arrayValue(prefix, name string, a []*jason.Value) DataType {
+	if len(a) == 0 {
 		return &FloatListType{prefix + name, []float64{}}
-	} else if _, err := arr[0].Float64(); err == nil {
+	} else if _, err := a[0].Float64(); err == nil {
 		if internal.StringInSlice(name, m.gcTypes) {
-			return getGCList(prefix+name, arr)
+			return getGCList(prefix+name, a)
 		}
-		return getFloatListValues(prefix+name, arr)
+		return getFloatListValues(prefix+name, a)
 	}
 	return nil
 }
 
 // Values returns a slice of DataTypes based on the given name/value inputs.
-// It flattens the float list values, therefore you will get multiple values per input.
-// If the name is found in memory_bytes map, it will return one of those, otherwise it
-// will return a FloatType or StringType if can convert.
+// It flattens the float list values, therefore you will get multiple values
+// per input. If the name is found in memory_bytes map, it will return one of
+// those, otherwise it will return a FloatType or StringType if can convert.
 // It will return nil if the value is not one of above.
 func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []DataType {
 	var results []DataType
@@ -130,13 +128,11 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 				}
 				expByteTypeCount.Add(1)
 			}
-
 		} else if obj, err := value.Object(); err == nil {
 			// we are dealing with nested objects
 			results = append(results, m.Values(prefix+name+".", obj.Map())...)
 			expNestedTypeCount.Add(1)
 			continue
-
 		} else if s, err := value.String(); err == nil {
 			expStringTypeCount.Add(1)
 			result = &StringType{prefix + name, s}
@@ -145,7 +141,7 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 			result = &FloatType{prefix + name, f}
 		} else if arr, err := value.Array(); err == nil {
 			// we are dealing with an array object
-			result = m.getArrayValue(prefix, name, arr)
+			result = m.arrayValue(prefix, name, arr)
 		} else {
 			expDataTypeErrs.Add(1)
 			continue
@@ -155,7 +151,6 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 			results = append(results, result)
 		}
 	}
-
 	return results
 }
 
@@ -190,7 +185,6 @@ func getFloatListValues(name string, arr []*jason.Value) *FloatListType {
 	}
 	expFloatListTypeCount.Add(1)
 	return &FloatListType{name, res}
-
 }
 
 func (m memType) IsByte() bool     { return string(m) == "b" }
@@ -213,12 +207,11 @@ func gcTypes(v treeReader, gcTypes []string) []string {
 	return result
 }
 
-func memoryTypes(v treeReader, memoryTypes map[string]memType) map[string]memType {
-	result := make(map[string]memType, len(memoryTypes))
+func memoryTypes(v treeReader, memTypes map[string]memType) map[string]memType {
+	result := make(map[string]memType, len(memTypes))
 	for name, memoryType := range v.GetStringMapString("memory_bytes") {
 		result[name] = memType(memoryType)
 	}
-
 	return result
 }
 

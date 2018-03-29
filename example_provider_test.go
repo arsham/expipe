@@ -12,9 +12,9 @@ import (
 
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
-	reader_testing "github.com/arsham/expipe/reader/testing"
+	rdt "github.com/arsham/expipe/reader/testing"
 	"github.com/arsham/expipe/recorder"
-	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	rct "github.com/arsham/expipe/recorder/testing"
 )
 
 func getReader(log internal.FieldLogger) (map[string]reader.DataReader, func()) {
@@ -26,7 +26,7 @@ func getReader(log internal.FieldLogger) (map[string]reader.DataReader, func()) 
 		}
 	}))
 
-	red, err := reader_testing.New(
+	red, err := rdt.New(
 		reader.WithLogger(log),
 		reader.WithEndpoint(ts.URL),
 		reader.WithName("reader_example"),
@@ -46,7 +46,7 @@ func getReader(log internal.FieldLogger) (map[string]reader.DataReader, func()) 
 }
 
 func getRecorder(log internal.FieldLogger, url string) recorder.DataRecorder {
-	rec, err := recorder_testing.New(
+	rec, err := rct.New(
 		recorder.WithLogger(log),
 		recorder.WithEndpoint(url),
 		recorder.WithName("recorder_example"),

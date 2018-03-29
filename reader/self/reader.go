@@ -56,19 +56,19 @@ type Reader struct {
 	quit     chan struct{}
 	endpoint string
 	pinged   bool
-	testMode bool // this is for internal tests and you should not set it to true
+	testMode bool // this is for internal tests. You should not set it to true.
 }
 
 // New exposes expipe's own metrics.
 // It returns and error on the following occasions:
 //
-//   Condition        |  Error
-//   -----------------|-------------
-//   name == ""       | ErrEmptyName
-//   endpoint == ""   | ErrEmptyEndpoint
-//   Invalid Endpoint | ErrInvalidEndpoint
-//   typeName == ""   | ErrEmptyTypeName
-//   backoff < 5      | ErrLowBackoffValue
+//   |    Condition     |       Error        |
+//   |------------------|--------------------|
+//   | name == ""       | ErrEmptyName       |
+//   | endpoint == ""   | ErrEmptyEndpoint   |
+//   | Invalid Endpoint | ErrInvalidEndpoint |
+//   | typeName == ""   | ErrEmptyTypeName   |
+//   | backoff < 5      | ErrLowBackoffValue |
 //
 func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	r := &Reader{}
@@ -87,23 +87,18 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	if r.backoff < 5 {
 		r.backoff = 5
 	}
-
 	if r.mapper == nil {
 		r.mapper = datatype.DefaultMapper()
 	}
-
 	if r.typeName == "" {
 		r.typeName = r.name
 	}
-
 	if r.interval == 0 {
 		r.interval = time.Second
 	}
-
 	if r.timeout == 0 {
 		r.timeout = 5 * time.Second
 	}
-
 	r.quit = make(chan struct{})
 	return r, nil
 }
@@ -127,22 +122,21 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if !r.pinged {
 		return nil, reader.ErrPingNotCalled
 	}
-
 	if r.testMode {
 		// To support the tests
 		return r.readMetricsFromURL(job)
 	}
 	buf := new(bytes.Buffer) // construct a json encoder and pass it
-	fmt.Fprintf(buf, "{\n")
+	fmt.Fprint(buf, "{\n")
 	first := true
 	expvar.Do(func(kv expvar.KeyValue) {
 		if !first {
-			fmt.Fprintf(buf, ",\n")
+			fmt.Fprint(buf, ",\n")
 		}
 		first = false
 		fmt.Fprintf(buf, "%q: %s", kv.Key, kv.Value)
 	})
-	fmt.Fprintf(buf, "\n}\n")
+	fmt.Fprint(buf, "\n}\n")
 	res := &reader.Result{
 		ID:       job.ID(),
 		Time:     time.Now(), // It is sensible to record the time now
@@ -220,7 +214,8 @@ func (r *Reader) readMetricsFromURL(job *token.Context) (*reader.Result, error) 
 		}
 		r.log.WithField("reader", "self").
 			WithField("ID", job.ID()).
-			Errorf("%s: error making request: %v", r.name, err) // Error because it is a local dependency.
+			// Error because it is a local dependency.
+			Errorf("%s: error making request: %v", r.name, err)
 		return nil, err
 	}
 	defer resp.Body.Close()
