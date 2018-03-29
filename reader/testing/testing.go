@@ -42,68 +42,57 @@ type Constructor interface {
 // TestSuites returns a map of test name to the runner function.
 func TestSuites(t *testing.T, cons Constructor) {
 
-	t.Run("Should NotChangeTheInput", func(t *testing.T) {
+	t.Run("ShouldNotChangeTheInput", func(t *testing.T) {
 		testShouldNotChangeTheInput(t, cons)
 	})
-
 	t.Run("NameCheck", func(t *testing.T) {
 		gin.Describe("Checking name and index name", func() {
 			testNameCheck(cons)
 		})
 	})
-
 	t.Run("TypeNameCheck", func(t *testing.T) {
 		testTypeNameCheck(cons)
 	})
-
 	t.Run("BackoffCheck", func(t *testing.T) {
 		gin.Describe("Checking backoff value", func() {
 			testBackoffCheck(cons)
 		})
 	})
-
 	t.Run("IntervalCheck", func(t *testing.T) {
 		gin.Describe("Checking interval value", func() {
 			testIntervalCheck(cons)
 		})
 	})
-
 	t.Run("EndpointCheck", func(t *testing.T) {
 		gin.Describe("Checking endpoint value", func() {
 			testEndpointCheck(cons)
 		})
 	})
-
 	t.Run("ReceivesJob", func(t *testing.T) {
 		gin.Describe("Receiving payload", func() {
 			testReaderReceivesJob(cons)
 		})
 	})
-
 	t.Run("ReturnsSameID", func(t *testing.T) {
 		gin.Describe("Returning the same job ID", func() {
 			testReaderReturnsSameID(cons)
 		})
 	})
-
 	t.Run("PingingEndpoint", func(t *testing.T) {
 		gin.Describe("Pinging the endpoint", func() {
 			pingingEndpoint(cons)
 		})
 	})
-
 	t.Run("ErrorsOnEndpointDisapears", func(t *testing.T) {
 		gin.Describe("Backing off when the endpoint disappears", func() {
 			testReaderErrorsOnEndpointDisapears(cons)
 		})
 	})
-
 	t.Run("BacksOffOnEndpointGone", func(t *testing.T) {
 		gin.Describe("Backing off when the endpoint is gone", func() {
 			testReaderBacksOffOnEndpointGone(cons)
 		})
 	})
-
 	t.Run("ReadingReturnsErrorIfNotPingedYet", func(t *testing.T) {
 		gin.Describe("Reading without pinging", func() {
 			testReadingReturnsErrorIfNotPingedYet(cons)

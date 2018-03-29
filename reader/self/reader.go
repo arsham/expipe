@@ -7,20 +7,24 @@
 // Collected metrics
 //
 // This list will grow in time:
-//      ElasticSearch Var Name    | expipe var name
-//      ----------------------------------------------
-//      Readers                   | expReaders
-//      Read Jobs                 | readJobs
-//      Record Jobs               | recordJobs
-//      DataType Objects          | datatypeObjs
-//      DataType Objects Errors   | datatypeErrs
-//      Unidentified JSON Count   | unidentifiedJSON
-//      StringType Count          | stringTypeCount
-//      FloatType Count           | floatTypeCount
-//      GCListType Count          | gcListTypeCount
-//      ByteType Count            | byteTypeCount
-//      Expvar Reads              | expvarReads
-//      ElasticSearch Records     | elasticsearchRecords
+//
+//   +-------------------------+----------------------+
+//   |  ElasticSearch Var Name |   Expipe var name    |
+//   +-------------------------+----------------------+
+//   | Readers                 | expReaders           |
+//   | Read Jobs               | readJobs             |
+//   | Record Jobs             | recordJobs           |
+//   | DataType Objects        | datatypeObjs         |
+//   | DataType Objects Errors | datatypeErrs         |
+//   | Unidentified JSON Count | unidentifiedJSON     |
+//   | StringType Count        | stringTypeCount      |
+//   | FloatType Count         | floatTypeCount       |
+//   | GCListType Count        | gcListTypeCount      |
+//   | ByteType Count          | byteTypeCount        |
+//   | Expvar Reads            | expvarReads          |
+//   | ElasticSearch Records   | elasticsearchRecords |
+//   +-------------------------+----------------------+
+//
 package self
 
 import (
@@ -62,13 +66,15 @@ type Reader struct {
 // New exposes expipe's own metrics.
 // It returns and error on the following occasions:
 //
+//   +------------------+--------------------+
 //   |    Condition     |       Error        |
-//   |------------------|--------------------|
+//   +------------------+--------------------+
 //   | name == ""       | ErrEmptyName       |
 //   | endpoint == ""   | ErrEmptyEndpoint   |
 //   | Invalid Endpoint | ErrInvalidEndpoint |
 //   | typeName == ""   | ErrEmptyTypeName   |
 //   | backoff < 5      | ErrLowBackoffValue |
+//   +------------------+--------------------+
 //
 func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	r := &Reader{}

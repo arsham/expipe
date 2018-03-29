@@ -46,13 +46,15 @@ type Reader struct {
 // New generates the Reader based on the provided options
 // It returns and error on the following occasions:
 //
+//   +------------------+--------------------+
 //   |    Condition     |       Error        |
-//   |------------------|--------------------|
+//   +------------------+--------------------+
 //   | name == ""       | ErrEmptyName       |
 //   | endpoint == ""   | ErrEmptyEndpoint   |
 //   | Invalid endpoint | ErrInvalidEndpoint |
 //   | typeName == ""   | ErrEmptyTypeName   |
 //   | backoff < 5      | ErrLowBackoffValue |
+//   +------------------+--------------------+
 //
 func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	r := &Reader{}

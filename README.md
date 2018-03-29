@@ -6,7 +6,9 @@
 [![Coverage Status](https://codecov.io/gh/arsham/expipe/branch/master/graph/badge.svg)](https://codecov.io/gh/arsham/expipe)
 [![Go Report Card](https://goreportcard.com/badge/github.com/arsham/expipe)](https://goreportcard.com/report/github.com/arsham/expipe)
 
-Expipe can record your application's `metrics` in [ElasticSearch][elasticsearch] and you can view them with [kibana][kibana]. It can read from any applications (written in any language) that provides metrics in `json` format.
+Expipe can record your application's `metrics` in [ElasticSearch][elasticsearch]
+and you can view them with [kibana][kibana]. It can read from any applications
+(written in any language) that provides metrics in `json` format.
 
 1. [Features](#features)
     * [Upcoming Features](#upcoming-features)
@@ -30,9 +32,7 @@ Expipe can record your application's `metrics` in [ElasticSearch][elasticsearch]
 * Benchmarks are included.
 
 There are TODO items in the issue section. Feature requests are welcome!
-
 Please refer to golang's [expvar documentation][expvar] for more information.
-
 Screen shots can be found in [this](./SCREENSHOTS.md) document. Here is an example:
 
 ![Colored](http://i.imgur.com/6U2hxlp.png)
@@ -48,7 +48,8 @@ Screen shots can be found in [this](./SCREENSHOTS.md) document. Here is an examp
 
 ## Installation
 
-I will provide a docker image soon, but for now it needs to be installed. You need golang >= 1.7 and [glide][glide] installed. Simply do:
+I will provide a docker image soon, but for now it needs to be installed.
+You need golang >= 1.7 and [glide][glide] installed. Simply do:
 
 ```bash
 go get github.com/arsham/expipe
@@ -67,21 +68,29 @@ docker run -d --name kibana --restart always -p 80:5601 --link expipe:elasticsea
 
 ## Kibana
 
-Access [the dashboard](http://localhost) (or any other ports you have exposed kibana to, notice the `-p:80:5601` above), and enter `expipe` as `Index name or pattern` in `management` section.
+Access [the dashboard](http://localhost) (or any other ports you have exposed
+kibana to, notice the `-p:80:5601` above), and enter `expipe` as `Index name or
+ pattern` in `management` section.
 
-Select `@timestamp` for `Time-field name`. In case it doesn't show up, click `Index contains time-based events` twice, it will provide you with the timestamp. Then click on create button.
+Select `@timestamp` for `Time-field name`. In case it doesn't show up, click
+`Index contains time-based events` twice, it will provide you with the timestamp.
+Then click on create button.
 
 ### Importing Dashboard
 
-Go to `Saved Objects` section of `management`, and click on the `import` button. Upload [this](./bin/dashboard.json) file and you're done!
+Go to `Saved Objects` section of `management`, and click on the `import` button.
+Upload [this](./bin/dashboard.json) file and you're done!
 
-One of the provided dashboards shows the expipe's own metrics, and you can use the other one for everything you have defined in the configuration file.
+One of the provided dashboards shows the expipe's own metrics, and you can use
+the other one for everything you have defined in the configuration file.
 
 ## Usage
 
 ### With Flags
 
-With this method you can only have one reader and ship to one recorder. Consider the next section for more flexible setup. The defaults are sensible to use, you only need to point the app to two endpoints, and it does the rest for you:
+With this method you can only have one reader and ship to one recorder.
+Consider the next section for more flexible setup. The defaults are sensible
+to use, you only need to point the app to two endpoints, and it does the rest for you:
 
 ```bash
 expipe -reader="localhost:1234/debug/vars" -recorder="localhost:9200"
@@ -98,7 +107,8 @@ Please refer to [this](./RECIPES.md) document for advanced configuration and map
 
 ## LICENSE
 
-Use of this source code is governed by the Apache 2.0 license. License that can be found in the [LICENSE](./LICENSE) file.
+Use of this source code is governed by the Apache 2.0 license. License that can
+be found in the [LICENSE](./LICENSE) file.
 
 `Enjoy!`
 

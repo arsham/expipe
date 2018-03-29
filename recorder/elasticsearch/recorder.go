@@ -39,13 +39,15 @@ type Recorder struct {
 // New returns an error if it can't create the index
 // It returns and error on the following occasions:
 //
+//   +-------------------+---------------------+
 //   |     Condition     |        Error        |
-//   |-------------------|---------------------|
+//   +-------------------+---------------------+
 //   | Invalid endpoint  | ErrInvalidEndpoint  |
 //   | backoff < 5       | ErrLowBackoffValue  |
 //   | Empty name        | ErrEmptyName        |
 //   | Invalid IndexName | ErrInvalidIndexName |
 //   | Empty IndexName   | ErrEmptyIndexName   |
+//   +-------------------+---------------------+
 //
 func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 	r := &Recorder{}
@@ -75,11 +77,13 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 // Ping should ping the endpoint and report if was successful.
 // It returns and error on the following occasions:
 //
+//   +----------------------+-------------------------+
 //   |      Condition       |          Error          |
-//   |----------------------|-------------------------|
+//   +----------------------+-------------------------+
 //   | Unavailable endpoint | ErrEndpointNotAvailable |
 //   | Ping errors          | Timeout/Ping failed     |
 //   | Index creation       | elasticsearch's errors  |
+//   +----------------------+-------------------------+
 //
 func (r *Recorder) Ping() error {
 	var err error
