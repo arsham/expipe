@@ -31,7 +31,9 @@ var (
 
 func init() {
 	log = internal.DiscardLogger()
-	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	testServer = httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+	)
 }
 
 func withRecorder(ctx context.Context, log internal.FieldLogger) (*Engine, error) {
@@ -72,18 +74,16 @@ func (e *Engine) setReaders(readers map[string]reader.DataReader) {
 // IMPORTANT: only use this for testing.
 //
 func EngineWithReadRecs(ctx context.Context, log internal.FieldLogger, rec recorder.DataRecorder, reds map[string]reader.DataReader) (*Engine, error) {
+	var readerNames []string
 	failedErrors := make(map[string]error)
-
 	err := rec.Ping()
 	if err != nil {
-		return nil, ErrPing{rec.Name(): err}
+		return nil, PingError{rec.Name(): err}
 	}
 
-	var readerNames []string
 	readers := make(map[string]reader.DataReader)
 	canDo := false
 	i := 0
-
 	for name, red := range reds {
 		err := red.Ping()
 		if err != nil {
@@ -96,7 +96,7 @@ func EngineWithReadRecs(ctx context.Context, log internal.FieldLogger, rec recor
 		i++
 	}
 	if !canDo {
-		return nil, ErrPing(failedErrors)
+		return nil, PingError(failedErrors)
 	}
 	// just to be cute
 	engineName := fmt.Sprintf("( %s <-<< %s )", rec.Name(), strings.Join(readerNames, ","))
@@ -115,11 +115,10 @@ func EngineWithReadRecs(ctx context.Context, log internal.FieldLogger, rec recor
 
 func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 	log := internal.DiscardLogger()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	e, err := withRecorder(ctx, log)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
@@ -130,12 +129,11 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 		reader.WithTimeout(time.Second),
 		reader.WithBackoff(5),
 	)
-
 	if err != nil {
-		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+		t.Fatalf("err = (%#v); want (nil): unexpected error occurred during reader creation", err)
 	}
 	if err := red.Ping(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	e.setReaders(map[string]reader.DataReader{red.Name(): red})
@@ -157,7 +155,7 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 	rec := e.recorder.(*rct.Recorder)
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if job.ID != jobID {
-			t.Errorf("want (%s), got (%s)", jobID, job.ID)
+			t.Errorf("job.ID = (%s); want (%s)", job.ID, jobID)
 		}
 		recorded <- struct{}{}
 		return nil
@@ -187,11 +185,10 @@ func TestEventLoopOneReaderSendsPayload(t *testing.T) {
 func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 	log := internal.DiscardLogger()
 	log.Level = internal.DebugLevel
-
 	ctx, cancel := context.WithCancel(context.Background())
 	e, err := withRecorder(ctx, log)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red1, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
@@ -202,12 +199,11 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 		reader.WithTimeout(time.Hour),
 		reader.WithBackoff(5),
 	)
-
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	if err = red1.Ping(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	red2, err := rdt.New(
@@ -220,11 +216,10 @@ func TestEventLoopRecorderGoesOutOfScope(t *testing.T) {
 		reader.WithBackoff(5),
 	)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
-
 	if err = red2.Ping(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red1.ReadFunc = func(job *token.Context) (*reader.Result, error) { return nil, nil }
 	red2.ReadFunc = func(job *token.Context) (*reader.Result, error) { return nil, nil }
@@ -258,10 +253,10 @@ func getReader(t *testing.T, name string, jobContent []byte) *rdt.Reader {
 		reader.WithBackoff(5),
 	)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	if err = red.Ping(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	// testing engine send the payloads to the recorder
@@ -281,11 +276,10 @@ func getReader(t *testing.T, name string, jobContent []byte) *rdt.Reader {
 func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 	log := internal.DiscardLogger()
 	log.Level = internal.DebugLevel
-
 	ctx, cancel := context.WithCancel(context.Background())
 	e, err := withRecorder(ctx, log)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	red1 := getReader(t, "reader1_name", []byte(`{"devil":666}`))
@@ -299,10 +293,7 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 	rec := e.recorder.(*rct.Recorder)
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if job.ID != job1.ID() && job.ID != job2.ID() {
-			t.Errorf("want one of (%s, %s), got (%s)", job1.ID(), job2.ID(), job.ID)
-		}
-		if job.ID != job1.ID() && job.ID != job2.ID() {
-			t.Errorf("want one of (%s, %s), got (%s)", job1.ID(), job2.ID(), job.ID)
+			t.Errorf("job.ID = (%s); want one of (%s, %s)", job.ID, job1.ID(), job2.ID())
 		}
 		recorded <- struct{}{}
 		recorded <- struct{}{}
@@ -356,11 +347,10 @@ func TestEventLoopMultipleReadersSendPayload(t *testing.T) {
 
 func TestStartReadersTicking(t *testing.T) {
 	log := internal.DiscardLogger()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	e, err := withRecorder(ctx, log)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
@@ -372,10 +362,10 @@ func TestStartReadersTicking(t *testing.T) {
 		reader.WithBackoff(5),
 	)
 	if err != nil {
-		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+		t.Fatalf("err = (%#v); want (nil): unexpected error occurred during reader creation", err)
 	}
 	if err = red.Ping(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	e.setReaders(map[string]reader.DataReader{red.Name(): red})
@@ -423,11 +413,11 @@ func TestRemoveReader(t *testing.T) {
 	})
 	e.removeReader(r1)
 	if _, ok := e.readers[r1.Name()]; ok {
-		t.Errorf("didn't expect to have (%v) in the map", r1)
+		t.Errorf("e.readers[r1.Name()]: didn't expect to have (%v) in the map", r1)
 	}
 	for _, r := range []reader.DataReader{r2, r3, r4} {
 		if _, ok := e.readers[r.Name()]; !ok {
-			t.Errorf("didn't expect it to remove (%v)", r)
+			t.Errorf("e.readers[r.Name()]: didn't expect it to remove (%v)", r)
 		}
 	}
 }
@@ -438,7 +428,7 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	e, err := withRecorder(ctx, log)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red, err := rdt.New(
 		reader.WithLogger(internal.DiscardLogger()),
@@ -450,10 +440,10 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 		reader.WithBackoff(5),
 	)
 	if err != nil {
-		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+		t.Fatalf("err = (%#v); want (nil): unexpected error occurred during reader creation", err)
 	}
 	if err = red.Ping(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	e.setReaders(map[string]reader.DataReader{red.Name(): red})
@@ -467,7 +457,7 @@ func TestEventLoopCatchesReaderError(t *testing.T) {
 		return nil, errMsg
 	}
 
-	errChan := make(chan ErrJob)
+	errChan := make(chan JobError)
 	stop := make(chan struct{})
 	e.issueReaderJob(red, errChan, stop)
 

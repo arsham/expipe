@@ -29,22 +29,22 @@ func TestGetMemoryTypeValues(t *testing.T) {
 		{
 			"byte_value",
 			"12",
-			datatype.ByteType{"byte_value", 12},
+			datatype.NewByteType("byte_value", 12),
 		},
 		{
 			"alloc",
 			strconv.Itoa(1 * datatype.KILOBYTE),
-			datatype.KiloByteType{"alloc", 1 * datatype.KILOBYTE},
+			datatype.NewKiloByteType("alloc", 1*datatype.KILOBYTE),
 		},
 		{
 			"sys",
 			strconv.Itoa(12 * datatype.MEGABYTE),
-			datatype.MegaByteType{"sys", 12 * datatype.MEGABYTE},
+			datatype.NewMegaByteType("sys", 12*datatype.MEGABYTE),
 		},
 		{
 			"not_provided",
 			`"anything"`,
-			datatype.StringType{"not_provided", "anything"},
+			datatype.NewStringType("not_provided", "anything"),
 		},
 	}
 
@@ -63,7 +63,7 @@ func TestGetMemoryTypeValues(t *testing.T) {
 			results := maps.Values("", map[string]*jason.Value{tc.name: v})
 			for _, value := range results {
 				if !tc.expected.Equal(value) {
-					t.Errorf("want (%#v), got (%#v)", tc.expected, value)
+					t.Errorf("tc.expected.Equal(value): value = (%#v); want (%#v)", value, tc.expected)
 				}
 			}
 		})
@@ -83,17 +83,17 @@ func TestGetFloatListValues(t *testing.T) {
 		{
 			"float_list",
 			`[]`,
-			&datatype.FloatListType{"float_list", []float64{}},
+			datatype.NewFloatListType("float_list", []float64{}),
 		},
 		{
 			"float_list",
 			`[0.1,1.2,2.3,3.4,666]`,
-			&datatype.FloatListType{"float_list", []float64{0.1, 1.2, 2.3, 3.4, 666}},
+			datatype.NewFloatListType("float_list", []float64{0.1, 1.2, 2.3, 3.4, 666}),
 		},
 		{
 			"float_list",
 			`[0.1,1.2,2.3,3.4,666]`,
-			&datatype.FloatListType{"float_list", []float64{2.3, 3.4, 666, 0.1, 1.2}},
+			datatype.NewFloatListType("float_list", []float64{2.3, 3.4, 666, 0.1, 1.2}),
 		},
 	}
 
@@ -107,7 +107,7 @@ func TestGetFloatListValues(t *testing.T) {
 			results := maps.Values("", map[string]*jason.Value{tc.name: v})
 			for _, value := range results {
 				if !tc.expected.Equal(value) {
-					t.Errorf("want (%#v), got (%#v)", tc.expected, value)
+					t.Errorf("tc.expected.Equal(value): value = (%#v); want (%#v)", value, tc.expected)
 				}
 			}
 		})
@@ -122,6 +122,6 @@ func TestNestedPauseNsRegression(t *testing.T) {
 	mapper := datatype.DefaultMapper()
 	container, _ := datatype.JobResultDataTypes(input.Bytes(), mapper)
 	if !container.List()[0].Equal(expected) {
-		t.Errorf("want (%#v), got (%#v)", expected, container.List()[0])
+		t.Errorf("container.List()[0] = (%#v); want (%#v)", container.List()[0], expected)
 	}
 }

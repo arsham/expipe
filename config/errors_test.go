@@ -15,12 +15,12 @@ import (
 func TestErrorMessages(t *testing.T) {
 	nilTcs := []error{
 		(*config.StructureErr)(nil),
-		(*config.ErrNotSpecified)(nil),
-		(*config.ErrRouters)(nil),
+		(*config.NotSpecifiedError)(nil),
+		(*config.RoutersError)(nil),
 	}
 	for _, tc := range nilTcs {
 		if tc.Error() != config.NilStr {
-			t.Errorf("want (%s), got (%s)", config.NilStr, tc.Error())
+			t.Errorf("tc.Error() = (%s); want (%s)", tc.Error(), config.NilStr)
 		}
 	}
 
@@ -33,25 +33,25 @@ func TestErrorMessages(t *testing.T) {
 			Reason:  reason,
 			Err:     fmt.Errorf(body),
 		},
-		config.NewErrNotSpecified(section, reason, fmt.Errorf(body)),
-		config.NewErrRouters(section, reason, fmt.Errorf(body)),
+		config.NewNotSpecifiedError(section, reason, fmt.Errorf(body)),
+		config.NewRoutersError(section, reason, fmt.Errorf(body)),
 	}
 
 	for _, tc := range tcs {
 		if !strings.Contains(tc.Error(), section) {
-			t.Errorf("want (%s) in error, got (%s)", section, tc.Error())
+			t.Errorf("tc.Error() = (%s); want (%s) in error", tc.Error(), section)
 		}
 		if !strings.Contains(tc.Error(), reason) {
-			t.Errorf("want (%s) in error, got (%s)", reason, tc.Error())
+			t.Errorf("tc.Error() = (%s); want (%s) in error", tc.Error(), reason)
 		}
 		if !strings.Contains(tc.Error(), body) {
-			t.Errorf("want (%s) in error, got (%s)", body, tc.Error())
+			t.Errorf("tc.Error() = (%s); want (%s) in error", tc.Error(), body)
 		}
 
 	}
 	body = "god"
-	err2 := config.ErrNotSupported(body)
+	err2 := config.NotSupportedError(body)
 	if !strings.Contains(err2.Error(), body) {
-		t.Errorf("want (%s) in error, got (%s)", body, err2.Error())
+		t.Errorf("err2.Error() = (%s); want (%s) in error", err2.Error(), body)
 	}
 }

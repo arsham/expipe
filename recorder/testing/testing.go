@@ -5,14 +5,14 @@
 // Package testing is a test suit for recorders. They should provide
 // an object that implements the Constructor interface then run:
 //
-//    import recorder_test "github.com/arsham/expipe/recorder/testing"
+//    import rt "github.com/arsham/expipe/recorder/testing"
 //    ....
-//    r, err := recorder_test.New()
+//    r, err := rt.New()
 //    if err != nil {
 //        panic(err)
 //    }
 //    c := &Construct{r, getTestServer()}
-//    recorder_test.TestSuites(t, c)
+//    rt.TestSuites(t, c, func() {/*clean up code*/})
 //
 // The test suit will pick it up and does all the tests.
 //
@@ -27,7 +27,6 @@ import (
 	"testing"
 
 	"github.com/arsham/expipe/recorder"
-	gin "github.com/onsi/ginkgo"
 )
 
 // Constructor is an interface for setting up an object for testing.
@@ -41,53 +40,66 @@ type Constructor interface {
 }
 
 // TestSuites returns a map of test name to the runner function.
-func TestSuites(t *testing.T, cons Constructor) {
-	t.Run("Construction", func(*testing.T) {
-		testShouldNotChangeTheInput(t, cons)
+func TestSuites(t *testing.T, setup func() (Constructor, func())) {
+	t.Parallel()
+	t.Run("Construction", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		shouldNotChangeTheInput(t, cons)
 	})
-	t.Run("NameCheck", func(*testing.T) {
-		gin.Describe("Checking name", func() {
-			testNameCheck(cons)
-		})
+	t.Run("NameCheck", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		nameCheck(t, cons)
 	})
-	t.Run("IndexNameCheck", func(*testing.T) {
-		gin.Describe("Checking index name", func() {
-			testIndexNameCheck(cons)
-		})
+	t.Run("IndexNameCheck", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		indexNameCheck(t, cons)
 	})
-	t.Run("BackoffCheck", func(*testing.T) {
-		gin.Describe("Checking backoff value", func() {
-			testBackoffCheck(cons)
-		})
+	t.Run("BackoffCheck", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		backoffCheck(t, cons)
 	})
-	t.Run("EndpointCheck", func(*testing.T) {
-		gin.Describe("Checking endpoint value", func() {
-			testEndpointCheck(cons)
-		})
+	t.Run("EndpointCheck", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		endpointCheck(t, cons)
 	})
-	t.Run("ReceivesPayload", func(*testing.T) {
-		gin.Describe("Sending payload to recorder", func() {
-			testRecorderReceivesPayload(cons)
-		})
+	t.Run("ReceivesPayload", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		recorderReceivesPayload(t, cons)
 	})
-	t.Run("SendsResult", func(*testing.T) {
-		gin.Describe("Sending results", func() {
-			testRecorderSendsResult(cons)
-		})
+	t.Run("SendsResult", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		recorderSendsResult(t, cons)
 	})
-	t.Run("ErrorsOnUnavailableESServer", func(*testing.T) {
-		gin.Describe("Errors", func() {
-			testRecorderErrorsOnUnavailableEndpoint(cons)
-		})
+	t.Run("ErrorsOnUnavailableESServer", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		recorderErrorsOnUnavailableEndpoint(t, cons)
 	})
-	t.Run("BacksOffOnEndpointGone", func(*testing.T) {
-		gin.Describe("Backing off when the endpoint is gone", func() {
-			testRecorderBacksOffOnEndpointGone(cons)
-		})
+	t.Run("BacksOffOnEndpointGone", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		recorderBacksOffOnEndpointGone(t, cons)
 	})
-	t.Run("RecordingReturnsErrorIfNotPingedYet", func(*testing.T) {
-		gin.Describe("Recording without pinging", func() {
-			testRecordingReturnsErrorIfNotPingedYet(cons)
-		})
+	t.Run("RecordingReturnsErrorIfNotPingedYet", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		recordingReturnsErrorIfNotPingedYet(t, cons)
 	})
 }

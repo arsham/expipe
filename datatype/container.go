@@ -21,7 +21,8 @@ var TimeStampFormat = "2006-01-02T15:04:05.999999-07:00"
 // Container satisfies the DataContainer
 type Container struct {
 	sync.RWMutex
-	list []DataType
+	genMu sync.Mutex
+	list  []DataType
 }
 
 // New returns a new container and populates it with the given list.
@@ -53,11 +54,13 @@ func (c *Container) Add(d ...DataType) {
 // Generate prepends a timestamp pair and value to the list, and generates
 // a json object suitable for recording into a document store.
 func (c *Container) Generate(p io.Writer, timestamp time.Time) (int, error) {
+	// c.genMu.Lock()
+	// defer c.genMu.Unlock()
 	ts := fmt.Sprintf(`"@timestamp":"%s"`, timestamp.Format(TimeStampFormat))
 	l := new(bytes.Buffer)
 	for _, v := range c.List() {
 		l.Write([]byte(","))
-		_, err := v.Write(l)
+		_, err := l.ReadFrom(v)
 		if err != nil {
 			return 0, errors.Wrap(err, "writing item")
 		}

@@ -41,14 +41,14 @@ func (e *Engine) Start() {
 	e.wg.Wait()
 }
 
-// readerEventLoop starts readers event loop. It handles the recordings
+// readerEventLoop starts readers event loop. It handles the recordings.
 func (e *Engine) readerEventLoop(red reader.DataReader) {
 	expReaders.Add(1)
 	ticker := time.NewTicker(red.Interval())
 	e.log.Debugf("starting reader: %s", red.Name())
 	// Signals the loop to stop for this reader.
 	stop := make(chan struct{})
-	errChan := make(chan ErrJob, 1000) // TODO: decide this number.
+	errChan := make(chan JobError, 1000) // TODO: decide this number.
 LOOP:
 	for {
 		select {
@@ -83,7 +83,7 @@ LOOP:
 	e.wg.Done()
 }
 
-func (e *Engine) issueReaderJob(red reader.DataReader, errChan chan ErrJob, stop chan struct{}) {
+func (e *Engine) issueReaderJob(red reader.DataReader, errChan chan JobError, stop chan struct{}) {
 	defer waitingReadJobs.Add(-1)
 	readJobs.Add(1)
 	select {
@@ -104,7 +104,7 @@ func (e *Engine) issueReaderJob(red reader.DataReader, errChan chan ErrJob, stop
 			if err == reader.ErrBackoffExceeded {
 				close(stop)
 			}
-			errChan <- ErrJob{
+			errChan <- JobError{
 				ID:   job.ID(),
 				Name: red.Name(),
 				Err:  errors.Wrap(err, "issuing reader job"),
@@ -133,7 +133,7 @@ func (e *Engine) issueReaderJob(red reader.DataReader, errChan chan ErrJob, stop
 	}
 }
 
-func (e *Engine) shipToRecorder(result *reader.Result, errChan chan ErrJob) {
+func (e *Engine) shipToRecorder(result *reader.Result, errChan chan JobError) {
 	defer waitingRecordJobs.Add(-1)
 	res := make([]byte, len(result.Content))
 	copy(res, result.Content)
@@ -160,7 +160,7 @@ func (e *Engine) shipToRecorder(result *reader.Result, errChan chan ErrJob) {
 			if err == recorder.ErrBackoffExceeded {
 				close(e.shutdown)
 			}
-			errChan <- ErrJob{
+			errChan <- JobError{
 				ID:   result.ID,
 				Name: e.recorder.Name(),
 				Err:  errors.Wrap(err, "sending payload"),
@@ -187,7 +187,7 @@ func (e *Engine) shipToRecorder(result *reader.Result, errChan chan ErrJob) {
 }
 
 // removes the reader from the readers map. If the reader is already gone, it
-// ignores the action
+// ignores the action.
 func (e *Engine) removeReader(r reader.DataReader) {
 	e.redmu.Lock()
 	delete(e.readers, r.Name())

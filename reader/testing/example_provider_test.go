@@ -14,25 +14,25 @@ func TestGetRecorderGoodURL(t *testing.T) {
 	url := "http://localhost"
 	r := rt.GetReader(url)
 	if r == nil {
-		t.Error("want (Recorder), got (nil)")
+		t.Error("r = (nil); want (Recorder)")
 	}
 	if r.Name() == "" {
-		t.Error("Name cannot be empty")
+		t.Error("r.Name(): Name cannot be empty")
 	}
 	if r.TypeName() == "" {
-		t.Error("TypeName cannot be empty")
+		t.Error("r.TypeName(): TypeName cannot be empty")
 	}
 	if r.Logger() == nil {
-		t.Error("want (Logger), got (nil)")
+		t.Error("r.Logger() = (nil); want (Logger)")
 	}
 	if r.Timeout() <= 0 {
-		t.Errorf("negative timeout: (%d)", r.Timeout())
+		t.Errorf("r.Timeout() = (%d); want (>1s)", r.Timeout())
 	}
 	if r.Backoff() < 5 {
-		t.Errorf("low backoff: (%d)", r.Backoff())
+		t.Errorf("r.Backoff() = (%d); want (>5)", r.Backoff())
 	}
 	if r.Interval() == 0 {
-		t.Error("Back off not set")
+		t.Error("r.Interval() = (0); want (>1s)")
 	}
 	url = "bad url"
 	var panicked bool
@@ -44,7 +44,7 @@ func TestGetRecorderGoodURL(t *testing.T) {
 		}()
 		rt.GetReader(url)
 		if !panicked {
-			t.Error("didn't panic on bad url")
+			t.Error("panicked = (false); want (true)")
 		}
 	}()
 }

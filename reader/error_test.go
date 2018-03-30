@@ -13,40 +13,40 @@ import (
 	"github.com/pkg/errors"
 )
 
-func TestErrInvalidEndpoint(t *testing.T) {
+func TestInvalidEndpointError(t *testing.T) {
 	msg := "the endpoint"
-	e := reader.ErrInvalidEndpoint(msg)
+	e := reader.InvalidEndpointError(msg)
 	check(t, e.Error(), msg)
 }
 
-func TestErrEndpointNotAvailable(t *testing.T) {
+func TestEndpointNotAvailableError(t *testing.T) {
 	endpoint := "the endpoint"
 	err := errors.New("my error")
-	e := reader.ErrEndpointNotAvailable{Endpoint: endpoint, Err: err}
+	e := reader.EndpointNotAvailableError{Endpoint: endpoint, Err: err}
 	check(t, e.Error(), endpoint)
 	check(t, e.Error(), err.Error())
 }
 
-func TestErrLowBackoffValue(t *testing.T) {
+func TestLowBackoffValueError(t *testing.T) {
 	backoff := 5
-	e := reader.ErrLowBackoffValue(backoff)
+	e := reader.LowBackoffValueError(backoff)
 	check(t, e.Error(), strconv.Itoa(backoff))
 }
 
-func TestErrLowInterval(t *testing.T) {
+func TestLowIntervalError(t *testing.T) {
 	interval := 5
-	e := reader.ErrLowInterval(interval)
+	e := reader.LowIntervalError(interval)
 	check(t, e.Error(), strconv.Itoa(interval))
 }
 
-func TestErrLowTimeout(t *testing.T) {
+func TestLowTimeoutError(t *testing.T) {
 	timeout := 5
-	e := reader.ErrLowTimeout(timeout)
+	e := reader.LowTimeoutError(timeout)
 	check(t, e.Error(), strconv.Itoa(timeout))
 }
 
 func check(t *testing.T, err, msg string) {
 	if !strings.Contains(err, msg) {
-		t.Errorf("want (%s) to be in (%s)", msg, err)
+		t.Errorf("Contains(err, msg): want (%s) to be in (%s)", msg, err)
 	}
 }

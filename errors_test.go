@@ -17,13 +17,13 @@ import (
 func TestErrPing(t *testing.T) {
 	name := "divine"
 	body := "is a myth"
-	err := expipe.ErrPing{name: fmt.Errorf(body)}
+	err := expipe.PingError{name: fmt.Errorf(body)}
 	check(t, err.Error(), name)
 	check(t, err.Error(), body)
 
 	name2 := "science"
 	body2 := "just works!"
-	err = expipe.ErrPing{
+	err = expipe.PingError{
 		name:  fmt.Errorf(body),
 		name2: fmt.Errorf(body2),
 	}
@@ -37,7 +37,7 @@ func TestErrJob(t *testing.T) {
 	name := "divine"
 	body := errors.New("is a myth")
 	id := token.NewUID()
-	err := expipe.ErrJob{
+	err := expipe.JobError{
 		ID:   id,
 		Name: name,
 		Err:  body,
@@ -49,6 +49,6 @@ func TestErrJob(t *testing.T) {
 
 func check(t *testing.T, err, msg string) {
 	if !strings.Contains(err, msg) {
-		t.Errorf("want (%s) in (%s)", msg, err)
+		t.Errorf("Contains(err, msg): want (%s) in (%s)", msg, err)
 	}
 }

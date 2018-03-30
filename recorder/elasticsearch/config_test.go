@@ -19,15 +19,15 @@ func TestWithLogger(t *testing.T) {
 	c := new(elasticsearch.Config)
 	err := elasticsearch.WithLogger(l)(c)
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	l = internal.DiscardLogger()
 	err = elasticsearch.WithLogger(l)(c)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if c.Logger() != l {
-		t.Errorf("want (%v), got (%v)", l, c.Logger())
+		t.Errorf("c.Logger() = (%v); want (%v)", c.Logger(), l)
 	}
 }
 
@@ -52,7 +52,7 @@ func TestWithViper(t *testing.T) {
 			c := new(elasticsearch.Config)
 			err := elasticsearch.WithViper(tc.v, tc.name, tc.key)(c)
 			if err == nil {
-				t.Error("want (error), got (nil)")
+				t.Error("err = (nil); want (error)")
 			}
 		})
 	}
@@ -74,19 +74,19 @@ func TestWithViperSuccess(t *testing.T) {
 	c := new(elasticsearch.Config)
 	err := elasticsearch.WithViper(v, "recorder1", "recorders.recorder1")(c)
 	if err != nil {
-		t.Fatalf("want (nil), got (%v)", err)
+		t.Fatalf("err = (%v); want (nil)", err)
 	}
 	if c.Backoff() != 15 {
-		t.Errorf("want (%d), got (%d)", 15, c.Backoff())
+		t.Errorf("c.Backoff() = (%d); want (%d)", c.Backoff(), 15)
 	}
 	if c.Timeout() != 10*time.Second {
-		t.Errorf("want (%d), got (%d)", 10*time.Second, c.Timeout())
+		t.Errorf("c.Timeout() = (%d); want (%d)", c.Timeout(), 10*time.Second)
 	}
 	if c.Endpoint() != "http://127.0.0.1:9200" {
-		t.Errorf("want (http://127.0.0.1:9200), got (%s)", c.Endpoint())
+		t.Errorf("c.Endpoint() = (%s); want (http://127.0.0.1:9200)", c.Endpoint())
 	}
 	if c.IndexName() != "example_index" {
-		t.Errorf("want (example_index), got (%s)", c.IndexName())
+		t.Errorf("c.IndexName() = (%s); want (example_index)", c.IndexName())
 	}
 }
 
@@ -105,7 +105,7 @@ interval: 2sq
 	c := new(elasticsearch.Config)
 	err := elasticsearch.WithViper(v, "recorder1", "recorders.recorder1")(c)
 	if err == nil {
-		t.Fatal("want (error), got (nil)")
+		t.Fatal("err = (nil); want (error)")
 	}
 
 	input = bytes.NewBuffer([]byte(`
@@ -118,7 +118,7 @@ interval: 2sq
 	v.ReadConfig(input)
 	err = elasticsearch.WithViper(v, "recorder1", "recorders.recorder1")(c)
 	if err == nil {
-		t.Fatal("want (error), got (nil)")
+		t.Fatal("err = (nil); want (error)")
 	}
 }
 
@@ -128,10 +128,10 @@ func TestNewConfig(t *testing.T) {
 		elasticsearch.WithLogger(log),
 	)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if c == nil {
-		t.Error("want (Config), got (nil)")
+		t.Error("c = (nil); want (Config)")
 	}
 }
 
@@ -145,22 +145,22 @@ func TestNewInstance(t *testing.T) {
 	c.ESEndpoint = "http://localhost"
 	c.ESBackoff = 5
 	if err != nil {
-		t.Fatalf("want (nil), got (%v)", err)
+		t.Fatalf("err = (%v); want (nil)", err)
 	}
 	e, err := c.NewInstance()
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	if e.(*elasticsearch.Recorder) != nil {
-		t.Errorf("want (nil), got (%v)", e)
+		t.Errorf("e = (%v); want (nil)", e)
 	}
 
 	c.ConfTimeout = time.Second
 	e, err = c.NewInstance()
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if e.(*elasticsearch.Recorder) == nil {
-		t.Error("want (Recorder), got (nil)")
+		t.Error("e = (nil); want (Recorder)")
 	}
 }

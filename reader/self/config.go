@@ -14,7 +14,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Config holds the necessary configuration for setting up an self reading facility.
+// Config holds the necessary configuration for setting up an self reading
+// facility, which is the way to record the app's metrics.
 type Config struct {
 	log          internal.FieldLogger
 	SelfName     string
@@ -29,7 +30,7 @@ type Config struct {
 // Conf func is used for initializing a Config object.
 type Conf func(*Config) error
 
-// NewConfig returns an instance of the expvar reader
+// NewConfig returns an instance of the expvar reader.
 func NewConfig(conf ...Conf) (*Config, error) {
 	obj := new(Config)
 	for _, c := range conf {
@@ -44,7 +45,7 @@ func NewConfig(conf ...Conf) (*Config, error) {
 	return obj, nil
 }
 
-// NewInstance instantiates a SelfReader
+// NewInstance instantiates a SelfReader by referencing Config's properties.
 func (c *Config) NewInstance() (reader.DataReader, error) {
 	return New(
 		reader.WithLogger(c.Logger()),
@@ -58,25 +59,25 @@ func (c *Config) NewInstance() (reader.DataReader, error) {
 	)
 }
 
-// Name returns the name
+// Name returns the name.
 func (c *Config) Name() string { return c.SelfName }
 
-// TypeName returns the typeName
+// TypeName returns the typeName.
 func (c *Config) TypeName() string { return c.SelfTypeName }
 
-// Endpoint returns the endpoint
+// Endpoint returns the endpoint.
 func (c *Config) Endpoint() string { return c.SelfEndpoint }
 
-// Interval returns the interval
+// Interval returns the interval.
 func (c *Config) Interval() time.Duration { return c.Cinterval }
 
-// Timeout returns the timeout
+// Timeout returns the timeout.
 func (c *Config) Timeout() time.Duration { return time.Second }
 
-// Logger returns the logger
+// Logger returns the logger.
 func (c *Config) Logger() internal.FieldLogger { return c.log }
 
-// Backoff returns the backoff
+// Backoff returns the backoff.
 func (c *Config) Backoff() int { return c.SelfBackoff }
 
 // WithLogger produces an error if the log is nil.
@@ -98,6 +99,7 @@ type unmarshaller interface {
 // WithViper produces an error any of the inputs are empty.
 func WithViper(v unmarshaller, name, key string) Conf {
 	return func(c *Config) error {
+		var interval time.Duration
 		if v == nil {
 			return errors.New("no config file")
 		}
@@ -105,13 +107,10 @@ func WithViper(v unmarshaller, name, key string) Conf {
 		if err != nil || v.AllKeys() == nil {
 			return errors.Wrap(err, "decoding config")
 		}
-
-		var interval time.Duration
 		if interval, err = time.ParseDuration(c.SelfInterval); err != nil {
 			return errors.Wrapf(err, "parse interval (%v)", c.SelfInterval)
 		}
 		c.Cinterval = interval
-
 		if c.SelfTypeName == "" {
 			return fmt.Errorf("type_name cannot be empty: %s", c.SelfTypeName)
 		}

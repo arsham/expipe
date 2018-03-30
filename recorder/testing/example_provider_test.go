@@ -14,22 +14,22 @@ func TestGetRecorderGoodURL(t *testing.T) {
 	url := "http://localhost"
 	r := rt.GetRecorder(url)
 	if r == nil {
-		t.Error("want (Recorder), got (nil)")
+		t.Error("r = (nil); want (Recorder)")
 	}
 	if r.Name() == "" {
-		t.Error("Name cannot be empty")
+		t.Error("r.Name() = (empty); want (string)")
 	}
 	if r.IndexName() == "" {
-		t.Error("IndexName cannot be empty")
+		t.Error("r.IndexName() = (empty); want (string)")
 	}
 	if r.Logger() == nil {
-		t.Error("want (Logger), got (nil)")
+		t.Error("r.Logger() = (nil); want () want (Logger), got (nil)")
 	}
 	if r.Timeout() <= 0 {
-		t.Errorf("negative timeout: (%d)", r.Timeout())
+		t.Errorf("r.Timeout() = (%d); want (>1s)", r.Timeout())
 	}
 	if r.Backoff() < 5 {
-		t.Errorf("low backoff: (%d)", r.Backoff())
+		t.Errorf("r.Backoff() = (%d); want (>=5)", r.Backoff())
 	}
 	url = "bad url"
 	var panicked bool
@@ -41,7 +41,7 @@ func TestGetRecorderGoodURL(t *testing.T) {
 		}()
 		rt.GetRecorder(url)
 		if !panicked {
-			t.Error("didn't panic on bad url")
+			t.Error("panic = (false); want (true): didn't panic on bad url")
 		}
 	}()
 }

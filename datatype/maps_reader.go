@@ -84,18 +84,18 @@ func (m *MapConvert) getMemoryTypes(prefix, name string, j *jason.Value) (DataTy
 	}
 	b := m.memoryTypes[strings.ToLower(name)]
 	if b.IsByte() {
-		return &ByteType{prefix + name, v}, true
+		return NewByteType(prefix+name, v), true
 	} else if b.IsKiloByte() {
-		return &KiloByteType{prefix + name, v}, true
+		return NewKiloByteType(prefix+name, v), true
 	} else if b.IsMegaByte() {
-		return &MegaByteType{prefix + name, v}, true
+		return NewMegaByteType(prefix+name, v), true
 	}
 	return nil, false
 }
 
 func (m *MapConvert) arrayValue(prefix, name string, a []*jason.Value) DataType {
 	if len(a) == 0 {
-		return &FloatListType{prefix + name, []float64{}}
+		return NewFloatListType(prefix+name, []float64{})
 	} else if _, err := a[0].Float64(); err == nil {
 		if internal.StringInSlice(name, m.gcTypes) {
 			return getGCList(prefix+name, a)
@@ -135,10 +135,10 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 			continue
 		} else if s, err := value.String(); err == nil {
 			expStringTypeCount.Add(1)
-			result = &StringType{prefix + name, s}
+			result = NewStringType(prefix+name, s)
 		} else if f, err := value.Float64(); err == nil {
 			expFloatTypeCount.Add(1)
-			result = &FloatType{prefix + name, f}
+			result = NewFloatType(prefix+name, f)
 		} else if arr, err := value.Array(); err == nil {
 			// we are dealing with an array object
 			result = m.arrayValue(prefix, name, arr)
@@ -173,7 +173,7 @@ func getGCList(name string, arr []*jason.Value) *GCListType {
 		}
 	}
 	expGCListTypeCount.Add(1)
-	return &GCListType{name, res}
+	return NewGCListType(name, res)
 }
 
 func getFloatListValues(name string, arr []*jason.Value) *FloatListType {
@@ -184,7 +184,7 @@ func getFloatListValues(name string, arr []*jason.Value) *FloatListType {
 		}
 	}
 	expFloatListTypeCount.Add(1)
-	return &FloatListType{name, res}
+	return NewFloatListType(name, res)
 }
 
 func (m memType) IsByte() bool     { return string(m) == "b" }

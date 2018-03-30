@@ -33,7 +33,9 @@ var (
 
 func TestMain(m *testing.M) {
 	log = internal.DiscardLogger()
-	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	testServer = httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+	)
 	exitCode := m.Run()
 	testServer.Close()
 	os.Exit(exitCode)
@@ -64,39 +66,36 @@ func sampleRecorder() (*rct.Recorder, error) {
 
 func TestNewWithReadRecorder(t *testing.T) {
 	ctx := context.Background()
-
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red2, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red2.SetName("d")
 
 	m := map[string]reader.DataReader{red.Name(): red, red2.Name(): red2}
 	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if e == nil {
-		t.Error("want Engine, got nil")
+		t.Error("e = (nil); want (Engine)")
 	}
 }
 
 func TestEngineSendJob(t *testing.T) {
 	var recorderID token.ID
 	ctx, cancel := context.WithCancel(context.Background())
-
 	red, err := sampleReader()
-
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red.ReadFunc = func(job *token.Context) (*reader.Result, error) {
 		recorderID = token.NewUID()
@@ -111,7 +110,7 @@ func TestEngineSendJob(t *testing.T) {
 
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if job.ID != recorderID {
@@ -123,7 +122,7 @@ func TestEngineSendJob(t *testing.T) {
 	m := map[string]reader.DataReader{red.Name(): red}
 	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	done := make(chan struct{})
 	go func() {
@@ -151,14 +150,13 @@ func TestEngineMultiReader(t *testing.T) {
 			idChan <- id
 		}(id)
 	}
-
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if !internal.StringInSlice(job.ID.String(), IDs) {
-			t.Errorf("want once of (%s), got (%s)", strings.Join(IDs, ","), job.ID)
+			t.Errorf("job.ID = (%s); want once of (%s)", job.ID, strings.Join(IDs, ","))
 		}
 		return nil
 	}
@@ -169,7 +167,7 @@ func TestEngineMultiReader(t *testing.T) {
 		name := fmt.Sprintf("reader_example_%d", i)
 		red, err = sampleReader()
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("err = (%#v); want (nil)", err)
 		}
 		red.SetName(name)
 		red.ReadFunc = func(job *token.Context) (*reader.Result, error) {
@@ -186,7 +184,7 @@ func TestEngineMultiReader(t *testing.T) {
 
 	e, err := expipe.EngineWithReadRecs(ctx, log, rec, reds)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	done := make(chan struct{})
 	go func() {
@@ -211,27 +209,27 @@ func TestEngineErrorsIfReaderNotPinged(t *testing.T) {
 
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	rec.SetEndpoint(recServer.URL)
 
 	red, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red.SetEndpoint(redServer.URL)
 
 	m := map[string]reader.DataReader{red.Name(): red}
 	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err == nil {
-		t.Error("want ErrPing, got nil")
+		t.Error("err = (nil); want (PingError)")
 	}
 
-	if _, ok := errors.Cause(err).(expipe.ErrPing); !ok {
-		t.Errorf("want ErrPing, got (%v)", err)
+	if _, ok := errors.Cause(err).(expipe.PingError); !ok {
+		t.Errorf("err = (%#v); want (PingError)", err)
 	}
 	if e != nil {
-		t.Errorf("want (nil), got (%v)", e)
+		t.Errorf("e = (%v); want (nil)", e)
 	}
 }
 
@@ -244,26 +242,26 @@ func TestEngineErrorsIfRecorderNotPinged(t *testing.T) {
 
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	rec.SetEndpoint(recServer.URL)
 
 	red, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	m := map[string]reader.DataReader{red.Name(): red}
 	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err == nil {
-		t.Error("want ErrPing, got nil")
+		t.Error("err = (nil); want (PingError)")
 	}
 
-	if _, ok := errors.Cause(err).(expipe.ErrPing); !ok {
-		t.Errorf("want ErrPing, got (%v)", err)
+	if _, ok := errors.Cause(err).(expipe.PingError); !ok {
+		t.Errorf("err = (%v); want (PingError)", err)
 	}
 	if e != nil {
-		t.Errorf("want (nil), got (%v)", e)
+		t.Errorf("e = (%v); want (nil)", e)
 	}
 }
 
@@ -276,17 +274,17 @@ func TestEngineOnlyErrorsIfNoneOfReadersPinged(t *testing.T) {
 
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red1, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red1.SetEndpoint(liveServer.URL)
 
 	red2, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red2.SetEndpoint(deadServer.URL)
 	red2.SetName("b")
@@ -295,30 +293,33 @@ func TestEngineOnlyErrorsIfNoneOfReadersPinged(t *testing.T) {
 	m := map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2}
 	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
-		t.Errorf("want nil, got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if e == nil {
-		t.Error("want Engine, got nil")
+		t.Error("e = (nil); want (Engine)")
 	}
 
 	// now the engine should error
 	red1, err = sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red1.SetEndpoint(deadServer.URL)
 	red1.SetName("a")
 	red1.SetTypeName("ddc")
 
-	e, err = expipe.EngineWithReadRecs(ctx, log, rec, map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2})
+	e, err = expipe.EngineWithReadRecs(ctx, log, rec, map[string]reader.DataReader{
+		red1.Name(): red1,
+		red2.Name(): red2,
+	})
 	if err == nil {
-		t.Error("want ErrPing, got nil")
+		t.Error("err = (nil); want (PingError)")
 	}
-	if _, ok := errors.Cause(err).(expipe.ErrPing); !ok {
-		t.Errorf("want ErrPing, got (%v)", err)
+	if _, ok := errors.Cause(err).(expipe.PingError); !ok {
+		t.Errorf("err = (%v); want (PingError)", err)
 	}
 	if e != nil {
-		t.Errorf("want (nil), got (%v)", e)
+		t.Errorf("e = (%v); want (nil)", e)
 	}
 }
 
@@ -334,13 +335,13 @@ func TestEngineShutsDownOnAllReadersGoOutOfScope(t *testing.T) {
 
 	red1, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red1.SetName("reader1_example")
 
 	red2, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red2.SetName("reader2_example")
 
@@ -372,14 +373,14 @@ func TestEngineShutsDownOnAllReadersGoOutOfScope(t *testing.T) {
 
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error { return nil }
 
 	m := map[string]reader.DataReader{red1.Name(): red1, red2.Name(): red2}
 	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	cleanExit := make(chan struct{})
@@ -413,13 +414,12 @@ func TestEngineShutsDownOnRecorderGoOutOfScope(t *testing.T) {
 	t.Parallel()
 	stopRecorder := uint32(0)
 	readerInterval := time.Millisecond * 10
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	red, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red.SetInterval(time.Millisecond * 50)
 
@@ -435,7 +435,7 @@ func TestEngineShutsDownOnRecorderGoOutOfScope(t *testing.T) {
 
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	rec.RecordFunc = func(ctx context.Context, job *recorder.Job) error {
 		if atomic.LoadUint32(&stopRecorder) > 0 {
@@ -447,7 +447,7 @@ func TestEngineShutsDownOnRecorderGoOutOfScope(t *testing.T) {
 	m := map[string]reader.DataReader{red.Name(): red}
 	e, err := expipe.EngineWithReadRecs(ctx, log, rec, m)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	cleanExit := make(chan struct{})
@@ -473,7 +473,7 @@ func TestFailsOnNilReader(t *testing.T) {
 
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	e, err := expipe.New(
@@ -482,10 +482,10 @@ func TestFailsOnNilReader(t *testing.T) {
 		expipe.WithRecorder(rec),
 	)
 	if errors.Cause(err) != expipe.ErrNoReader {
-		t.Errorf("want ErrNoReader, got (%v)", err)
+		t.Errorf("err = (%v); want (NoReaderError)", err)
 	}
 	if e != nil {
-		t.Errorf("want nil, got (%v)", e)
+		t.Errorf("e = (%v); want (Engine)", e)
 	}
 
 	e, err = expipe.New(
@@ -494,10 +494,10 @@ func TestFailsOnNilReader(t *testing.T) {
 		expipe.WithRecorder(rec),
 	)
 	if errors.Cause(err) != expipe.ErrNoReader {
-		t.Errorf("want ErrNoReader, got (%v)", err)
+		t.Errorf("err = (%v); want (NoReaderError)", err)
 	}
 	if e != nil {
-		t.Errorf("want nil, got (%v)", e)
+		t.Errorf("e = (%v); want (Engine)", e)
 	}
 }
 
@@ -506,21 +506,21 @@ func TestFailsOnNilRecorder(t *testing.T) {
 		expipe.WithRecorder(nil),
 	)
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	if e != nil {
-		t.Errorf("want nil, got (%v)", e)
+		t.Errorf("e = (%v); want (Engine)", e)
 	}
 }
 
 func TestEngineFailsNoLog(t *testing.T) {
 	red, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	e, err := expipe.New(
@@ -529,21 +529,21 @@ func TestEngineFailsNoLog(t *testing.T) {
 		expipe.WithCtx(context.Background()),
 	)
 	if errors.Cause(err) != expipe.ErrNoLogger {
-		t.Errorf("want (expipe.ErrNoLogger), got (%v)", err)
+		t.Errorf("err = (%v); want (expipe.ErrNoLogger)", err)
 	}
 	if e != nil {
-		t.Errorf("want (nil), got (%v)", e)
+		t.Errorf("e = (%v); want (nil)", e)
 	}
 }
 
 func TestEngineFailsNoCtx(t *testing.T) {
 	red, err := sampleReader()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	rec, err := sampleRecorder()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	e, err := expipe.New(
@@ -552,9 +552,9 @@ func TestEngineFailsNoCtx(t *testing.T) {
 		expipe.WithLogger(internal.DiscardLogger()),
 	)
 	if errors.Cause(err) != expipe.ErrNoCtx {
-		t.Errorf("want (expipe.ErrNoCtx), got (%v)", err)
+		t.Errorf("err = (%v); want (expipe.ErrNoCtx)", err)
 	}
 	if e != nil {
-		t.Errorf("want (nil), got (%v)", e)
+		t.Errorf("e = (%v); want (nil)", e)
 	}
 }

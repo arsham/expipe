@@ -43,18 +43,18 @@ type Reader struct {
 	pinged   bool
 }
 
-// New generates the Reader based on the provided options
+// New generates the Reader based on the provided options.
 // It returns and error on the following occasions:
 //
-//   +------------------+--------------------+
-//   |    Condition     |       Error        |
-//   +------------------+--------------------+
-//   | name == ""       | ErrEmptyName       |
-//   | endpoint == ""   | ErrEmptyEndpoint   |
-//   | Invalid endpoint | ErrInvalidEndpoint |
-//   | typeName == ""   | ErrEmptyTypeName   |
-//   | backoff < 5      | ErrLowBackoffValue |
-//   +------------------+--------------------+
+//   +------------------+----------------------+
+//   |    Condition     |        Error         |
+//   +------------------+----------------------+
+//   | name == ""       | ErrEmptyName         |
+//   | endpoint == ""   | ErrEmptyEndpoint     |
+//   | Invalid endpoint | InvalidEndpointError |
+//   | typeName == ""   | ErrEmptyTypeName     |
+//   | backoff < 5      | LowBackoffValueError |
+//   +------------------+----------------------+
 //
 func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	r := &Reader{}
@@ -64,11 +64,6 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 			return nil, errors.Wrap(err, "option creation")
 		}
 	}
-
-	if r.log == nil {
-		r.log = internal.GetLogger("error")
-	}
-	r.log = r.log.WithField("engine", "expipe")
 
 	if r.backoff < 5 {
 		r.backoff = 5
@@ -85,17 +80,21 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	if r.timeout == 0 {
 		r.timeout = 5 * time.Second
 	}
+	if r.log == nil {
+		r.log = internal.GetLogger("error")
+	}
+	r.log = r.log.WithField("engine", "expipe")
 	return r, nil
 }
 
 // Ping pings the endpoint and return nil if was successful.
-// It returns an ErrEndpointNotAvailable if the endpoint id unavailable.
+// It returns an EndpointNotAvailableError if the endpoint id unavailable.
 func (r *Reader) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
 	if err != nil {
-		return reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
+		return reader.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 	}
 	r.pinged = true
 	return nil
@@ -118,7 +117,7 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 			if strings.Contains(v.Error(), "getsockopt: connection refused") {
 				r.strike++
 			}
-			err = reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
+			err = reader.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 		}
 		r.log.WithField("reader", "expvar_reader").
 			WithField("name", r.Name()).
@@ -132,7 +131,6 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "reading buffer")
 	}
-
 	res := &reader.Result{
 		ID:       job.ID(),
 		Time:     time.Now(), // It is sensible to record the time now
@@ -144,50 +142,50 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	return res, nil
 }
 
-// Name shows the name identifier for this reader
+// Name shows the name identifier for this reader.
 func (r *Reader) Name() string { return r.name }
 
-// SetName sets the name of the reader
+// SetName sets the name of the reader.
 func (r *Reader) SetName(name string) { r.name = name }
 
-// Endpoint returns the endpoint
+// Endpoint returns the endpoint.
 func (r *Reader) Endpoint() string { return r.endpoint }
 
-// SetEndpoint sets the endpoint of the reader
+// SetEndpoint sets the endpoint of the reader.
 func (r *Reader) SetEndpoint(endpoint string) { r.endpoint = endpoint }
 
-// TypeName shows the typeName the recorder should record as
+// TypeName shows the typeName the recorder should record as.
 func (r *Reader) TypeName() string { return r.typeName }
 
-// SetTypeName sets the type name of the reader
+// SetTypeName sets the type name of the reader.
 func (r *Reader) SetTypeName(typeName string) { r.typeName = typeName }
 
-// Mapper returns the mapper object
+// Mapper returns the mapper object.
 func (r *Reader) Mapper() datatype.Mapper { return r.mapper }
 
-// SetMapper sets the mapper of the reader
+// SetMapper sets the mapper of the reader.
 func (r *Reader) SetMapper(mapper datatype.Mapper) { r.mapper = mapper }
 
-// Interval returns the interval
+// Interval returns the interval.
 func (r *Reader) Interval() time.Duration { return r.interval }
 
-// SetInterval sets the interval of the reader
+// SetInterval sets the interval of the reader.
 func (r *Reader) SetInterval(interval time.Duration) { r.interval = interval }
 
-// Timeout returns the time-out
+// Timeout returns the time-out.
 func (r *Reader) Timeout() time.Duration { return r.timeout }
 
-// SetTimeout sets the timeout of the reader
+// SetTimeout sets the timeout of the reader.
 func (r *Reader) SetTimeout(timeout time.Duration) { r.timeout = timeout }
 
-// Backoff returns the backoff
+// Backoff returns the backoff.
 func (r *Reader) Backoff() int { return r.backoff }
 
-// SetBackoff sets the backoff of the reader
+// SetBackoff sets the backoff of the reader.
 func (r *Reader) SetBackoff(backoff int) { r.backoff = backoff }
 
-// Logger returns the log
+// Logger returns the log.
 func (r *Reader) Logger() internal.FieldLogger { return r.log }
 
-// SetLogger sets the log of the reader
+// SetLogger sets the log of the reader.
 func (r *Reader) SetLogger(log internal.FieldLogger) { r.log = log }

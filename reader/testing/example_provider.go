@@ -11,7 +11,7 @@ import (
 	"github.com/arsham/expipe/reader"
 )
 
-// GetReader provides a SimpleReader for using in the example.
+// GetReader provides a MockReader for using in the example.
 func GetReader(url string) *Reader {
 	log := internal.DiscardLogger()
 	red, err := New(

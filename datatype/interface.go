@@ -13,11 +13,14 @@ import (
 
 // DataType represents a single paired data. The key of the json value
 // is mapped to Key, and the value is to Value.
-// Write includes both Key and Value.
-// THe Equal method comparison of the value is not ordered.
+// Read includes both Key and Value.
+// The Equal method comparison of the value is not ordered.
+// Reset resets the buffer to be empty, but it retains the underlying storage
+// for use by future writes.
 type DataType interface {
-	Write(p io.Writer) (n int, err error)
+	Read(p []byte) (n int, err error)
 	Equal(other DataType) bool
+	Reset()
 }
 
 // DataContainer is an interface for holding a list of DataType.

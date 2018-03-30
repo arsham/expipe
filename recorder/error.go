@@ -9,13 +9,14 @@ import (
 	"time"
 )
 
-// ErrEmptyName is the error when the package name is empty.
-// ErrEmptyEndpoint is the error when the given endpoint is empty.
-// ErrEmptyIndexName is the error when the index_name is an empty string.
-// ErrBackoffExceeded is the error when the endpoint's absence has exceeded the
+// Recorder related errors.
+// ErrEmptyName is returned when the package name is empty.
+// ErrEmptyEndpoint is returned when the given endpoint is empty.
+// ErrEmptyIndexName is returned when the index_name is an empty string.
+// ErrBackoffExceeded is returned when the endpoint's absence has exceeded the
 // backoff value. It is not strictly an error, it is however a pointer to an
 // error in the past.
-// ErrPingNotCalled is the error if the caller calls the record without pinging.
+// ErrPingNotCalled is returned if the caller calls the record without pinging.
 var (
 	ErrEmptyName       = fmt.Errorf("name cannot be empty")
 	ErrEmptyEndpoint   = fmt.Errorf("endpoint cannot be empty")
@@ -24,50 +25,50 @@ var (
 	ErrPingNotCalled   = fmt.Errorf("the caller forgot to ask me pinging")
 )
 
-// ErrInvalidEndpoint is the error when the endpoint is not a valid url
-type ErrInvalidEndpoint string
+// InvalidEndpointError is returned when the endpoint is not a valid URL.
+type InvalidEndpointError string
 
-func (e ErrInvalidEndpoint) Error() string {
+func (e InvalidEndpointError) Error() string {
 	return fmt.Sprintf("invalid endpoint: %s", string(e))
 }
 
-// ErrLowBackoffValue is the error when the endpoint is not a valid url
-type ErrLowBackoffValue int64
+// LowBackoffValueError is returned when the endpoint is not a valid URL.
+type LowBackoffValueError int64
 
-func (e ErrLowBackoffValue) Error() string {
+func (e LowBackoffValueError) Error() string {
 	return fmt.Sprintf("back off should be at least 5: %d", e)
 }
 
-// ErrParseTimeOut is for when the timeout cannot be parsed
-type ErrParseTimeOut struct {
+// ParseTimeOutError is returned when the timeout cannot be parsed.
+type ParseTimeOutError struct {
 	Timeout string
 	Err     error
 }
 
-func (e ErrParseTimeOut) Error() string {
+func (e ParseTimeOutError) Error() string {
 	return fmt.Sprintf("parse timeout (%s): %s", e.Timeout, e.Err)
 }
 
-// ErrEndpointNotAvailable is the error when the endpoint is not available.
-type ErrEndpointNotAvailable struct {
+// EndpointNotAvailableError is returned when the endpoint is not available.
+type EndpointNotAvailableError struct {
 	Endpoint string
 	Err      error
 }
 
-func (e ErrEndpointNotAvailable) Error() string {
+func (e EndpointNotAvailableError) Error() string {
 	return fmt.Sprintf("endpoint (%s) not available: %s", e.Endpoint, e.Err)
 }
 
-// ErrInvalidIndexName is the error when the index name is invalid.
-type ErrInvalidIndexName string
+// InvalidIndexNameError is returned when the index name is invalid.
+type InvalidIndexNameError string
 
-func (e ErrInvalidIndexName) Error() string {
+func (e InvalidIndexNameError) Error() string {
 	return fmt.Sprintf("Index name (%s) is not valid", string(e))
 }
 
-// ErrLowTimeout is the error when the interval is zero
-type ErrLowTimeout time.Duration
+// LowTimeout is returned when the interval is zero.
+type LowTimeout time.Duration
 
-func (e ErrLowTimeout) Error() string {
+func (e LowTimeout) Error() string {
 	return fmt.Sprintf("timeout should be more than 1 second: %d", e)
 }

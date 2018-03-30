@@ -23,11 +23,10 @@ type errMessage string
 
 func (e errMessage) Error() string { return string(e) }
 
-// inspectLogs checks if the niddle is found in the entries
-// the entries might have been stacked, we need to iterate over.
+// inspectLogs checks if the niddle is found in the entries.
+// The entries might have been stacked, we need to iterate over.
 func inspectLogs(entries []*logrus.Entry, niddle string) (all string, found bool) {
 	var res []string
-
 	for _, field := range entries {
 		if strings.Contains(field.Message, niddle) {
 			return "", true
@@ -44,7 +43,7 @@ func TestEventLoopClosingContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	e, err := withRecorder(ctx, log)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 	red, err := rt.New(
 		reader.WithLogger(internal.DiscardLogger()),
@@ -56,7 +55,7 @@ func TestEventLoopClosingContext(t *testing.T) {
 		reader.WithBackoff(5),
 	)
 	if err != nil {
-		t.Fatalf("unexpected error occurred during reader creation: %v", err)
+		t.Fatalf("err = (%#v); want (nil): unexpected error occurred during reader creation", err)
 	}
 	e.setReaders(map[string]reader.DataReader{red.Name(): red})
 
@@ -75,7 +74,7 @@ func TestEventLoopClosingContext(t *testing.T) {
 		// sometimes it takes time for logrus to register the error, trying again
 		time.Sleep(500 * time.Millisecond)
 		if all, found := inspectLogs(hook.Entries, contextCanceled); !found {
-			t.Errorf("want (%s) in the error, got (%v)", contextCanceled, all)
+			t.Errorf("inspectLogs: all = (%v); want (%s) in the error", all, contextCanceled)
 		}
 	}
 }

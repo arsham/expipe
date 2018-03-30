@@ -104,7 +104,7 @@ func getReaders(v *viper.Viper) (map[string]string, error) {
 	readers := make(map[string]string)
 
 	if !v.IsSet("readers") {
-		return nil, NewErrNotSpecified("readers", "", nil)
+		return nil, NewNotSpecifiedError("readers", "", nil)
 	}
 
 	for reader := range v.GetStringMap("readers") {
@@ -116,7 +116,7 @@ func getReaders(v *viper.Viper) (map[string]string, error) {
 		case "":
 			fallthrough
 		default:
-			return nil, NewErrNotSpecified(reader, "type", nil)
+			return nil, NewNotSpecifiedError(reader, "type", nil)
 		}
 	}
 	return readers, nil
@@ -128,7 +128,7 @@ func getRecorders(v *viper.Viper) (map[string]string, error) {
 	recorders := make(map[string]string)
 
 	if !v.IsSet("recorders") {
-		return nil, NewErrNotSpecified("recorders", "", nil)
+		return nil, NewNotSpecifiedError("recorders", "", nil)
 	}
 
 	for recorder := range v.GetStringMap("recorders") {
@@ -138,7 +138,7 @@ func getRecorders(v *viper.Viper) (map[string]string, error) {
 		case "":
 			fallthrough
 		default:
-			return nil, NewErrNotSpecified(recorder, "type", nil)
+			return nil, NewNotSpecifiedError(recorder, "type", nil)
 		}
 	}
 	return recorders, nil
@@ -147,7 +147,7 @@ func getRecorders(v *viper.Viper) (map[string]string, error) {
 func getRoutes(v *viper.Viper) (routeMap, error) {
 	routes := make(map[string]route)
 	if !v.IsSet("routes") {
-		return nil, NewErrNotSpecified("routes", "", nil)
+		return nil, NewNotSpecifiedError("routes", "", nil)
 	}
 
 	for name := range v.GetStringMap("routes") {
@@ -155,7 +155,7 @@ func getRoutes(v *viper.Viper) (routeMap, error) {
 		for recRedType, list := range v.GetStringMapStringSlice("routes." + name) {
 			for _, target := range list {
 				if strings.Contains(target, ",") {
-					return nil, NewErrRouters(recRedType, "not an array or single value", nil)
+					return nil, NewRoutersError(recRedType, "not an array or single value", nil)
 				}
 
 				if recRedType == "readers" {
@@ -168,11 +168,11 @@ func getRoutes(v *viper.Viper) (routeMap, error) {
 		}
 
 		if len(routes[name].readers) == 0 {
-			return nil, NewErrRouters("readers", "is empty", nil)
+			return nil, NewRoutersError("readers", "is empty", nil)
 		}
 
 		if len(routes[name].recorders) == 0 {
-			return nil, NewErrRouters("recorders", "is empty", nil)
+			return nil, NewRoutersError("recorders", "is empty", nil)
 		}
 	}
 	return routes, nil
@@ -183,12 +183,12 @@ func checkAgainstReadRecorders(routes routeMap, readerKeys, recorderKeys map[str
 	for _, section := range routes {
 		for _, reader := range section.readers {
 			if !internal.StringInMapKeys(reader, readerKeys) {
-				return NewErrRouters("routers", reader+" not in readers", nil)
+				return NewRoutersError("routers", reader+" not in readers", nil)
 			}
 		}
 		for _, recorder := range section.recorders {
 			if !internal.StringInMapKeys(recorder, recorderKeys) {
-				return NewErrRouters("routers", recorder+" not in recorders", nil)
+				return NewRoutersError("routers", recorder+" not in recorders", nil)
 			}
 		}
 	}
@@ -242,7 +242,7 @@ func parseReader(v *viper.Viper, log internal.FieldLogger, readerType, name stri
 		}
 		return rc.NewInstance()
 	}
-	return nil, ErrNotSupported(readerType)
+	return nil, NotSupportedError(readerType)
 }
 
 func readRecorders(v *viper.Viper, log internal.FieldLogger, recorderType, name string) (recorder.DataRecorder, error) {
@@ -257,7 +257,7 @@ func readRecorders(v *viper.Viper, log internal.FieldLogger, recorderType, name 
 		}
 		return rc.NewInstance()
 	}
-	return nil, ErrNotSupported(recorderType)
+	return nil, NotSupportedError(recorderType)
 }
 
 func mapReadersRecorders(routes routeMap) map[string][]string {

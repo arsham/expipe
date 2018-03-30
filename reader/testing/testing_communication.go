@@ -6,109 +6,79 @@ package testing
 
 import (
 	"context"
+	"testing"
 	"time"
 
-	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/token"
-	gin "github.com/onsi/ginkgo"
-	gom "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 )
 
-// testReaderReceivesJob is a test helper to test the reader can receive jobs
-func testReaderReceivesJob(cons Constructor) {
-	gin.Context("Having a reader setup", func() {
-		var (
-			err error
-			red reader.DataReader
-		)
-		cons.SetName("the name")
-		cons.SetTypeName("my type")
-		cons.SetEndpoint(cons.TestServer().URL)
-		cons.SetInterval(time.Hour)
-		cons.SetTimeout(time.Hour)
-		cons.SetBackoff(5)
-
-		gin.Context("when creating the reader", func() {
-			red, err = cons.Object()
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-		})
-
-		gin.Context("when pinging", func() {
-			err = red.Ping()
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-		})
-
-		gin.Context("When reading from the endpoint", func() {
-
-			ctx := context.Background()
-			result, err := red.Read(token.New(ctx))
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-			gin.Specify("result should not be nil", func() {
-				gom.Expect(result).NotTo(gom.BeNil())
-			})
-			gin.Specify("result.ID should not be empty", func() {
-				gom.Expect(result.ID).NotTo(gom.BeEmpty())
-			})
-			gin.Specify("result.TypeName should not be empty", func() {
-				gom.Expect(result.TypeName).NotTo(gom.BeEmpty())
-			})
-			gin.Specify("result.Content should not be nil", func() {
-				gom.Expect(result.Content).NotTo(gom.BeNil())
-			})
-			gin.Specify("result.Mapper should not be nil", func() {
-				gom.Expect(result.Mapper).NotTo(gom.BeNil())
-			})
-		})
-	})
+// readerReceivesJob is a test helper to test the reader can receive jobs.
+func readerReceivesJob(t testing.TB, cons Constructor) {
+	ctx := context.Background()
+	cons.SetName("the name")
+	cons.SetTypeName("my type")
+	cons.SetEndpoint(cons.TestServer().URL)
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+	red, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	err = red.Ping()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	result, err := red.Read(token.New(ctx))
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	if result == nil {
+		t.Fatal("results = (nil); want (values)")
+	}
+	if result.ID == (token.ID{}) {
+		t.Error("result.ID = (nil); want (token.ID)")
+	}
+	if result.TypeName == "" {
+		t.Error("result.TypeName is (empty); want (TypeName)")
+	}
+	if result.Content == nil {
+		t.Error("result.Content = (nil); want (Content)")
+	}
+	if result.Mapper == nil {
+		t.Error("result.Mapper = (nil); want (Mapper)")
+	}
 }
 
-// testReaderReturnsSameID is a test helper to test the reader returns the same ID in the response
-func testReaderReturnsSameID(cons Constructor) {
-	gin.Context("Having a reader set up", func() {
-		var (
-			red reader.DataReader
-			err error
-		)
-		cons.SetName("the name")
-		cons.SetTypeName("my type")
-		cons.SetEndpoint(cons.TestServer().URL)
-		cons.SetInterval(time.Hour)
-		cons.SetTimeout(time.Hour)
-		cons.SetBackoff(5)
+// readerReturnsSameID is a test helper to test the reader returns the same ID
+// in the response.
+func readerReturnsSameID(t testing.TB, cons Constructor) {
+	ctx := context.Background()
+	job := token.New(ctx)
+	cons.SetName("the name")
+	cons.SetTypeName("my type")
+	cons.SetEndpoint(cons.TestServer().URL)
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
 
-		gin.Context("when creating the reader", func() {
-			red, err = cons.Object()
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-		})
-		gin.Context("when pinging the endpoint", func() {
-			err = red.Ping()
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-		})
-
-		gin.Context("when reading from the endpoint", func() {
-
-			ctx := context.Background()
-			job := token.New(ctx)
-			result, err := red.Read(job)
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-			gin.Specify("result should not be nil", func() {
-				gom.Expect(result).NotTo(gom.BeNil())
-			})
-			gin.Specify("result.ID should be job.ID", func() {
-				gom.Expect(result.ID).To(gom.Equal(job.ID()))
-			})
-		})
-	})
+	red, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
+	err = red.Ping()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
+	result, err := red.Read(job)
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
+	if result == nil {
+		t.Fatal("result = (nil); want (values)")
+	}
+	if result.ID != job.ID() {
+		t.Errorf("result.ID = (%v); want (%v)", result.ID, job.ID())
+	}
 }

@@ -37,11 +37,11 @@ func TestSanitiseURLErrors(t *testing.T) {
 				t.Errorf("want (%v), got (%v)", tc.expected, res)
 			}
 			err = errors.Cause(err)
-			if _, ok := err.(internal.ErrInvalidURL); !ok {
-				t.Errorf("want (ErrInvalidURL) type, got (%v)", err)
+			if _, ok := err.(internal.InvalidURLError); !ok {
+				t.Errorf("want (InvalidURLError) type, got (%v)", err)
 			}
-			if err.Error() != internal.ErrInvalidURL(tc.input).Error() {
-				t.Errorf("want (%v), got (%v)", internal.ErrInvalidURL(tc.input), err)
+			if err.Error() != internal.InvalidURLError(tc.input).Error() {
+				t.Errorf("want (%v), got (%v)", internal.InvalidURLError(tc.input), err)
 			}
 		})
 	}

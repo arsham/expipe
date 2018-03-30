@@ -6,110 +6,80 @@ package testing
 
 import (
 	"context"
+	"testing"
 	"time"
 
 	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/recorder"
 	"github.com/arsham/expipe/token"
-	gin "github.com/onsi/ginkgo"
-	gom "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 )
 
-// testRecorderReceivesPayload tests the recorder receives the payload correctly.
-func testRecorderReceivesPayload(cons Constructor) {
-	gin.Context("With correctly created recorder", func() {
-		var (
-			err error
-			rec recorder.DataRecorder
-		)
-		ctx := context.Background()
-		cons.SetName("the name")
-		cons.SetIndexName("my_index")
-		cons.SetTimeout(time.Second)
-		cons.SetBackoff(5)
-		cons.SetEndpoint(cons.TestServer().URL)
-
-		gin.Context("by creating recorder", func() {
-			rec, err = cons.Object()
-			gin.It("should not error", func() {
-				gom.Expect(err).ToNot(gom.HaveOccurred())
-			})
-			gin.Specify("recorder should not be nil", func() {
-				gom.Expect(rec).NotTo(gom.BeNil())
-			})
-		})
-
-		gin.Context("when pinging the endpoint", func() {
-			err = rec.Ping()
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-		})
-
-		gin.Context("when sending payload", func() {
-			p := datatype.New([]datatype.DataType{})
-			payload := &recorder.Job{
-				ID:        token.NewUID(),
-				Payload:   p,
-				IndexName: "my index",
-				TypeName:  "my type",
-				Time:      time.Now(),
-			}
-
-			received := make(chan struct{})
-			go func() {
-				rec.Record(ctx, payload)
-				received <- struct{}{}
-			}()
-			gin.It("should receive the payload", func(done gin.Done) {
-				<-received
-				close(done)
-			}, 5)
-		})
-	})
+// recorderReceivesPayload tests the recorder receives the payload correctly.
+func recorderReceivesPayload(t *testing.T, cons Constructor) {
+	ctx := context.Background()
+	cons.SetName("the name")
+	cons.SetIndexName("my_index")
+	cons.SetTimeout(time.Second)
+	cons.SetBackoff(5)
+	cons.SetEndpoint(cons.TestServer().URL)
+	rec, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	if rec == nil {
+		t.Fatal("rec = (nil); want (DataRecorder)")
+	}
+	err = rec.Ping()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	p := datatype.New([]datatype.DataType{})
+	payload := &recorder.Job{
+		ID:        token.NewUID(),
+		Payload:   p,
+		IndexName: "my index",
+		TypeName:  "my type",
+		Time:      time.Now(),
+	}
+	received := make(chan struct{})
+	go func() {
+		rec.Record(ctx, payload)
+		received <- struct{}{}
+	}()
+	select {
+	case <-received:
+	case <-time.After(5 * time.Second):
+		t.Error("didn't receive the payload")
+	}
 }
 
-// testRecorderSendsResult tests the recorder send the results to the endpoint.
-func testRecorderSendsResult(cons Constructor) {
-	gin.Context("with initially created recorder", func() {
-		var (
-			err error
-			rec recorder.DataRecorder
-		)
-		ctx := context.Background()
-		cons.SetName("the name")
-		cons.SetIndexName("index_name")
-		cons.SetTimeout(time.Second)
-		cons.SetBackoff(15)
-		cons.SetEndpoint(cons.TestServer().URL)
-
-		gin.Context("when getting the object", func() {
-			rec, err = cons.Object()
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-		})
-		gin.Context("when pinging the endpoint", func() {
-			err = rec.Ping()
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-		})
-
-		gin.Context("when payload is received and result is recorded", func() {
-			p := datatype.New([]datatype.DataType{&datatype.StringType{Key: "test", Value: "test"}})
-			payload := &recorder.Job{
-				ID:        token.NewUID(),
-				Payload:   p,
-				IndexName: "my_index",
-				TypeName:  "my_type",
-				Time:      time.Now(),
-			}
-
-			err = rec.Record(ctx, payload)
-			gin.It("should not error", func() {
-				gom.Expect(err).NotTo(gom.HaveOccurred())
-			})
-		})
-	})
+// recorderSendsResult tests the recorder send the results to the endpoint.
+func recorderSendsResult(t *testing.T, cons Constructor) {
+	ctx := context.Background()
+	cons.SetName("the name")
+	cons.SetIndexName("index_name")
+	cons.SetTimeout(time.Second)
+	cons.SetBackoff(15)
+	cons.SetEndpoint(cons.TestServer().URL)
+	rec, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	err = rec.Ping()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	p := datatype.New([]datatype.DataType{&datatype.StringType{Key: "test", Value: "test"}})
+	payload := &recorder.Job{
+		ID:        token.NewUID(),
+		Payload:   p,
+		IndexName: "my_index",
+		TypeName:  "my_type",
+		Time:      time.Now(),
+	}
+	err = rec.Record(ctx, payload)
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
 }

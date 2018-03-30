@@ -16,7 +16,7 @@ import (
 	"github.com/arsham/expipe/token"
 )
 
-// The other test goes through a normal path, we need to test the actual path
+// The other test goes through a normal path, we need to test the actual path.
 func TestSelfReaderReadsExpvar(t *testing.T) {
 	log := internal.DiscardLogger()
 	ts := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
@@ -31,33 +31,32 @@ func TestSelfReaderReadsExpvar(t *testing.T) {
 		timeout:  time.Hour,
 		endpoint: ts.URL,
 		backoff:  5,
-		testMode: true, // so we can ping, then we will make it false
+		testMode: true, // so we can ping, then we will make it false.
 	}
 	err := red.Ping()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
-	red.testMode = false // set it so it goes through the normal mode
+	red.testMode = false // set it so it goes through the normal mode.
 	job := token.New(context.Background())
 	res, err := red.Read(job)
 	if err != nil {
-		t.Fatalf("want nil, got (%s)", err)
+		t.Fatalf("err = (%s); want (nil)", err)
 	}
 	if res == nil {
-		t.Fatal("want result, got nil")
+		t.Fatal("res = (nil); want (result)")
 	}
 	if res.ID != job.ID() {
-		t.Errorf("want (%s), got (%s)", res.ID, job.ID())
+		t.Errorf("res.ID = (%s); want (%s)", job.ID(), res.ID)
 	}
 	if res.TypeName != typeName {
-		t.Errorf("want (%s), got (%s)", typeName, res.TypeName)
+		t.Errorf("res.TypeName = (%s); want (%s)", res.TypeName, typeName)
 	}
 	if res.Mapper != mapper {
-		t.Errorf("want (%s), got (%s)", typeName, res.TypeName)
+		t.Errorf("res.TypeName = (%s); want (%s)", res.TypeName, typeName)
 	}
-
 	container, _ := datatype.JobResultDataTypes(res.Content, mapper)
 	if container.Len() == 0 {
-		t.Error("empty container")
+		t.Error("container.Len() = 0; want (!= 0)")
 	}
 }

@@ -7,7 +7,6 @@ package expvar_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/arsham/expipe/reader"
@@ -15,22 +14,22 @@ import (
 	rt "github.com/arsham/expipe/reader/testing"
 )
 
-var (
-	testServer *httptest.Server
-)
-
-func TestMain(m *testing.M) {
-	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	exitCode := m.Run()
-	testServer.Close()
-	os.Exit(exitCode)
+func getTestServer() *httptest.Server {
+	return httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+	)
 }
 
 type Construct struct {
 	*expvar.Reader
+	testServer *httptest.Server
 }
 
-func (c *Construct) TestServer() *httptest.Server { return testServer }
+func (c *Construct) TestServer() *httptest.Server {
+	c.testServer = getTestServer()
+	return c.testServer
+}
+
 func (c *Construct) Object() (reader.DataReader, error) {
 	return expvar.New(
 		reader.WithEndpoint(c.Endpoint()),
@@ -44,10 +43,12 @@ func (c *Construct) Object() (reader.DataReader, error) {
 }
 
 func TestExpvarReader(t *testing.T) {
-	r, err := expvar.New(reader.WithName("test"))
-	if err != nil {
-		panic(err)
-	}
-	c := &Construct{r}
-	rt.TestSuites(t, c)
+	rt.TestSuites(t, func() (rt.Constructor, func()) {
+		r, err := expvar.New(reader.WithName("test"))
+		if err != nil {
+			panic(err)
+		}
+		c := &Construct{Reader: r, testServer: getTestServer()}
+		return c, func() { c.testServer.Close() }
+	})
 }

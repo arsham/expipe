@@ -19,7 +19,9 @@ func BenchmarkRecorder(b *testing.B) {
 	log := internal.DiscardLogger()
 	ctx := context.Background()
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+	)
 	defer ts.Close()
 
 	rec, err := New(

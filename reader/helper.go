@@ -57,7 +57,7 @@ func WithEndpoint(endpoint string) func(Constructor) error {
 		}
 		url, err := internal.SanitiseURL(endpoint)
 		if err != nil {
-			return ErrInvalidEndpoint(endpoint)
+			return InvalidEndpointError(endpoint)
 		}
 		e.SetEndpoint(url)
 		return nil
@@ -90,7 +90,7 @@ func WithTypeName(typeName string) func(Constructor) error {
 func WithInterval(interval time.Duration) func(Constructor) error {
 	return func(e Constructor) error {
 		if interval == time.Duration(0) {
-			return ErrLowInterval(interval)
+			return LowIntervalError(interval)
 		}
 		e.SetInterval(interval)
 		return nil
@@ -101,7 +101,7 @@ func WithInterval(interval time.Duration) func(Constructor) error {
 func WithTimeout(timeout time.Duration) func(Constructor) error {
 	return func(e Constructor) error {
 		if timeout < time.Second {
-			return ErrLowTimeout(timeout)
+			return LowTimeoutError(timeout)
 		}
 		e.SetTimeout(timeout)
 		return nil
@@ -112,7 +112,7 @@ func WithTimeout(timeout time.Duration) func(Constructor) error {
 func WithBackoff(backoff int) func(Constructor) error {
 	return func(e Constructor) error {
 		if backoff < 5 {
-			return ErrLowBackoffValue(backoff)
+			return LowBackoffValueError(backoff)
 		}
 		e.SetBackoff(backoff)
 		return nil

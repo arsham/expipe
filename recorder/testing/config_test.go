@@ -31,24 +31,24 @@ func TestConfigNewinstance(t *testing.T) {
 	r, err := c.NewInstance()
 	rec, ok := r.(*rt.Recorder)
 	if !ok {
-		t.Error("want (true), got (false)")
+		t.Error("ok = (false); want (true)")
 	}
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if rec.Name() != c.Name() {
-		t.Errorf("want (%v) to be (%v)", rec.Name(), c.Name())
+		t.Errorf("rec.Name() = (%v); want (%v)", rec.Name(), c.Name())
 	}
 	if rec.Endpoint() != c.Endpoint() {
-		t.Errorf("want (%v) to be (%v)", rec.Endpoint(), c.Endpoint())
+		t.Errorf("rec.Endpoint() = (%v); want (%v)", rec.Endpoint(), c.Endpoint())
 	}
 	if rec.Timeout() != c.Timeout() {
-		t.Errorf("want (%v) to be (%v)", rec.Timeout(), c.Timeout())
+		t.Errorf("rec.Timeout() = (%v); want (%v)", rec.Timeout(), c.Timeout())
 	}
 	if rec.Backoff() != c.Backoff() {
-		t.Errorf("want (%v) to be (%v)", rec.Backoff(), c.Backoff())
+		t.Errorf("rec.Backoff() = (%v); want (%v)", rec.Backoff(), c.Backoff())
 	}
 	if rec.IndexName() != c.IndexName() {
-		t.Errorf("want (%v) to be (%v)", rec.IndexName(), c.IndexName())
+		t.Errorf("rec.IndexName() = (%v); want (%v)", rec.IndexName(), c.IndexName())
 	}
 }

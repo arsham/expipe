@@ -7,31 +7,30 @@ package testing_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/arsham/expipe/reader"
-	reader_test "github.com/arsham/expipe/reader/testing"
+	rt "github.com/arsham/expipe/reader/testing"
 )
 
-var (
-	testServer *httptest.Server
-)
-
-func TestMain(m *testing.M) {
-	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	exitCode := m.Run()
-	testServer.Close()
-	os.Exit(exitCode)
+func getTestServer() *httptest.Server {
+	return httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+	)
 }
 
 type Construct struct {
-	*reader_test.Reader
+	*rt.Reader
+	testServer *httptest.Server
 }
 
-func (c *Construct) TestServer() *httptest.Server { return testServer }
+func (c *Construct) TestServer() *httptest.Server {
+	c.testServer = getTestServer()
+	return c.testServer
+}
+
 func (c *Construct) Object() (reader.DataReader, error) {
-	return reader_test.New(
+	return rt.New(
 		reader.WithEndpoint(c.Endpoint()),
 		reader.WithName(c.Name()),
 		reader.WithTypeName(c.TypeName()),
@@ -43,11 +42,13 @@ func (c *Construct) Object() (reader.DataReader, error) {
 	)
 }
 
-func TestSimpleReader(t *testing.T) {
-	r, err := reader_test.New(reader.WithName("test"))
-	if err != nil {
-		panic(err)
-	}
-	c := &Construct{r}
-	reader_test.TestSuites(t, c)
+func TestMockReader(t *testing.T) {
+	rt.TestSuites(t, func() (rt.Constructor, func()) {
+		r, err := rt.New(reader.WithName("test"))
+		if err != nil {
+			panic(err)
+		}
+		c := &Construct{Reader: r, testServer: getTestServer()}
+		return c, func() { c.testServer.Close() }
+	})
 }

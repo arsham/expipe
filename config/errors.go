@@ -38,15 +38,15 @@ func (e *StructureErr) Error() string {
 	return s
 }
 
-// ErrNotSpecified is returned when a section is not specified
-type ErrNotSpecified StructureErr
+// NotSpecifiedError is returned when a section is not specified
+type NotSpecifiedError StructureErr
 
-// NewErrNotSpecified instantiates an ErrNotSpecified with the given input
-func NewErrNotSpecified(section, reason string, err error) *ErrNotSpecified {
-	return &ErrNotSpecified{section, reason, err}
+// NewNotSpecifiedError instantiates an ErrNotSpecified with the given input
+func NewNotSpecifiedError(section, reason string, err error) *NotSpecifiedError {
+	return &NotSpecifiedError{section, reason, err}
 }
 
-func (e *ErrNotSpecified) Error() string {
+func (e *NotSpecifiedError) Error() string {
 	if e == nil {
 		return NilStr
 	}
@@ -63,16 +63,16 @@ func (e *ErrNotSpecified) Error() string {
 	return s
 }
 
-// ErrRouters represents an error when routes are not configured correctly.
+// RoutersError represents an error when routes are not configured correctly.
 // The section on this error is the subsection of the route.
-type ErrRouters struct{ StructureErr }
+type RoutersError struct{ StructureErr }
 
-// NewErrRouters instantiates an ErrRouters with the given input
-func NewErrRouters(section, reason string, err error) *ErrRouters {
-	return &ErrRouters{StructureErr{section, reason, err}}
+// NewRoutersError instantiates an RoutersError with the given input
+func NewRoutersError(section, reason string, err error) *RoutersError {
+	return &RoutersError{StructureErr{section, reason, err}}
 }
 
-func (e *ErrRouters) Error() string {
+func (e *RoutersError) Error() string {
 	if e == nil {
 		return NilStr
 	}
@@ -88,9 +88,9 @@ func (e *ErrRouters) Error() string {
 	return s
 }
 
-// ErrNotSupported says something is still not supported
-type ErrNotSupported string
+// NotSupportedError says something is still not supported
+type NotSupportedError string
 
-func (n ErrNotSupported) Error() string {
+func (n NotSupportedError) Error() string {
 	return fmt.Sprintf("%s is not supported", string(n))
 }

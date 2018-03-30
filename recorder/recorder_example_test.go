@@ -32,9 +32,10 @@ func ExampleDataRecorder() {
 
 	rec := testing.GetRecorder(ts.URL)
 	rec.Ping()
+
 	fmt.Println("Pinging successful")
 	payload := datatype.New([]datatype.DataType{
-		datatype.StringType{Key: "key", Value: "value"},
+		datatype.NewStringType("key", "value"),
 	})
 	job := &recorder.Job{
 		Payload:   payload,

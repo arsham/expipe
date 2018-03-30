@@ -6,8 +6,8 @@ package datatype_test
 
 import (
 	"bytes"
-	"io"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/arsham/expipe/datatype"
@@ -18,16 +18,17 @@ var errExample = errors.New("DataType Error")
 
 type badDataType struct{}
 
-func (badDataType) Write(io.Writer) (int, error) { return 0, errExample }
+func (badDataType) Read([]byte) (int, error)     { return 0, errExample }
 func (badDataType) Equal(datatype.DataType) bool { return true }
+func (badDataType) Reset()                       {}
 
 func inArray(a datatype.DataType, b []datatype.DataType) bool {
 	ap := new(bytes.Buffer)
-	a.Write(ap)
+	ap.ReadFrom(a)
 	for i := range b {
 		bp := new(bytes.Buffer)
-		b[i].Write(bp)
-		if reflect.DeepEqual(ap.Bytes(), bp.Bytes()) {
+		bp.ReadFrom(b[i])
+		if strings.Contains(ap.String(), bp.String()) {
 			return true
 		}
 	}
@@ -35,10 +36,10 @@ func inArray(a datatype.DataType, b []datatype.DataType) bool {
 }
 
 func TestList(t *testing.T) {
-	l := []datatype.DataType{datatype.FloatType{}}
+	l := []datatype.DataType{&datatype.FloatType{}}
 	c := datatype.New(l)
 	if !reflect.DeepEqual(c.List(), l) {
-		t.Errorf("lists are not equal: (%v) and (%v)", c.List(), l)
+		t.Errorf("reflect.DeepEqual(): (%v) and (%v) lists are not equal", c.List(), l)
 	}
 }
 
@@ -81,11 +82,11 @@ func TestJobResultDataTypes(t *testing.T) {
 			_, err := datatype.JobResultDataTypes(tc.input, mapper)
 			if tc.err == errExample {
 				if err == nil {
-					t.Error("want (error), got (nil)")
+					t.Error("err = (nil); want (error)")
 				}
 			} else {
 				if err != tc.err {
-					t.Errorf("want (%v), got (%v)", tc.err, err)
+					t.Errorf("err = (%v); got (%v)", err, tc.err)
 				}
 			}
 		})
@@ -100,18 +101,18 @@ func TestJobResultDataTypes(t *testing.T) {
 			"one value",
 			[]byte(`{"memstats": {"TotalAlloc":666}}`),
 			[]datatype.DataType{
-				&datatype.MegaByteType{Key: "memstats.TotalAlloc", Value: 666},
-				&datatype.MegaByteType{Key: "memstats.TotalAlloc", Value: 666},
+				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
+				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
 			},
 		},
 		{
 			"multiple values",
 			[]byte(`{"memstats": {"TotalAlloc":666, "HeapIdle":777}}`),
 			[]datatype.DataType{
-				&datatype.MegaByteType{Key: "memstats.TotalAlloc", Value: 666},
-				&datatype.MegaByteType{Key: "memstats.HeapIdle", Value: 777},
-				&datatype.MegaByteType{Key: "memstats.TotalAlloc", Value: 666},
-				&datatype.MegaByteType{Key: "memstats.HeapIdle", Value: 777},
+				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
+				datatype.NewMegaByteType("memstats.HeapIdle", 777),
+				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
+				datatype.NewMegaByteType("memstats.HeapIdle", 777),
 			},
 		},
 	}
@@ -122,13 +123,43 @@ func TestJobResultDataTypes(t *testing.T) {
 			l := datatype.New(nil)
 			l.Add(tc.exp...)
 			if errors.Cause(err) != nil {
-				t.Errorf("want (nil), got (%#v)", err)
+				t.Errorf("err = (%#v); want (nil)", err)
 			}
 			for _, i := range l.List() {
 				if !inArray(i, c.List()) {
-					t.Errorf("want (%v) be in (%v)", i, l.List())
+					t.Errorf("inArray(i, c.List()): want (%v) be in (%v)", i, l.List())
 				}
 			}
 		})
+	}
+}
+
+func TestInArray(t *testing.T) {
+	a := datatype.NewStringType("key", "value")
+	aa := datatype.NewStringType("key", "value1")
+	b := datatype.NewFloatType("key", 6.66)
+
+	tcs := []struct {
+		name  string
+		left  datatype.DataType
+		right []datatype.DataType
+	}{
+		{"a in nothing", a, []datatype.DataType{}},
+		{"a in aa", a, []datatype.DataType{aa}},
+		{"a in b", a, []datatype.DataType{b}},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			if inArray(tc.left, tc.right) {
+				t.Error("inArray(tc.left, tc.right) = true; want (false)")
+			}
+		})
+	}
+	if !inArray(a, []datatype.DataType{a, aa}) {
+		t.Error("a, []datatype.DataType{a, aa} = false; want (true)")
+	}
+	if !inArray(a, []datatype.DataType{a, b}) {
+		t.Error("inArray(a, []datatype.DataType{a, b}) = false; want (true)")
 	}
 }

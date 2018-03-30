@@ -155,6 +155,8 @@
 //   go tool pprof -pdf $BASENAME.test cpu.out > cpu.pdf && open cpu.pdf
 //   go tool pprof -pdf $BASENAME.test mem.out > mem.pdf && open mem.pdf
 //
+// License
+//
 // Use of this source code is governed by the Apache 2.0 license.
 // License that can be found in the LICENSE file.
 package expipe

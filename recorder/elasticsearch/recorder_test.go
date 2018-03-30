@@ -71,7 +71,10 @@ type Construct struct {
 	testServer *httptest.Server
 }
 
-func (c *Construct) TestServer() *httptest.Server { return c.testServer }
+func (c *Construct) TestServer() *httptest.Server {
+	c.testServer = getTestServer()
+	return c.testServer
+}
 func (c *Construct) Object() (recorder.DataRecorder, error) {
 	return elasticsearch.New(
 		recorder.WithEndpoint(c.Endpoint()),
@@ -102,10 +105,12 @@ func (c *Construct) InvalidEndpoints() []string {
 }
 
 func TestElasticsearchRecorder(t *testing.T) {
-	r, err := elasticsearch.New()
-	if err != nil {
-		panic(err)
-	}
-	c := &Construct{r, getTestServer()}
-	rt.TestSuites(t, c)
+	rt.TestSuites(t, func() (rt.Constructor, func()) {
+		r, err := elasticsearch.New()
+		if err != nil {
+			panic(err)
+		}
+		c := &Construct{Recorder: r, testServer: getTestServer()}
+		return c, func() { c.testServer.Close() }
+	})
 }

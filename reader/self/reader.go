@@ -66,15 +66,15 @@ type Reader struct {
 // New exposes expipe's own metrics.
 // It returns and error on the following occasions:
 //
-//   +------------------+--------------------+
-//   |    Condition     |       Error        |
-//   +------------------+--------------------+
-//   | name == ""       | ErrEmptyName       |
-//   | endpoint == ""   | ErrEmptyEndpoint   |
-//   | Invalid Endpoint | ErrInvalidEndpoint |
-//   | typeName == ""   | ErrEmptyTypeName   |
-//   | backoff < 5      | ErrLowBackoffValue |
-//   +------------------+--------------------+
+//   +------------------+----------------------+
+//   |    Condition     |        Error         |
+//   +------------------+----------------------+
+//   | name == ""       | ErrEmptyName         |
+//   | endpoint == ""   | ErrEmptyEndpoint     |
+//   | Invalid Endpoint | InvalidEndpointError |
+//   | typeName == ""   | ErrEmptyTypeName     |
+//   | backoff < 5      | LowBackoffValueError |
+//   +------------------+----------------------+
 //
 func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	r := &Reader{}
@@ -84,11 +84,6 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 			return nil, errors.Wrap(err, "option creation")
 		}
 	}
-
-	if r.log == nil {
-		r.log = internal.GetLogger("error")
-	}
-	r.log = r.log.WithField("engine", "self")
 
 	if r.backoff < 5 {
 		r.backoff = 5
@@ -105,6 +100,10 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	if r.timeout == 0 {
 		r.timeout = 5 * time.Second
 	}
+	if r.log == nil {
+		r.log = internal.GetLogger("error")
+	}
+	r.log = r.log.WithField("engine", "self")
 	r.quit = make(chan struct{})
 	return r, nil
 }
@@ -117,7 +116,7 @@ func (r *Reader) Ping() error {
 	defer cancel()
 	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
 	if err != nil {
-		return reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
+		return reader.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 	}
 	r.pinged = true
 	return nil
@@ -206,6 +205,7 @@ func (r *Reader) SetLogger(log internal.FieldLogger) { r.log = log }
 func (r *Reader) SetTestMode() { r.testMode = true }
 
 // this is only used in tests.
+// TODO: [refactor] this.
 func (r *Reader) readMetricsFromURL(job *token.Context) (*reader.Result, error) {
 	if r.strike > r.backoff {
 		return nil, reader.ErrBackoffExceeded
@@ -216,7 +216,7 @@ func (r *Reader) readMetricsFromURL(job *token.Context) (*reader.Result, error) 
 			if strings.Contains(v.Error(), "getsockopt: connection refused") {
 				r.strike++
 			}
-			err = reader.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
+			err = reader.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 		}
 		r.log.WithField("reader", "self").
 			WithField("ID", job.ID()).

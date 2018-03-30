@@ -11,11 +11,11 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-// ErrInvalidURL is returned when the URL is not a valid one.
-type ErrInvalidURL string
+// InvalidURLError is returned when the URL is not a valid one.
+type InvalidURLError string
 
 // Error returns the string representation of the error.
-func (i ErrInvalidURL) Error() string {
+func (i InvalidURLError) Error() string {
 	return fmt.Sprintf("invalid url: %s", string(i))
 }
 
@@ -23,7 +23,7 @@ func (i ErrInvalidURL) Error() string {
 // it's a valid url.
 func SanitiseURL(url string) (string, error) {
 	if !govalidator.IsURL(url) {
-		return "", ErrInvalidURL(url)
+		return "", InvalidURLError(url)
 	}
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		url = "http://" + url

@@ -31,7 +31,7 @@ func TestLoadMapsReaderGCTypes(t *testing.T) {
 	for _, c := range []string{"PauseEnd", "memstats.PauseNs"} {
 		if !internal.StringInSlice(c, maps.gcTypes) {
 			v := strings.Join(maps.gcTypes, ", ")
-			t.Errorf("(%s) not found in returned valued. got (%s)", c, v)
+			t.Errorf("internal.StringInSlice(c, maps.gcTypes): (%s) not found in returned valued. got (%s)", c, v)
 		}
 	}
 	input = bytes.NewBuffer([]byte(`
@@ -41,7 +41,7 @@ func TestLoadMapsReaderGCTypes(t *testing.T) {
 	v.ReadConfig(input)
 	maps = MapsFromViper(v)
 	if len(maps.gcTypes) != 0 {
-		t.Fatalf("expected empty results, got (%v)", maps.gcTypes)
+		t.Fatalf("len(maps.gcTypes) = (%v); want empty results", maps.gcTypes)
 	}
 
 	input = bytes.NewBuffer([]byte(``))
@@ -49,7 +49,7 @@ func TestLoadMapsReaderGCTypes(t *testing.T) {
 	v.ReadConfig(input)
 	maps = MapsFromViper(v)
 	if len(maps.gcTypes) != 0 {
-		t.Fatalf("expected empty results, got (%v)", maps.gcTypes)
+		t.Fatalf("len(maps.gcTypes) = (%v); want empty results", maps.gcTypes)
 	}
 }
 
@@ -84,7 +84,7 @@ func TestLoadMapsReaderMemoryTypes(t *testing.T) {
 			t.Errorf("(%s) not found in returned valued. got (%s)", name, strings.Join(returnedNames, ", "))
 		}
 		if tc[name] != string(maps.memoryTypes[name]) {
-			t.Errorf("want (%s), got (%s)", tc[name], string(maps.memoryTypes[name]))
+			t.Errorf("tc[name] = (%s); want (%s)", string(maps.memoryTypes[name]), tc[name])
 		}
 	}
 
@@ -94,14 +94,14 @@ func TestLoadMapsReaderMemoryTypes(t *testing.T) {
 	v.ReadConfig(input)
 	maps = MapsFromViper(v)
 	if len(maps.memoryTypes) != 0 {
-		t.Fatalf("expected empty results, got (%v)", maps.memoryTypes)
+		t.Fatalf("len(maps.memoryTypes) = (%v); want (empty results)", maps.memoryTypes)
 	}
 
 	input = bytes.NewBuffer([]byte(``))
 	v.ReadConfig(input)
 	maps = MapsFromViper(v)
 	if len(maps.memoryTypes) != 0 {
-		t.Fatalf("expected empty results, got (%v)", maps.memoryTypes)
+		t.Fatalf("len(maps.memoryTypes) = (%v); want (empty results)", maps.memoryTypes)
 	}
 }
 
@@ -114,13 +114,13 @@ func TestGetArrayValue(t *testing.T) {
 	expected := &FloatListType{Key: "Mr. Devil", Value: []float64{}}
 	result := m.arrayValue(prefix, name, []*jason.Value{})
 	if !result.Equal(expected) {
-		t.Errorf("want (%v), got (%v)", expected, result)
+		t.Errorf("result.Equal(expected) = false, result = (%v); want (%v)", result, expected)
 	}
 
 	str, _ := jason.NewValueFromBytes([]byte(`{"sdss":"sdfs"}`))
 	result = m.arrayValue(prefix, name, []*jason.Value{str})
 	if result != nil {
-		t.Errorf("want nil, got (%v)", result)
+		t.Errorf("result = (%v); want (nil)", result)
 	}
 }
 
@@ -133,13 +133,13 @@ func TestMapCopy(t *testing.T) {
 	c := m.Copy()
 	cc, ok := c.(*MapConvert)
 	if !ok {
-		t.Fatalf("want MapConvert, got (%T)", c)
+		t.Fatalf("c.(*MapConvert) = (%T); want (MapConvert)", c)
 	}
 	if m == c {
-		t.Error("wasn't copied")
+		t.Error("m.Copy(): wasn't copied")
 	}
 	if !reflect.DeepEqual(cc, m) {
-		t.Fatalf("want (%v), got (%v)", m, c)
+		t.Fatalf("reflect.DeepEqual(cc, m): c = (%v); want (%v)", c, m)
 	}
 }
 
@@ -152,12 +152,12 @@ func TestMapConvertMockCopy(t *testing.T) {
 	c := m.Copy()
 	cc, ok := c.(*MapConvertMock)
 	if !ok {
-		t.Fatalf("want MapConvertMock, got (%T)", c)
+		t.Fatalf("c.(*MapConvertMock): c = (%T); want (*MapConvertMock)", c)
 	}
 	if m == c {
-		t.Error("wasn't copied")
+		t.Error("m.Copy(): wasn't copied")
 	}
 	if !reflect.DeepEqual(cc, m) {
-		t.Fatalf("want (%v), got (%v)", m, c)
+		t.Fatalf("reflect.DeepEqual(cc, m): c = (%v); want (%v)", c, m)
 	}
 }

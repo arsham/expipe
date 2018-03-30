@@ -29,7 +29,7 @@ func TestFloatInSlice(t *testing.T) {
 		name := fmt.Sprintf("case_%d", i)
 		t.Run(name, func(t *testing.T) {
 			if ok := datatype.FloatInSlice(tc.niddle, tc.haystack); ok != tc.result {
-				t.Errorf("want (%t), got (%t)", tc.result, ok)
+				t.Errorf("FloatInSlice(tc.niddle, tc.haystack) = (%t); want (%t)", ok, tc.result)
 			}
 		})
 	}
@@ -52,7 +52,7 @@ func TestUint64InSlice(t *testing.T) {
 		name := fmt.Sprintf("case_%d", i)
 		t.Run(name, func(t *testing.T) {
 			if ok := datatype.Uint64InSlice(tc.niddle, tc.haystack); ok != tc.result {
-				t.Errorf("want (%t), got (%t)", tc.result, ok)
+				t.Errorf("Uint64InSlice(tc.niddle, tc.haystack) = (%t); want (%t)", ok, tc.result)
 			}
 		})
 	}

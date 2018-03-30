@@ -36,7 +36,7 @@ type Config struct {
 // Conf func is used for initializing a Config object.
 type Conf func(*Config) error
 
-// NewConfig returns an instance of the expvar reader
+// NewConfig returns an instance of the expvar reader.
 func NewConfig(conf ...Conf) (*Config, error) {
 	obj := new(Config)
 	for _, c := range conf {
@@ -66,25 +66,25 @@ func (c *Config) NewInstance() (reader.DataReader, error) {
 	)
 }
 
-// Name returns name
+// Name returns name from the config file.
 func (c *Config) Name() string { return c.EXPName }
 
-// TypeName returns type name
+// TypeName returns type name from the config file.
 func (c *Config) TypeName() string { return c.EXPTypeName }
 
-// Endpoint returns endpoint
+// Endpoint returns endpoint from the config file.
 func (c *Config) Endpoint() string { return c.EXPEndpoint }
 
-// Interval returns interval
+// Interval returns interval after reading from the config file.
 func (c *Config) Interval() time.Duration { return c.ConfInterval }
 
-// Timeout returns timeout
+// Timeout returns timeout after reading from the config file.
 func (c *Config) Timeout() time.Duration { return c.ConfTimeout }
 
-// Logger returns logger
+// Logger returns logger.
 func (c *Config) Logger() internal.FieldLogger { return c.log }
 
-// Backoff returns backoff
+// Backoff returns backoff from the config file.
 func (c *Config) Backoff() int { return c.EXPBackoff }
 
 // Mapper returns the mapper assigned to this object.
@@ -129,10 +129,8 @@ func WithViper(v unmarshaller, name, key string) Conf {
 		if c.EXPTypeName == "" {
 			return fmt.Errorf("type_name cannot be empty: %s", c.EXPTypeName)
 		}
-
 		c.ConfTimeout = timeout
 		c.EXPName = name
-
 		if c.MapFile != "" {
 			WithMapFile(c.MapFile)
 		}

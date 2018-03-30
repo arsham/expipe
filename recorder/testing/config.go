@@ -22,7 +22,7 @@ type Config struct {
 	MockLogger    internal.FieldLogger
 }
 
-// NewInstance returns a mocked object
+// NewInstance returns a mocked object.
 func (c *Config) NewInstance() (recorder.DataRecorder, error) {
 	return New(
 		recorder.WithLogger(c.Logger()),
@@ -34,20 +34,20 @@ func (c *Config) NewInstance() (recorder.DataRecorder, error) {
 	)
 }
 
-// Name is the mocked version
+// Name is the mocked version.
 func (c *Config) Name() string { return c.MockName }
 
-// IndexName is the mocked version
+// IndexName is the mocked version.
 func (c *Config) IndexName() string { return c.MockIndexName }
 
-// Endpoint is the mocked version
+// Endpoint is the mocked version.
 func (c *Config) Endpoint() string { return c.MockEndpoint }
 
-// Timeout is the mocked version
+// Timeout is the mocked version.
 func (c *Config) Timeout() time.Duration { return c.MockTimeout }
 
-// Logger is the mocked version
+// Logger is the mocked version.
 func (c *Config) Logger() internal.FieldLogger { return c.MockLogger }
 
-// Backoff is the mocked version
+// Backoff is the mocked version.
 func (c *Config) Backoff() int { return c.MockBackoff }

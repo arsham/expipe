@@ -32,27 +32,27 @@ func TestConfigNewInstance(t *testing.T) {
 	r, err := c.NewInstance()
 	rec, ok := r.(*rt.Reader)
 	if !ok {
-		t.Error("want (true), got (false)")
+		t.Error("r.(*rt.Reader): ok = (false); want (true)")
 	}
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if rec.Name() != c.Name() {
-		t.Errorf("want (%v) to be (%v)", c.Name(), rec.Name())
+		t.Errorf("rec.Name() = (%v); want (%v)", rec.Name(), c.Name())
 	}
 	if rec.Endpoint() != c.Endpoint() {
-		t.Errorf("want (%v) to be (%v)", c.Endpoint(), rec.Endpoint())
+		t.Errorf("rec.Endpoint() = (%v); want (%v)", rec.Endpoint(), c.Endpoint())
 	}
 	if rec.Timeout() != c.Timeout() {
-		t.Errorf("want (%v) to be (%v)", c.Timeout(), rec.Timeout())
+		t.Errorf("rec.Timeout() = (%v); want (%v)", rec.Timeout(), c.Timeout())
 	}
 	if rec.Interval() != c.Interval() {
-		t.Errorf("want (%v) to be (%v)", c.Interval(), rec.Interval())
+		t.Errorf("rec.Interval() = (%v); want (%v)", rec.Interval(), c.Interval())
 	}
 	if rec.Backoff() != c.Backoff() {
-		t.Errorf("want (%v) to be (%v)", c.Backoff(), rec.Backoff())
+		t.Errorf("rec.Backoff() = (%v); want (%v)", rec.Backoff(), c.Backoff())
 	}
 	if rec.TypeName() != c.TypeName() {
-		t.Errorf("want (%v) to be (%v)", c.TypeName(), rec.TypeName())
+		t.Errorf("rec.TypeName() = (%v); want (%v)", rec.TypeName(), c.TypeName())
 	}
 }

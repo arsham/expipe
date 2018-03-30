@@ -104,7 +104,7 @@ func WithViper(v unmarshaller, name, key string) Conf {
 			return errors.Wrap(err, "decoding config")
 		}
 		if timeout, err = time.ParseDuration(c.ESTimeout); err != nil {
-			return &recorder.ErrParseTimeOut{Timeout: c.ESTimeout, Err: err}
+			return &recorder.ParseTimeOutError{Timeout: c.ESTimeout, Err: err}
 		}
 		c.ESName = name
 		c.ConfTimeout = timeout

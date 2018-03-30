@@ -21,6 +21,8 @@ import (
 	"github.com/arsham/expipe/token"
 )
 
+// TODO: benchmark on many readers.
+
 func BenchmarkEngineOnManyRecorders(b *testing.B) {
 	bcs := []int{
 		1,

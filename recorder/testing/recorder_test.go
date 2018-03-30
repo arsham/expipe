@@ -7,7 +7,6 @@ package testing_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/arsham/expipe/recorder"
@@ -17,19 +16,10 @@ import (
 // The purpose of these tests is to make sure the simple recorder, which is
 // a mock, works perfect, so other tests can rely on it.
 
-var (
-	testServer *httptest.Server
-)
-
-func TestMain(m *testing.M) {
-	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	exitCode := m.Run()
-	testServer.Close()
-	os.Exit(exitCode)
-}
-
 func getTestServer() *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	return httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+	)
 }
 
 type Construct struct {
@@ -37,7 +27,11 @@ type Construct struct {
 	testServer *httptest.Server
 }
 
-func (c *Construct) TestServer() *httptest.Server { return c.testServer }
+func (c *Construct) TestServer() *httptest.Server {
+	c.testServer = getTestServer()
+	return c.testServer
+}
+
 func (c *Construct) Object() (recorder.DataRecorder, error) {
 	return rt.New(
 		recorder.WithEndpoint(c.Endpoint()),
@@ -68,11 +62,12 @@ func (c *Construct) InvalidEndpoints() []string {
 }
 
 func TestMockRecorder(t *testing.T) {
-	r, err := rt.New()
-	if err != nil {
-		panic(err)
-	}
-	c := &Construct{r, getTestServer()}
-
-	rt.TestSuites(t, c)
+	rt.TestSuites(t, func() (rt.Constructor, func()) {
+		r, err := rt.New()
+		if err != nil {
+			panic(err)
+		}
+		c := &Construct{Recorder: r, testServer: getTestServer()}
+		return c, func() { c.testServer.Close() }
+	})
 }

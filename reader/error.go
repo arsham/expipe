@@ -24,40 +24,40 @@ var (
 	ErrPingNotCalled   = fmt.Errorf("the caller forgot to ask me pinging")
 )
 
-// ErrInvalidEndpoint is the error when the endpoint is not a valid url.
-type ErrInvalidEndpoint string
+// InvalidEndpointError is the error when the endpoint is not a valid url.
+type InvalidEndpointError string
 
-func (e ErrInvalidEndpoint) Error() string {
+func (e InvalidEndpointError) Error() string {
 	return fmt.Sprintf("invalid endpoint: %s", string(e))
 }
 
-// ErrEndpointNotAvailable is the error when the endpoint is not available.
-type ErrEndpointNotAvailable struct {
+// EndpointNotAvailableError is the error when the endpoint is not available.
+type EndpointNotAvailableError struct {
 	Endpoint string
 	Err      error
 }
 
-func (e ErrEndpointNotAvailable) Error() string {
+func (e EndpointNotAvailableError) Error() string {
 	return fmt.Sprintf("endpoint (%s) not available: %s", e.Endpoint, e.Err)
 }
 
-// ErrLowBackoffValue is the error when the backoff value is lower than 5
-type ErrLowBackoffValue int64
+// LowBackoffValueError is the error when the backoff value is lower than 5
+type LowBackoffValueError int64
 
-func (e ErrLowBackoffValue) Error() string {
+func (e LowBackoffValueError) Error() string {
 	return fmt.Sprintf("back off should be at least 5: %d", e)
 }
 
-// ErrLowInterval is the error when the interval is zero
-type ErrLowInterval time.Duration
+// LowIntervalError is the error when the interval is zero
+type LowIntervalError time.Duration
 
-func (e ErrLowInterval) Error() string {
+func (e LowIntervalError) Error() string {
 	return fmt.Sprintf("interval should not be 0: %d", e)
 }
 
-// ErrLowTimeout is the error when the interval is zero
-type ErrLowTimeout time.Duration
+// LowTimeoutError is the error when the interval is zero
+type LowTimeoutError time.Duration
 
-func (e ErrLowTimeout) Error() string {
+func (e LowTimeoutError) Error() string {
 	return fmt.Sprintf("timeout should be more than 1 second: %d", e)
 }

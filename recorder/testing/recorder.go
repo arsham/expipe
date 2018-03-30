@@ -25,15 +25,15 @@ type Recorder struct {
 	indexName  string
 	log        internal.FieldLogger
 	timeout    time.Duration
-	ErrorFunc  func() error
 	backoff    int
 	strike     int
+	ErrorFunc  func() error
 	Smu        sync.RWMutex
 	RecordFunc func(context.Context, *recorder.Job) error
 	Pinged     bool
 }
 
-// New is a recorder for using in tests
+// New is a recorder for using in tests.
 func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 	r := &Recorder{}
 	for _, op := range options {
@@ -67,13 +67,13 @@ func (r *Recorder) Ping() error {
 	defer cancel()
 	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
 	if err != nil {
-		return recorder.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
+		return recorder.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 	}
 	r.Pinged = true
 	return nil
 }
 
-// Record calls the RecordFunc if exists, otherwise continues as normal
+// Record calls the RecordFunc if exists, otherwise continues as normal.
 func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 	if !r.Pinged {
 		return recorder.ErrPingNotCalled
@@ -102,38 +102,38 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 	return nil
 }
 
-// Name returns the name
+// Name returns the name.
 func (r *Recorder) Name() string { return r.name }
 
-// SetName sets the name of the recorder
+// SetName sets the name of the recorder.
 func (r *Recorder) SetName(name string) { r.name = name }
 
-// Endpoint returns the endpoint
+// Endpoint returns the endpoint.
 func (r *Recorder) Endpoint() string { return r.endpoint }
 
-// SetEndpoint sets the endpoint of the recorder
+// SetEndpoint sets the endpoint of the recorder.
 func (r *Recorder) SetEndpoint(endpoint string) { r.endpoint = endpoint }
 
-// IndexName returns the index name
+// IndexName returns the index name.
 func (r *Recorder) IndexName() string { return r.indexName }
 
-// SetIndexName sets the index name of the recorder
+// SetIndexName sets the index name of the recorder.
 func (r *Recorder) SetIndexName(indexName string) { r.indexName = indexName }
 
-// Timeout returns the timeout
+// Timeout returns the timeout.
 func (r *Recorder) Timeout() time.Duration { return r.timeout }
 
-// SetTimeout sets the timeout of the recorder
+// SetTimeout sets the timeout of the recorder.
 func (r *Recorder) SetTimeout(timeout time.Duration) { r.timeout = timeout }
 
-// Backoff returns the backoff
+// Backoff returns the backoff.
 func (r *Recorder) Backoff() int { return r.backoff }
 
-// SetBackoff sets the backoff of the recorder
+// SetBackoff sets the backoff of the recorder.
 func (r *Recorder) SetBackoff(backoff int) { r.backoff = backoff }
 
-// Logger returns the log
+// Logger returns the log.
 func (r *Recorder) Logger() internal.FieldLogger { return r.log }
 
-// SetLogger sets the log of the recorder
+// SetLogger sets the log of the recorder.
 func (r *Recorder) SetLogger(log internal.FieldLogger) { r.log = log }

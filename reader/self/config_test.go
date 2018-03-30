@@ -19,15 +19,15 @@ func TestWithLogger(t *testing.T) {
 	c := new(self.Config)
 	err := self.WithLogger(l)(c)
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	l = internal.DiscardLogger()
 	err = self.WithLogger(l)(c)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if c.Logger() != l {
-		t.Errorf("want (%v), got (%v)", l, c.Logger())
+		t.Errorf("c.Logger() = (%v); want (%v)", c.Logger(), l)
 	}
 }
 
@@ -53,7 +53,7 @@ func TestWithViper(t *testing.T) {
 			c := new(self.Config)
 			err := self.WithViper(tc.v, tc.name, tc.key)(c)
 			if err == nil {
-				t.Error("want (error), got (nil)")
+				t.Error("err = (nil); want (error)")
 			}
 		})
 	}
@@ -77,16 +77,16 @@ func TestWithViperSuccess(t *testing.T) {
 	c := new(self.Config)
 	err := self.WithViper(v, "recorder1", "recorders.recorder1")(c)
 	if err != nil {
-		t.Fatalf("want (nil), got (%v)", err)
+		t.Fatalf("err = (%v); want (nil)", err)
 	}
 	if c.Backoff() != 15 {
-		t.Errorf("want (%d), got (%d)", 15, c.Backoff())
+		t.Errorf("c.Backoff() = (%d); want (%d)", c.Backoff(), 15)
 	}
 	if c.Endpoint() != "http://127.0.0.1:9200" {
-		t.Errorf("want (http://127.0.0.1:9200), got (%s)", c.Endpoint())
+		t.Errorf("c.Endpoint() = (%s); want (http://127.0.0.1:9200)", c.Endpoint())
 	}
 	if c.TypeName() != "example_type" {
-		t.Errorf("want (example_type), got (%s)", c.TypeName())
+		t.Errorf("c.TypeName() = (%s); want (example_type)", c.TypeName())
 	}
 }
 
@@ -126,7 +126,7 @@ func TestWithViperBadFile(t *testing.T) {
 			v.ReadConfig(tc.input)
 			err := self.WithViper(v, "recorder1", "recorders.recorder1")(c)
 			if err == nil {
-				t.Error("want (error), got (nil)")
+				t.Error("err = (nil); want (error)")
 			}
 		})
 	}
@@ -138,19 +138,19 @@ func TestNewConfig(t *testing.T) {
 		self.WithLogger(log),
 	)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if c == nil {
-		t.Error("want (Config), got (nil)")
+		t.Error("c = (nil); want (Config)")
 	}
 	c, err = self.NewConfig(
 		self.WithLogger(nil),
 	)
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	if c != nil {
-		t.Errorf("want (nil), got (%v)", c)
+		t.Errorf("c = (%v); want (nil)", c)
 	}
 }
 
@@ -164,22 +164,22 @@ func TestNewInstance(t *testing.T) {
 	c.SelfEndpoint = "http://localhost"
 	c.Cinterval = time.Second
 	if err != nil {
-		t.Fatalf("want (nil), got (%v)", err)
+		t.Fatalf("err = (%v); want (nil)", err)
 	}
 	e, err := c.NewInstance()
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	if e.(*self.Reader) != nil {
-		t.Errorf("want (nil), got (%v)", e)
+		t.Errorf("e.(*self.Reader): e = (%v); want (nil)", e)
 	}
 
 	c.SelfBackoff = 5
 	e, err = c.NewInstance()
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if e.(*self.Reader) == nil {
-		t.Error("want (Reader), got (nil)")
+		t.Error("e.(*self.Reader) = (nil); want (c = Reader)")
 	}
 }

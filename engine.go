@@ -47,7 +47,7 @@ type Engine struct {
 
 func (e *Engine) String() string { return e.name }
 
-// New generates the Engine based on the provided options
+// New generates the Engine based on the provided options.
 func New(options ...func(*Engine) error) (*Engine, error) {
 	e := &Engine{}
 	for _, op := range options {
@@ -127,7 +127,7 @@ func WithRecorder(rec recorder.DataRecorder) func(*Engine) error {
 		}
 		err := rec.Ping()
 		if err != nil {
-			return ErrPing{rec.Name(): err}
+			return PingError{rec.Name(): err}
 		}
 		e.recorder = rec
 		return nil

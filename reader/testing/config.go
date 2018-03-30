@@ -11,7 +11,7 @@ import (
 	"github.com/arsham/expipe/reader"
 )
 
-// Config is used for instantiating a mock reader
+// Config is used for instantiating a mock reader.
 type Config struct {
 	MockName     string
 	MockTypeName string
@@ -22,7 +22,7 @@ type Config struct {
 	MockLogger   internal.FieldLogger
 }
 
-// NewInstance  returns a mocked version of the config
+// NewInstance  returns a mocked version of the config.
 func (c *Config) NewInstance() (reader.DataReader, error) {
 	return New(
 		reader.WithLogger(c.Logger()),
@@ -35,23 +35,23 @@ func (c *Config) NewInstance() (reader.DataReader, error) {
 	)
 }
 
-// Name returns the name
+// Name returns the name.
 func (c *Config) Name() string { return c.MockName }
 
-// TypeName returns the typeName
+// TypeName returns the typeName.
 func (c *Config) TypeName() string { return c.MockTypeName }
 
-// Endpoint returns the endpoint
+// Endpoint returns the endpoint.
 func (c *Config) Endpoint() string { return c.MockEndpoint }
 
-// Interval returns the interval
+// Interval returns the interval.
 func (c *Config) Interval() time.Duration { return c.MockInterval }
 
-// Timeout returns the timeout
+// Timeout returns the timeout.
 func (c *Config) Timeout() time.Duration { return c.MockTimeout }
 
-// Logger returns the logger
+// Logger returns the logger.
 func (c *Config) Logger() internal.FieldLogger { return c.MockLogger }
 
-// Backoff returns the backoff
+// Backoff returns the backoff.
 func (c *Config) Backoff() int { return c.MockBackoff }

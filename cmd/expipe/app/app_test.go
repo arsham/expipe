@@ -40,7 +40,7 @@ func TestConfigLogLevel(t *testing.T) {
 		t.Errorf("want (warn), got (%s)", log.Level)
 	}
 	if errors.Cause(err) != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if conf == nil {
 		t.Error("want (Config), got (nil)")
@@ -54,7 +54,7 @@ func TestConfigFileDoesNotExists(t *testing.T) {
 
 	_, conf, err := app.Config()
 	if errors.Cause(err) == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	if conf != nil {
 		t.Errorf("want (nil), got (%v)", conf)

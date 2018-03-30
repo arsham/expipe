@@ -18,12 +18,15 @@ import (
 // This example shows the reader hits the endpoint when the Read method is called.
 func ExampleDataReader_read() {
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{"the key": "is the value!"}`)
-	}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			io.WriteString(w, `{"the key": "is the value!"}`)
+		}),
+	)
 	defer ts.Close()
 
-	// This reader is a mocked version, but the example's principals stays the same.
+	// This reader is a mocked version,
+	// but the example's principals stays the same.
 	red := reader.GetReader(ts.URL)
 	err := red.Ping()
 	fmt.Println("Ping errors:", err)

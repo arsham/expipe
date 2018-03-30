@@ -35,11 +35,11 @@ func TestLoadYAML(t *testing.T) {
 	_, err := config.LoadYAML(log, v)
 
 	var (
-		val *config.ErrNotSpecified
+		val *config.NotSpecifiedError
 		ok  bool
 	)
-	if val, ok = errors.Cause(err).(*config.ErrNotSpecified); !ok {
-		t.Fatalf("want notSpecifiedErr, got (%v)", err)
+	if val, ok = errors.Cause(err).(*config.NotSpecifiedError); !ok {
+		t.Fatalf("err.(*config.NotSpecifiedError): err = (%v); want notSpecifiedErr", err)
 	}
 
 	if !strings.Contains(val.Section, "reader1") {
@@ -57,12 +57,12 @@ func TestLoadYAML(t *testing.T) {
 	v.ReadConfig(input)
 	_, err = config.LoadYAML(log, v)
 
-	if val, ok = errors.Cause(err).(*config.ErrNotSpecified); !ok {
-		t.Fatalf("want notSpecifiedErr, got (%v)", err)
+	if val, ok = errors.Cause(err).(*config.NotSpecifiedError); !ok {
+		t.Fatalf("err.(*config.NotSpecifiedError): err = (%v); want (notSpecifiedErr)", err)
 	}
 
 	if val.Section != "recorder1" {
-		t.Errorf("want error for (recorder1) section, got for (%s)", val.Section)
+		t.Errorf("val.Section = (%s); want (error) for Section", val.Section)
 	}
 }
 
@@ -98,10 +98,10 @@ func TestLoadYAMLSuccess(t *testing.T) {
 	v.ReadConfig(input)
 	confMap, err := config.LoadYAML(log, v)
 	if errors.Cause(err) != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if confMap == nil {
-		t.Error("want (confMap), got (nil)")
+		t.Error("confMap = (nil); want (confMap)")
 	}
 }
 
@@ -128,7 +128,7 @@ func TestLoadSettingsErrors(t *testing.T) {
 	v.ReadConfig(input)
 	_, err = config.LoadYAML(log, v)
 	if reflect.TypeOf(err) != reflect.TypeOf(nilErr) {
-		t.Errorf("want (%v), got (%v)", config.EmptyConfigErr, err)
+		t.Errorf("err =  (%v); want (%v)", err, config.EmptyConfigErr)
 	}
 
 	if !strings.Contains(err.Error(), "log_level") {
@@ -142,7 +142,7 @@ func TestLoadSettingsErrors(t *testing.T) {
 	v.ReadConfig(input)
 	config.LoadYAML(log, v)
 	if log.Level != internal.DebugLevel {
-		t.Errorf("loglevel wasn't changed, got (%v)", log.Level)
+		t.Errorf("log.Level = (%v); want (internal.DebugLevel)", log.Level)
 	}
 }
 
@@ -153,8 +153,8 @@ func TestLoadSections(t *testing.T) {
 	v.SetConfigType("yaml")
 
 	notSpec := func(t *testing.T, err error, section string) {
-		if _, ok := errors.Cause(err).(*config.ErrNotSpecified); !ok {
-			t.Errorf("expected ErrNotSpecified error, got (%v)", err)
+		if _, ok := errors.Cause(err).(*config.NotSpecifiedError); !ok {
+			t.Errorf("err.(*config.NotSpecifiedError) = (%v); want (NotSpecifiedError)", err)
 		}
 
 		if !strings.Contains(err.Error(), section) {

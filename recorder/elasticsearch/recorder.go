@@ -39,15 +39,15 @@ type Recorder struct {
 // New returns an error if it can't create the index
 // It returns and error on the following occasions:
 //
-//   +-------------------+---------------------+
-//   |     Condition     |        Error        |
-//   +-------------------+---------------------+
-//   | Invalid endpoint  | ErrInvalidEndpoint  |
-//   | backoff < 5       | ErrLowBackoffValue  |
-//   | Empty name        | ErrEmptyName        |
-//   | Invalid IndexName | ErrInvalidIndexName |
-//   | Empty IndexName   | ErrEmptyIndexName   |
-//   +-------------------+---------------------+
+//   +-------------------+-----------------------+
+//   |     Condition     |         Error         |
+//   +-------------------+-----------------------+
+//   | Invalid endpoint  | InvalidEndpointError  |
+//   | backoff < 5       | LowBackoffValueError  |
+//   | Empty name        | ErrEmptyName          |
+//   | Invalid IndexName | InvalidIndexNameError |
+//   | Empty IndexName   | ErrEmptyIndexName     |
+//   +-------------------+-----------------------+
 //
 func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 	r := &Recorder{}
@@ -77,38 +77,28 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 // Ping should ping the endpoint and report if was successful.
 // It returns and error on the following occasions:
 //
-//   +----------------------+-------------------------+
-//   |      Condition       |          Error          |
-//   +----------------------+-------------------------+
-//   | Unavailable endpoint | ErrEndpointNotAvailable |
-//   | Ping errors          | Timeout/Ping failed     |
-//   | Index creation       | elasticsearch's errors  |
-//   +----------------------+-------------------------+
+//   +----------------------+---------------------------+
+//   |      Condition       |           Error           |
+//   +----------------------+---------------------------+
+//   | Unavailable endpoint | EndpointNotAvailableError |
+//   | Ping errors          | Timeout/Ping failed       |
+//   | Index creation       | elasticsearch's errors    |
+//   +----------------------+---------------------------+
 //
 func (r *Recorder) Ping() error {
 	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
-	addr := elastic.SetURL(r.endpoint)
-	logger := elastic.SetErrorLog(r.log)
 	r.client, err = elastic.NewClient(
-		addr,
-		logger,
+		elastic.SetURL(r.endpoint),
+		elastic.SetErrorLog(r.log),
 		elastic.SetHealthcheckTimeoutStartup(r.timeout),
 		elastic.SetSnifferTimeout(r.timeout),
 		elastic.SetHealthcheckTimeout(r.timeout),
 	)
 	if err != nil {
-		return recorder.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
+		return recorder.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 	}
-	_, _, err = r.client.Ping(r.endpoint).Do(ctx)
-	if err != nil && ctx.Err() != nil {
-		return errors.Wrapf(err, "timeout: %s", ctx.Err())
-	}
-	if err != nil {
-		return errors.Wrap(err, "ping failed")
-	}
-
 	exists, err := r.client.IndexExists(r.indexName).Do(ctx)
 	if err != nil {
 		return errors.Wrap(err, "querying index")
@@ -141,7 +131,7 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 		err = errors.Cause(err)
 		if _, ok := err.(*url.Error); ok || err == elastic.ErrNoClient {
 			r.strike++
-			err = recorder.ErrEndpointNotAvailable{Endpoint: r.endpoint, Err: err}
+			err = recorder.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 		}
 		r.log.WithField("recorder", "elasticsearch").
 			WithField("name", r.Name()).

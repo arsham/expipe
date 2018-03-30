@@ -102,15 +102,15 @@ func TestGetRoutesErrors(t *testing.T) {
 			_, err := getRoutes(v)
 			err = errors.Cause(err)
 			if err == nil {
-				t.Fatalf("want an error, got nothing (%s)", err)
+				t.Fatalf("getRoutes(v), err = (%s); want (error)", err)
 			}
-			if _, ok := err.(*ErrRouters); !ok {
-				t.Fatalf("expected ErrRouters error, got (%v)", err)
+			if _, ok := err.(*RoutersError); !ok {
+				t.Fatalf("err.(*RoutersError) = (%v); want RoutersError error", err)
 			}
-			val := err.(*ErrRouters)
+			val := err.(*RoutersError)
 
 			if val.Section != tc.section {
-				t.Errorf("want (%s), got (%v)", tc.section, val.Section)
+				t.Errorf("val.Section = (%v); want (%s)", val.Section, tc.section)
 			}
 		})
 	}
@@ -136,15 +136,15 @@ func TestGetRoutesValues(t *testing.T) {
 	}
 	for name, route := range routes {
 		if name != "route1" {
-			t.Errorf("want (route1), got (%s)", name)
+			t.Errorf("name = (%s); want (route1)", name)
 		}
 		want = []string{"rec1"}
 		if !equalSlice(want, route.recorders) {
-			t.Errorf("want (%v), got (%v)", want, route.recorders)
+			t.Errorf("equalSlice(want, route.recorders) = (%v); want (%v)", route.recorders, want)
 		}
 		want = []string{"red1"}
 		if !equalSlice(want, route.readers) {
-			t.Errorf("want (%v), got (%v)", want, route.readers)
+			t.Errorf("equalSlice(want, route.readers) = (%v); want (%v)", route.readers, want)
 		}
 	}
 
@@ -169,15 +169,15 @@ func TestGetRoutesValues(t *testing.T) {
 	}
 	for name, route := range routes {
 		if !internal.StringInSlice(name, []string{"route1", "route2"}) {
-			t.Errorf("want (route1 or route2), got (%s)", name)
+			t.Errorf("internal.StringInSlice(name, ...) = (%s); want (route1 or route2)", name)
 		}
 		want = []string{name + "_rec1", name + "_rec2"}
 		if !equalSlice(want, route.recorders) {
-			t.Errorf("want (%#v), got (%#v)", want, route.recorders)
+			t.Errorf("equalSlice(want, route.recorders) = (%#v); want (%#v)", route.recorders, want)
 		}
 		want = []string{name + "_red1", name + "_red2"}
 		if !equalSlice(want, route.readers) {
-			t.Errorf("want (%v), got (%v)", want, route.readers)
+			t.Errorf("equalSlice(want, route.readers) = (%v); want (%v)", route.readers, want)
 		}
 	}
 }
@@ -205,7 +205,7 @@ func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
             recorders: not_exists
             readers: red1
     `)),
-			err: NewErrRouters("routers", "not_exists not in recorders", nil),
+			err: NewRoutersError("routers", "not_exists not in recorders", nil),
 		},
 		{
 			input: bytes.NewBuffer([]byte(`
@@ -220,7 +220,7 @@ func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
             recorders: rec1
             readers: not_exists
     `)),
-			err: NewErrRouters("routers", "not_exists not in readers", nil),
+			err: NewRoutersError("routers", "not_exists not in readers", nil),
 		},
 		{
 			input: bytes.NewBuffer([]byte(`
@@ -237,7 +237,7 @@ func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
             readers: red2
             recorders: red1 # wrong one!
     `)),
-			err: NewErrRouters("routers", "red1 not in recorders", nil),
+			err: NewRoutersError("routers", "red1 not in recorders", nil),
 		},
 	}
 
@@ -247,7 +247,7 @@ func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
 			v.ReadConfig(tc.input)
 			_, err := LoadYAML(log, v)
 			if errors.Cause(err).Error() != tc.err.Error() {
-				t.Fatalf("want (%v), got (%v)", tc.err, err)
+				t.Fatalf("err.Error() = (%v); want (%v)", err, tc.err)
 			}
 		})
 	}
@@ -294,7 +294,7 @@ func TestCheckRoutesAgainstReadersRecordersPasses(t *testing.T) {
 	routes, _ := getRoutes(v)
 
 	if err := checkAgainstReadRecorders(routes, readerKeys, recorderKeys); err != nil {
-		t.Fatalf("want no errors, got (%s)", err)
+		t.Fatalf("checkAgainstReadRecorders() = (%s); want (nil)", err)
 	}
 }
 
@@ -331,7 +331,7 @@ routes:
 	routeMap := mapReadersRecorders(routes)
 
 	if len(routeMap) != 2 { // we have two recorders
-		t.Errorf("want 2, got (%d)", len(routeMap))
+		t.Errorf("len(routeMap) = (%d); want (2)", len(routeMap))
 	}
 
 	wantKeys := []string{"elastic_1", "elastic_2"}

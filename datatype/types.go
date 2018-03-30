@@ -29,14 +29,35 @@ var ErrUnidentifiedJason = errors.New("unidentified jason value")
 
 // FloatType represents a pair of key values that the value is a float64.
 type FloatType struct {
-	Key   string
-	Value float64
+	Key     string
+	Value   float64
+	content string
+	index   int64 // current reading index
 }
 
-// Write includes both Key and Value.
-func (f FloatType) Write(p io.Writer) (n int, err error) {
-	return fmt.Fprintf(p, `"%s":%f`, f.Key, f.Value)
+// NewFloatType returns a new FloadType object.
+func NewFloatType(key string, value float64) *FloatType {
+	return &FloatType{
+		Key:     key,
+		Value:   value,
+		content: fmt.Sprintf(`"%s":%f`, key, value),
+		index:   0,
+	}
 }
+
+// Read includes both Key and Value.
+func (f *FloatType) Read(b []byte) (n int, err error) {
+	if f.index >= int64(len(f.content)) {
+		return 0, io.EOF
+	}
+	n = copy(b, f.content[f.index:])
+	f.index += int64(n)
+	return
+}
+
+// Reset resets the content to be empty, but it retains the underlying
+// storage for use by future writes.
+func (f *FloatType) Reset() { f.index = 0 }
 
 // Equal compares both keys and values and returns true if they are equal.
 func (f FloatType) Equal(other DataType) bool {
@@ -49,14 +70,35 @@ func (f FloatType) Equal(other DataType) bool {
 
 // StringType represents a pair of key values that the value is a string.
 type StringType struct {
-	Key   string
-	Value string
+	Key     string
+	Value   string
+	content string
+	index   int64
 }
 
-// Write includes both Key and Value.
-func (s StringType) Write(p io.Writer) (n int, err error) {
-	return fmt.Fprintf(p, `"%s":"%s"`, s.Key, s.Value)
+// NewStringType returns a new StringType object.
+func NewStringType(key, value string) *StringType {
+	return &StringType{
+		Key:     key,
+		Value:   value,
+		content: fmt.Sprintf(`"%s":"%s"`, key, value),
+		index:   0,
+	}
 }
+
+// Read includes both Key and Value.
+func (s *StringType) Read(b []byte) (n int, err error) {
+	if s.index >= int64(len(s.content)) {
+		return 0, io.EOF
+	}
+	n = copy(b, s.content[s.index:])
+	s.index += int64(n)
+	return
+}
+
+// Reset resets the content to be empty, but it retains the underlying
+// storage for use by future writes.
+func (s *StringType) Reset() { s.index = 0 }
 
 // Equal compares both keys and values and returns true if they are equal.
 func (s StringType) Equal(other DataType) bool {
@@ -69,28 +111,48 @@ func (s StringType) Equal(other DataType) bool {
 
 // FloatListType represents a pair of key values. The value is a list of floats.
 type FloatListType struct {
-	Key   string
-	Value []float64
+	Key     string
+	Value   []float64
+	content string
+	index   int64
 }
 
-func (fl FloatListType) Write(p io.Writer) (n int, err error) {
-	list := make([]string, len(fl.Value))
-	for i, v := range fl.Value {
+// NewFloatListType returns a new FloatListType object.
+func NewFloatListType(key string, value []float64) *FloatListType {
+	f := &FloatListType{Key: key, Value: value}
+	list := make([]string, len(f.Value))
+	for i, v := range f.Value {
 		list[i] = fmt.Sprintf("%f", v)
 	}
-	return fmt.Fprintf(p, `"%s":[%s]`, fl.Key, strings.Join(list, ","))
+	f.content = fmt.Sprintf(`"%s":[%s]`, f.Key, strings.Join(list, ","))
+
+	return f
 }
+
+// Read includes both Key and Value.
+func (f *FloatListType) Read(b []byte) (n int, err error) {
+	if f.index >= int64(len(f.content)) {
+		return 0, io.EOF
+	}
+	n = copy(b, f.content[f.index:])
+	f.index += int64(n)
+	return
+}
+
+// Reset resets the content to be empty, but it retains the underlying
+// storage for use by future writes.
+func (f *FloatListType) Reset() { f.index = 0 }
 
 // Equal compares both keys and all values and returns true if they are equal.
 // The values are checked in an unordered fashion.
-func (fl FloatListType) Equal(other DataType) bool {
+func (f FloatListType) Equal(other DataType) bool {
 	switch o := other.(type) {
 	case *FloatListType:
-		if fl.Key != o.Key {
+		if f.Key != o.Key {
 			return false
 		}
 		for _, v := range o.Value {
-			if !FloatInSlice(v, fl.Value) {
+			if !FloatInSlice(v, f.Value) {
 				return false
 			}
 		}
@@ -101,31 +163,50 @@ func (fl FloatListType) Equal(other DataType) bool {
 
 // GCListType represents a pair of key values of GC list info.
 type GCListType struct {
-	Key   string
-	Value []uint64
+	Key     string
+	Value   []uint64
+	content string
+	index   int64
 }
 
-func (flt GCListType) Write(p io.Writer) (n int, err error) {
+// NewGCListType returns a new FloatListType object.
+func NewGCListType(key string, value []uint64) *GCListType {
+	g := &GCListType{Key: key, Value: value}
 	// We are filtering, therefore we don't know the size
 	var list []string
-	for _, v := range flt.Value {
+	for _, v := range g.Value {
 		if v > 0 {
 			list = append(list, fmt.Sprintf("%d", v/1000))
 		}
 	}
-	return fmt.Fprintf(p, `"%s":[%s]`, flt.Key, strings.Join(list, ","))
+	g.content = fmt.Sprintf(`"%s":[%s]`, g.Key, strings.Join(list, ","))
+	return g
 }
+
+// Read includes both Key and Value.
+func (g *GCListType) Read(b []byte) (n int, err error) {
+	if g.index >= int64(len(g.content)) {
+		return 0, io.EOF
+	}
+	n = copy(b, g.content[g.index:])
+	g.index += int64(n)
+	return
+}
+
+// Reset resets the content to be empty, but it retains the underlying
+// storage for use by future writes.
+func (g *GCListType) Reset() { g.index = 0 }
 
 // Equal is not implemented. You should iterate and check yourself.
 // Equal compares both keys and values and returns true if they are equal.
-func (flt GCListType) Equal(other DataType) bool {
+func (g GCListType) Equal(other DataType) bool {
 	switch o := other.(type) {
 	case *GCListType:
-		if flt.Key != o.Key {
+		if g.Key != o.Key {
 			return false
 		}
 		for _, v := range o.Value {
-			if !Uint64InSlice(v, flt.Value) {
+			if !Uint64InSlice(v, g.Value) {
 				return false
 			}
 		}
@@ -137,19 +218,38 @@ func (flt GCListType) Equal(other DataType) bool {
 // ByteType represents a pair of key values in which the value represents bytes.
 // It converts the value to MB.
 type ByteType struct {
-	Key   string
-	Value float64
+	Key     string
+	Value   float64
+	content string
+	index   int64
 }
 
-func (b ByteType) Write(p io.Writer) (n int, err error) {
-	return fmt.Fprintf(p, `"%s":%f`, b.Key, b.Value/MEGABYTE)
+// NewByteType returns a new ByteType object.
+func NewByteType(key string, value float64) *ByteType {
+	b := &ByteType{Key: key, Value: value}
+	b.content = fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE)
+	return b
 }
+
+// Read includes both Key and Value.
+func (bt *ByteType) Read(b []byte) (n int, err error) {
+	if bt.index >= int64(len(bt.content)) {
+		return 0, io.EOF
+	}
+	n = copy(b, bt.content[bt.index:])
+	bt.index += int64(n)
+	return
+}
+
+// Reset resets the content to be empty, but it retains the underlying
+// storage for use by future writes.
+func (bt *ByteType) Reset() { bt.index = 0 }
 
 // Equal compares both keys and values and returns true if they are equal.
-func (b ByteType) Equal(other DataType) bool {
+func (bt ByteType) Equal(other DataType) bool {
 	switch o := other.(type) {
 	case *ByteType:
-		return b.Key == o.Key && b.Value == o.Value
+		return bt.Key == o.Key && bt.Value == o.Value
 	}
 	return false
 }
@@ -157,13 +257,32 @@ func (b ByteType) Equal(other DataType) bool {
 // KiloByteType represents a pair of key values in which the value represents
 // bytes. It converts the value to KB.
 type KiloByteType struct {
-	Key   string
-	Value float64
+	Key     string
+	Value   float64
+	content string
+	index   int64
 }
 
-func (k KiloByteType) Write(p io.Writer) (n int, err error) {
-	return fmt.Fprintf(p, `"%s":%f`, k.Key, k.Value/KILOBYTE)
+// NewKiloByteType returns a new KiloByteType object.
+func NewKiloByteType(key string, value float64) *KiloByteType {
+	b := &KiloByteType{Key: key, Value: value}
+	b.content = fmt.Sprintf(`"%s":%f`, b.Key, b.Value/KILOBYTE)
+	return b
 }
+
+// Read includes both Key and Value.
+func (k *KiloByteType) Read(b []byte) (n int, err error) {
+	if k.index >= int64(len(k.content)) {
+		return 0, io.EOF
+	}
+	n = copy(b, k.content[k.index:])
+	k.index += int64(n)
+	return
+}
+
+// Reset resets the content to be empty, but it retains the underlying
+// storage for use by future writes.
+func (k *KiloByteType) Reset() { k.index = 0 }
 
 // Equal compares both keys and values and returns true if they are equal.
 func (k KiloByteType) Equal(other DataType) bool {
@@ -177,13 +296,32 @@ func (k KiloByteType) Equal(other DataType) bool {
 // MegaByteType represents a pair of key values in which the value represents
 // bytes. It converts the value to MB.
 type MegaByteType struct {
-	Key   string
-	Value float64
+	Key     string
+	Value   float64
+	content string
+	index   int64
 }
 
-func (m MegaByteType) Write(p io.Writer) (n int, err error) {
-	return fmt.Fprintf(p, `"%s":%f`, m.Key, m.Value/MEGABYTE)
+// NewMegaByteType returns a new MegaByteType object.
+func NewMegaByteType(key string, value float64) *MegaByteType {
+	m := &MegaByteType{Key: key, Value: value}
+	m.content = fmt.Sprintf(`"%s":%f`, m.Key, m.Value/MEGABYTE)
+	return m
 }
+
+// Read includes both Key and Value.
+func (m *MegaByteType) Read(b []byte) (n int, err error) {
+	if m.index >= int64(len(m.content)) {
+		return 0, io.EOF
+	}
+	n = copy(b, m.content[m.index:])
+	m.index += int64(n)
+	return
+}
+
+// Reset resets the content to be empty, but it retains the underlying
+// storage for use by future writes.
+func (m *MegaByteType) Reset() { m.index = 0 }
 
 // Equal compares both keys and values and returns true if they are equal.
 func (m MegaByteType) Equal(other DataType) bool {

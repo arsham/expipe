@@ -33,7 +33,7 @@ func requirements(t *testing.T) (context.Context, *internal.Logger, *rdt.Reader,
 		reader.WithLogger(log),
 	)
 	if err != nil {
-		t.Fatalf("getting requirements for reader: %v", err)
+		t.Fatalf("err = (%#v); want (nil): getting requirements for reader", err)
 	}
 	mockRecorder, err := rct.New(
 		recorder.WithName("name"),
@@ -44,7 +44,7 @@ func requirements(t *testing.T) (context.Context, *internal.Logger, *rdt.Reader,
 		recorder.WithLogger(log),
 	)
 	if err != nil {
-		t.Fatalf("getting requirements for recorder: %v", err)
+		t.Fatalf("err = (%#v); want (nil): getting requirements for recorder", err)
 	}
 	return ctx, log, mockReader, mockRecorder
 }
@@ -54,10 +54,10 @@ func TestEmptyConfmapErrors(t *testing.T) {
 	ctx, log, _, _ := requirements(t)
 	d, err := expipe.StartEngines(ctx, log, nil)
 	if err == nil {
-		t.Error("want error, got nil")
+		t.Error("err = (nil); want (error)")
 	}
 	if d != nil {
-		t.Errorf("want (nil), got (%v)", d)
+		t.Errorf("d = (%v); want (nil)", d)
 	}
 }
 
@@ -71,10 +71,10 @@ func TestEmptyReaderErrors(t *testing.T) {
 	}
 	d, err := expipe.StartEngines(ctx, log, confMap)
 	if err == nil {
-		t.Error("want error, got nil")
+		t.Error("err = (nil); want (error)")
 	}
 	if d != nil {
-		t.Errorf("want (nil), got (%v)", d)
+		t.Errorf("d = (%v); want (nil)", d)
 	}
 }
 
@@ -88,10 +88,10 @@ func TestEmptyRecorderErrors(t *testing.T) {
 	}
 	d, err := expipe.StartEngines(ctx, log, confMap)
 	if err == nil {
-		t.Error("want error, got nil")
+		t.Error("err = (nil); want (error)")
 	}
 	if d != nil {
-		t.Errorf("want (nil), got (%v)", d)
+		t.Errorf("d = (%v); want (nil)", d)
 	}
 }
 
@@ -106,10 +106,10 @@ func TestEmptyReaderNameErrors(t *testing.T) {
 	}
 	d, err := expipe.StartEngines(ctx, log, confMap)
 	if err == nil {
-		t.Error("want error, got nil")
+		t.Error("err = (nil); want (error)")
 	}
 	if d != nil {
-		t.Errorf("want (nil), got (%v)", d)
+		t.Errorf("d = (%v); want (nil)", d)
 	}
 }
 
@@ -134,10 +134,10 @@ func TestEmptyRecorderNameErrors(t *testing.T) {
 	}
 	d, err := expipe.StartEngines(ctx, log, confMap)
 	if err == nil {
-		t.Error("want error, got nil")
+		t.Error("err = (nil); want (error)")
 	}
 	if d != nil {
-		t.Errorf("want (nil), got (%v)", d)
+		t.Errorf("d = (%v); want (nil)", d)
 	}
 }
 
@@ -167,10 +167,10 @@ func TestClosesDoneChan(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctx)
 	d, err := expipe.StartEngines(ctx, log, confMap)
 	if err != nil {
-		t.Fatalf("want (nil), got (%v)", err)
+		t.Fatalf("err = (%v); want (nil)", err)
 	}
 	if d == nil {
-		t.Fatal("want (chan), got nil")
+		t.Fatal("d = (nil); want (chan struct{})")
 	}
 
 	select {

@@ -23,15 +23,15 @@ func TestWithLogger(t *testing.T) {
 	c := new(expvar.Config)
 	err := expvar.WithLogger(l)(c)
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	l = internal.DiscardLogger()
 	err = expvar.WithLogger(l)(c)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if c.Logger() != l {
-		t.Errorf("want (%v), got (%v)", l, c.Logger())
+		t.Errorf("c.Logger() = (%v); want (%v)", c.Logger(), l)
 	}
 }
 
@@ -57,7 +57,7 @@ func TestWithViper(t *testing.T) {
 			c := new(expvar.Config)
 			err := expvar.WithViper(tc.v, tc.name, tc.key)(c)
 			if err == nil {
-				t.Error("want (error), got (nil)")
+				t.Error("err = (nil); want (error)")
 			}
 		})
 	}
@@ -81,19 +81,19 @@ func TestWithViperSuccess(t *testing.T) {
 	c := new(expvar.Config)
 	err := expvar.WithViper(v, "recorder1", "recorders.recorder1")(c)
 	if err != nil {
-		t.Fatalf("want (nil), got (%v)", err)
+		t.Fatalf("err = (%v); want (nil)", err)
 	}
 	if c.Backoff() != 15 {
-		t.Errorf("want (%d), got (%d)", 15, c.Backoff())
+		t.Errorf("c.Backoff() = (%d); want (%d)", c.Backoff(), 15)
 	}
 	if c.Timeout() != 10*time.Second {
-		t.Errorf("want (%d), got (%d)", 10*time.Second, c.Timeout())
+		t.Errorf("c.Timeout() = (%d); want (%d)", c.Timeout(), 10*time.Second)
 	}
 	if c.Endpoint() != "http://127.0.0.1:9200" {
-		t.Errorf("want (http://127.0.0.1:9200), got (%s)", c.Endpoint())
+		t.Errorf("c.Endpoint() = (%s); want (http://127.0.0.1:9200)", c.Endpoint())
 	}
 	if c.TypeName() != "example_type" {
-		t.Errorf("want (example_type), got (%s)", c.TypeName())
+		t.Errorf("c.TypeName() = (%s); want (example_type)", c.TypeName())
 	}
 }
 
@@ -133,7 +133,7 @@ func TestWithViperBadFile(t *testing.T) {
 			v.ReadConfig(tc.input)
 			err := expvar.WithViper(v, "recorder1", "recorders.recorder1")(c)
 			if err == nil {
-				t.Error("want (error), got (nil)")
+				t.Error("err = (nil); want (error)")
 			}
 		})
 	}
@@ -145,13 +145,13 @@ func TestNewConfig(t *testing.T) {
 		expvar.WithLogger(log),
 	)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if c == nil {
-		t.Error("want (Config), got (nil)")
+		t.Error("c = (nil); want (Config)")
 	}
 	if c.Mapper() != datatype.DefaultMapper() {
-		t.Errorf("want (%v), got (%v)", datatype.DefaultMapper(), c.Mapper())
+		t.Errorf("c.Mapper() = (%v); want (%v)", c.Mapper(), datatype.DefaultMapper())
 	}
 }
 
@@ -160,17 +160,17 @@ func TestNewConfigErrors(t *testing.T) {
 		expvar.WithLogger(nil),
 	)
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	if c != nil {
-		t.Errorf("want (nil), got (%v)", c)
+		t.Errorf("c = (%v); want (nil)", c)
 	}
 }
 func TestWithMapFile(t *testing.T) {
 	c := new(expvar.Config)
 	err := expvar.WithMapFile("")(c)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 
 	cwd, _ := os.Getwd()
@@ -185,7 +185,7 @@ func TestWithMapFile(t *testing.T) {
 
 	err = expvar.WithMapFile(path.Base(file.Name()))(c)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 }
 
@@ -200,21 +200,21 @@ func TestNewInstance(t *testing.T) {
 	c.ConfInterval = time.Second
 	c.EXPBackoff = 5
 	if err != nil {
-		t.Fatalf("want (nil), got (%v)", err)
+		t.Fatalf("err = (%v); want (nil)", err)
 	}
 	e, err := c.NewInstance()
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 	if e.(*expvar.Reader) != nil {
-		t.Errorf("want (nil), got (%v)", e)
+		t.Errorf("e = (%v); want (nil)", e)
 	}
 	c.ConfTimeout = time.Second
 	e, err = c.NewInstance()
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if e.(*expvar.Reader) == nil {
-		t.Error("want (Reader), got (nil)")
+		t.Error("e.(*expvar.Reader) = (nil); want (Reader)")
 	}
 }

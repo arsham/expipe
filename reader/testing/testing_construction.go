@@ -5,14 +5,14 @@
 package testing
 
 import (
+	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
-	gin "github.com/onsi/ginkgo"
-	gom "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 )
 
@@ -21,8 +21,7 @@ const (
 	typeName = "my type"
 )
 
-func testShouldNotChangeTheInput(t *testing.T, cons Constructor) {
-
+func shouldNotChangeTheInput(t testing.TB, cons Constructor) {
 	endpoint := cons.TestServer().URL
 	interval := time.Second
 	timeout := time.Second
@@ -35,157 +34,116 @@ func testShouldNotChangeTheInput(t *testing.T, cons Constructor) {
 	cons.SetTimeout(timeout)
 	cons.SetBackoff(backoff)
 	cons.SetLogger(logger)
-
 	red, err := cons.Object()
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 	if red.Name() != name {
-		t.Errorf("want (%s), got (%s)", red.Name(), name)
+		t.Errorf("red.Name() = (%s); want (%s)", red.Name(), name)
 	}
 	if red.TypeName() != typeName {
-		t.Errorf("want (%s), got (%s)", red.TypeName(), typeName)
+		t.Errorf("red.TypeName() = (%s); want (%s)", red.TypeName(), typeName)
 	}
 	if red.Interval() != interval {
-		t.Errorf("want (%s), got (%s)", red.Interval().String(), interval.String())
+		t.Errorf("red.Interval() = (%s); want (%s)", red.Interval().String(), interval.String())
 	}
 	if red.Timeout() != timeout {
-		t.Errorf("want (%d), got (%d)", red.Timeout(), timeout)
+		t.Errorf("red.Timeout() = (%d); want (%d)", red.Timeout(), timeout)
 	}
 }
 
-func testNameCheck(cons Constructor) {
-	var (
-		err      error
-		red      reader.DataReader
-		name     string
-		typeName string
-	)
-
-	gin.BeforeEach(func() {
-		name = "The name"
-		typeName = "the_type_name"
-		cons.SetName(name)
-		cons.SetTypeName(typeName)
-		cons.SetTimeout(time.Hour)
-		cons.SetEndpoint(cons.TestServer().URL)
-		cons.SetBackoff(5)
-	})
-
-	gin.Context("given empty name", func() {
-		gin.BeforeEach(func() {
-			cons.SetName("")
-			red, err = cons.Object()
-		})
-
-		gin.It("should error", func() {
-			gom.Expect(err).To(gom.HaveOccurred())
-			gom.Expect(errors.Cause(err)).To(gom.MatchError(reader.ErrEmptyName))
-		})
-		gin.Specify("reader should be nil", func() {
-			gom.Expect(red).To(gom.BeNil())
-		})
-	})
+func nameCheck(t testing.TB, cons Constructor) {
+	cons.SetTypeName(typeName)
+	cons.SetTimeout(time.Hour)
+	cons.SetEndpoint(cons.TestServer().URL)
+	cons.SetBackoff(5)
+	cons.SetName("")
+	red, err := cons.Object()
+	if errors.Cause(err) != reader.ErrEmptyName {
+		t.Errorf("err = (%v); want (reader.ErrEmptyName)", err)
+	}
+	if !reflect.ValueOf(red).IsNil() {
+		t.Errorf("red = (%v); want (nil)", red)
+	}
 }
 
-func testTypeNameCheck(cons Constructor) {
-	var (
-		err error
-		red reader.DataReader
-	)
-
+func typeNameCheck(t testing.TB, cons Constructor) {
 	cons.SetName(name)
 	cons.SetTypeName("")
+	cons.SetTimeout(time.Hour)
 	cons.SetEndpoint(cons.TestServer().URL)
-
-	gin.Context("given empty type name", func() {
-		red, err = cons.Object()
-
-		gin.It("should error", func() {
-			gom.Expect(err).To(gom.HaveOccurred())
-			gom.Expect(errors.Cause(err)).To(gom.MatchError(reader.ErrEmptyTypeName))
-		})
-		gin.Specify("reader should be nil", func() {
-			gom.Expect(red).To(gom.BeNil())
-		})
-	})
-
+	cons.SetBackoff(5)
+	red, err := cons.Object()
+	if errors.Cause(err) != reader.ErrEmptyTypeName {
+		t.Errorf("err = (%#v); want (reader.ErrEmptyTypeName)", err)
+	}
+	if !reflect.ValueOf(red).IsNil() {
+		t.Errorf("red = (%v); want (nil)", red)
+	}
 }
 
-func testBackoffCheck(cons Constructor) {
-	gin.Context("with low backoff value", func() {
-
-		backoff := 3
-		cons.SetName("the name")
-		cons.SetTypeName("my_type_name")
-		cons.SetEndpoint(cons.TestServer().URL)
-		cons.SetTimeout(time.Second)
-		cons.SetBackoff(backoff)
-
-		red, err := cons.Object()
-		gin.Specify("reader to be nil", func() {
-			gom.Expect(red).To(gom.BeNil())
-		})
-		gin.It("should error and mention the backoff value", func() {
-			gom.Expect(err).To(gom.HaveOccurred())
-			gom.Expect(errors.Cause(err)).To(gom.BeAssignableToTypeOf(reader.ErrLowBackoffValue(0)))
-			gom.Expect(err.Error()).To(gom.ContainSubstring(strconv.Itoa(backoff)))
-		})
-	})
+func backoffCheck(t testing.TB, cons Constructor) {
+	backoff := 3
+	cons.SetName("the name")
+	cons.SetTypeName("my_type_name")
+	cons.SetEndpoint(cons.TestServer().URL)
+	cons.SetTimeout(time.Second)
+	cons.SetBackoff(backoff)
+	red, err := cons.Object()
+	if !reflect.ValueOf(red).IsNil() {
+		t.Errorf("red = (%v); want (nil)", red)
+	}
+	if _, ok := errors.Cause(err).(reader.LowBackoffValueError); !ok {
+		t.Errorf("err.(reader.LowBackoffValueError) = (%#v); want (reader.LowBackoffValueError)", err)
+	}
+	if !strings.Contains(err.Error(), strconv.Itoa(backoff)) {
+		t.Errorf("Contains(err.Error(), backoff): want (%s) to be in (%s)", strconv.Itoa(backoff), err.Error())
+	}
 }
 
-func testIntervalCheck(cons Constructor) {
-	gin.Context("with zero interval value", func() {
-		endpoint := cons.TestServer().URL
-		interval := 0
-		cons.SetEndpoint(endpoint)
-		cons.SetName("the name")
-		cons.SetTypeName("my type")
-		cons.SetInterval(time.Duration(interval))
-
-		red, err := cons.Object()
-		gin.Specify("reader to be nil", func() {
-			gom.Expect(red).To(gom.BeNil())
-		})
-		gin.It("should error and mention the interval value", func() {
-			gom.Expect(err).To(gom.HaveOccurred())
-			gom.Expect(errors.Cause(err)).To(gom.BeAssignableToTypeOf(reader.ErrLowInterval(0)))
-			gom.Expect(err.Error()).To(gom.ContainSubstring(strconv.Itoa(interval)))
-		})
-	})
+func intervalCheck(t testing.TB, cons Constructor) {
+	endpoint := cons.TestServer().URL
+	interval := 0
+	cons.SetEndpoint(endpoint)
+	cons.SetName("the name")
+	cons.SetTypeName("my type")
+	cons.SetInterval(time.Duration(interval))
+	red, err := cons.Object()
+	if !reflect.ValueOf(red).IsNil() {
+		t.Errorf("red = (%v); want (nil)", red)
+	}
+	if _, ok := errors.Cause(err).(reader.LowIntervalError); !ok {
+		t.Errorf("err.(reader.LowIntervalError) = (%#v); want (reader.LowIntervalError)", err)
+	}
+	if !strings.Contains(err.Error(), strconv.Itoa(interval)) {
+		t.Errorf("Contains(err.Error(), interval): want (%s) to be in (%s)", strconv.Itoa(interval), err.Error())
+	}
 }
 
-func testEndpointCheck(cons Constructor) {
+func endpointCheck(t testing.TB, cons Constructor) {
+	invalidEndpoint := "this is invalid"
 	cons.SetName("the name")
 	cons.SetTypeName("my type")
 	cons.SetTimeout(time.Second)
 	cons.SetInterval(time.Second)
 	cons.SetBackoff(5)
-
-	gin.Context("With invalid endpoint", func() {
-		invalidEndpoint := "this is invalid"
-		cons.SetEndpoint(invalidEndpoint)
-
-		red, err := cons.Object()
-		gin.Specify("reader should be nil", func() {
-			gom.Expect(red).To(gom.BeNil())
-		})
-		gin.It("should error and mention the endpoint", func() {
-			gom.Expect(err).To(gom.HaveOccurred())
-			gom.Expect(errors.Cause(err)).To(gom.BeAssignableToTypeOf(reader.ErrInvalidEndpoint("")))
-			gom.Expect(err.Error()).To(gom.ContainSubstring(invalidEndpoint))
-		})
-	})
-
-	gin.Context("With empty endpoint", func() {
-		cons.SetEndpoint("")
-		red, err := cons.Object()
-		gin.Specify("reader should be nil", func() {
-			gom.Expect(red).To(gom.BeNil())
-		})
-		gin.It("should error", func() {
-			gom.Expect(err).To(gom.HaveOccurred())
-			gom.Expect(errors.Cause(err)).To(gom.MatchError(reader.ErrEmptyEndpoint))
-		})
-	})
+	cons.SetEndpoint(invalidEndpoint)
+	red, err := cons.Object()
+	if !reflect.ValueOf(red).IsNil() {
+		t.Errorf("red = (%v); want (nil)", red)
+	}
+	if _, ok := errors.Cause(err).(reader.InvalidEndpointError); !ok {
+		t.Errorf("err.(reader.InvalidEndpointError) = (%#v); want (reader.InvalidEndpointError)", err)
+	}
+	if !strings.Contains(err.Error(), invalidEndpoint) {
+		t.Errorf("want (%s) to be in (%s)", invalidEndpoint, err.Error())
+	}
+	cons.SetEndpoint("")
+	red, err = cons.Object()
+	if !reflect.ValueOf(red).IsNil() {
+		t.Errorf("red = (%v); want (nil)", red)
+	}
+	if errors.Cause(err) != reader.ErrEmptyEndpoint {
+		t.Errorf("err = (%#v); want (reader.ErrEmptyEndpoint)", err)
+	}
 }

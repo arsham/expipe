@@ -18,10 +18,10 @@ var (
 	ErrNoCtx    = fmt.Errorf("no ctx provided")
 )
 
-// ErrPing is the error when one of readers/recorder has a ping error
-type ErrPing map[string]error
+// PingError is the error when one of readers/recorder has a ping error
+type PingError map[string]error
 
-func (e ErrPing) Error() string {
+func (e PingError) Error() string {
 	var msgs []string
 	for name, err := range e {
 		msgs = append(msgs, name+":"+err.Error())
@@ -29,13 +29,13 @@ func (e ErrPing) Error() string {
 	return fmt.Sprintf("pinging error: %s", strings.Join(msgs, "\n"))
 }
 
-// ErrJob caries an error around in Engine operations.
-type ErrJob struct {
+// JobError caries an error around in Engine operations.
+type JobError struct {
 	Name string // Name of the operator; reader, recorder.
 	ID   token.ID
 	Err  error
 }
 
-func (e ErrJob) Error() string {
+func (e JobError) Error() string {
 	return fmt.Sprintf("%s - [ID %s]: %s", e.Name, e.ID.String(), e.Err.Error())
 }

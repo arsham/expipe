@@ -55,7 +55,7 @@ func WithEndpoint(endpoint string) func(Constructor) error {
 		}
 		url, err := internal.SanitiseURL(endpoint)
 		if err != nil {
-			return ErrInvalidEndpoint(endpoint)
+			return InvalidEndpointError(endpoint)
 		}
 		e.SetEndpoint(url)
 		return nil
@@ -69,7 +69,7 @@ func WithIndexName(indexName string) func(Constructor) error {
 			return ErrEmptyIndexName
 		}
 		if strings.ContainsAny(indexName, ` "*\<|,>/?`) {
-			return ErrInvalidIndexName(indexName)
+			return InvalidIndexNameError(indexName)
 		}
 		e.SetIndexName(indexName)
 		return nil
@@ -80,7 +80,7 @@ func WithIndexName(indexName string) func(Constructor) error {
 func WithTimeout(timeout time.Duration) func(Constructor) error {
 	return func(e Constructor) error {
 		if timeout < time.Second {
-			return ErrLowTimeout(timeout)
+			return LowTimeout(timeout)
 		}
 		e.SetTimeout(timeout)
 		return nil
@@ -91,7 +91,7 @@ func WithTimeout(timeout time.Duration) func(Constructor) error {
 func WithBackoff(backoff int) func(Constructor) error {
 	return func(e Constructor) error {
 		if backoff < 5 {
-			return ErrLowBackoffValue(backoff)
+			return LowBackoffValueError(backoff)
 		}
 		e.SetBackoff(backoff)
 		return nil

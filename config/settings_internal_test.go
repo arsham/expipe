@@ -55,29 +55,29 @@ func TestLoadConfiguration(t *testing.T) {
 		recorders: []string{"recorder_1"},
 	}}
 	_, err := loadConfiguration(v, log, routeMap, readers, recorders)
-	if _, ok := errors.Cause(err).(ErrNotSupported); !ok {
-		t.Errorf("want ErrNotSupported, got (%T)", err)
+	if _, ok := errors.Cause(err).(NotSupportedError); !ok {
+		t.Errorf("err.(NotSupportedError) = (%T); want NotSupportedError", err)
 	}
 
 	readers = map[string]string{"reader_1": "expvar"}
 	recorders = map[string]string{"recorder_1": "not_exists"}
 	_, err = loadConfiguration(v, log, routeMap, readers, recorders)
-	if _, ok := errors.Cause(err).(ErrNotSupported); !ok {
-		t.Errorf("want ErrNotSupported, got (%T)", err)
+	if _, ok := errors.Cause(err).(NotSupportedError); !ok {
+		t.Errorf("err.(NotSupportedError) = (%T); want (NotSupportedError)", err)
 	}
 
 	readers = map[string]string{"reader_1": "expvar", "reader_2": "self"}
 	recorders = map[string]string{"recorder_2": "elasticsearch"}
 	_, err = loadConfiguration(v, log, routeMap, readers, recorders)
 	if err == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil);want (error)")
 	}
 
 	readers = map[string]string{"reader_1": "expvar", "reader_2": "self"}
 	recorders = map[string]string{"recorder_1": "elasticsearch"}
 	_, err = loadConfiguration(v, log, routeMap, readers, recorders)
 	if err != nil {
-		t.Errorf("want (nil), got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 }
 
@@ -89,21 +89,21 @@ func TestParseReader(t *testing.T) {
 
 	v.ReadConfig(bytes.NewBuffer([]byte("")))
 	_, err := parseReader(v, log, "non_existence_plugin", "readers.reader1")
-	if _, ok := errors.Cause(err).(ErrNotSupported); !ok {
-		t.Errorf("want (ErrNotSupported), got (%v)", err)
+	if _, ok := errors.Cause(err).(NotSupportedError); !ok {
+		t.Errorf("err.(NotSupportedError) = (%v); want (NotSupportedError)", err)
 	}
 	if !strings.Contains(err.Error(), "non_existence_plugin") {
-		t.Errorf("expected (non_existence_plugin) in error message, got (%s)", err)
+		t.Errorf("want (non_existence_plugin) in (%s)", err)
 	}
 
 	_, err = parseReader(v, log, "expvar", "readers.reader1")
 	if errors.Cause(err) == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 
 	_, err = parseReader(v, log, "self", "readers.reader1")
 	if errors.Cause(err) == nil {
-		t.Error("want (error), got (nil)")
+		t.Error("err = (nil); want (error)")
 	}
 
 	input := bytes.NewBuffer([]byte(`
@@ -122,7 +122,7 @@ func TestParseReader(t *testing.T) {
 	v.ReadConfig(input)
 	c, err := parseReader(v, log, "expvar", "reader1")
 	if err != nil {
-		t.Errorf("want no errors, got (%v)", err)
+		t.Errorf("err = (%v); want (nil)", err)
 	}
 
 	if _, ok := c.(reader.DataReader); !ok {
@@ -148,13 +148,13 @@ func TestGetReaders(t *testing.T) {
 		t.Errorf("want nil, got (%v)", err)
 	}
 	if len(keys) != 2 {
-		t.Errorf("expected 2 keys, got (%d)", len(keys))
+		t.Errorf("len(keys) = (%d); want (2)", len(keys))
 	}
 
 	target := []string{"reader1", "reader2"}
 	for rKey := range keys {
 		if !internal.StringInSlice(rKey, target) {
-			t.Errorf("expected (%s) be in %v", rKey, target)
+			t.Errorf("internal.StringInSlice(rKey, target): expected (%s) be in %v", rKey, target)
 		}
 	}
 
@@ -188,11 +188,11 @@ func TestGetReaders(t *testing.T) {
 			v.ReadConfig(tc.input)
 			keys, _ := getReaders(v)
 			if len(keys) == 0 {
-				t.Fatalf("unexpected return value (%v)", keys)
+				t.Fatalf("len(keys) = 0; want return value (%v)", keys)
 			}
 			for _, v := range keys {
 				if v != tc.value {
-					t.Errorf("want (%s), got (%s)", tc.value, v)
+					t.Errorf("v = want (%s); want (%s)", v, tc.value)
 				}
 			}
 		})
@@ -214,7 +214,7 @@ func TestGetRecorders(t *testing.T) {
 	v.ReadConfig(input)
 	keys, _ := getRecorders(v)
 	if len(keys) != 2 {
-		t.Errorf("expected 2 keys, got (%d)", len(keys))
+		t.Errorf("len(keys) = (%d); want (2)", len(keys))
 	}
 
 	target := []string{"recorder1", "recorder2"}
@@ -246,11 +246,11 @@ func TestGetRecorders(t *testing.T) {
 			v.ReadConfig(tc.input)
 			keys, _ := getRecorders(v)
 			if len(keys) == 0 {
-				t.Fatalf("unexpected return value (%v)", keys)
+				t.Fatalf("len(keys): unexpected return value (%v)", keys)
 			}
 			for _, v := range keys {
 				if v != tc.value {
-					t.Errorf("want (%s), got (%s)", tc.value, v)
+					t.Errorf("v = (%s); want (%s)", v, tc.value)
 				}
 			}
 		})

@@ -13,49 +13,49 @@ import (
 	"github.com/pkg/errors"
 )
 
-func TestErrInvalidEndpoint(t *testing.T) {
+func TestInvalidEndpointError(t *testing.T) {
 	msg := "the endpoint"
-	e := recorder.ErrInvalidEndpoint(msg)
+	e := recorder.InvalidEndpointError(msg)
 	check(t, e.Error(), msg)
 }
 
-func TestErrEndpointNotAvailable(t *testing.T) {
+func TestEndpointNotAvailableError(t *testing.T) {
 	endpoint := "the endpoint"
 	err := errors.New("my error")
-	e := recorder.ErrEndpointNotAvailable{Endpoint: endpoint, Err: err}
+	e := recorder.EndpointNotAvailableError{Endpoint: endpoint, Err: err}
 	check(t, e.Error(), endpoint)
 	check(t, e.Error(), err.Error())
 }
 
-func TestErrLowBackoffValue(t *testing.T) {
+func TestLowBackoffValueError(t *testing.T) {
 	backoff := 5
-	e := recorder.ErrLowBackoffValue(backoff)
+	e := recorder.LowBackoffValueError(backoff)
 	check(t, e.Error(), strconv.Itoa(backoff))
 
 }
 
-func TestErrParseTimeOut(t *testing.T) {
+func TestParseTimeOutError(t *testing.T) {
 	timeout := "5"
 	err := errors.New("my error")
-	e := recorder.ErrParseTimeOut{Timeout: timeout, Err: err}
+	e := recorder.ParseTimeOutError{Timeout: timeout, Err: err}
 	check(t, e.Error(), timeout)
 	check(t, e.Error(), err.Error())
 }
 
-func TestErrInvalidIndexName(t *testing.T) {
+func TestInvalidIndexNameError(t *testing.T) {
 	indexName := "thumb is not an index finger"
-	e := recorder.ErrInvalidIndexName(indexName)
+	e := recorder.InvalidIndexNameError(indexName)
 	check(t, e.Error(), indexName)
 }
 
-func TestErrLowTimeout(t *testing.T) {
+func TestLowTimeoutError(t *testing.T) {
 	timeout := 5
-	e := recorder.ErrLowTimeout(timeout)
+	e := recorder.LowTimeout(timeout)
 	check(t, e.Error(), strconv.Itoa(timeout))
 }
 
 func check(t *testing.T, err, msg string) {
 	if !strings.Contains(err, msg) {
-		t.Errorf("want (%s) to be in (%s)", msg, err)
+		t.Errorf("Contains(err, msg) = false: want (%s) to be in (%s)", msg, err)
 	}
 }

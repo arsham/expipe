@@ -5,14 +5,18 @@
 // Package testing is a test suit for readers. They should provide
 // an object that implements the Constructor interface then run:
 //
-//    import reader_test "github.com/arsham/expipe/reader/testing"
+//    import rt "github.com/arsham/expipe/reader/testing"
 //    ....
-//    r, err := reader_test.New(reader.SetName("test"))
-//    if err != nil {
-//        panic(err)
+//    func TestMyThings(t *testing.T) {
+//        rt.TestSuites(t, func() (rt.Constructor, func()) {
+//            r, err := rt.New(reader.SetName("test"))
+//            if err != nil {
+//                panic(err)
+//            }
+//            c := &Construct{Reader: r}
+//            return c, func() { /*clean up code*/ }
+//        })
 //    }
-//    c := &Construct{r}
-//    reader_test.TestSuites(t, c)
 //
 // The test suit will pick it up and does all the tests.
 //
@@ -27,12 +31,11 @@ import (
 	"testing"
 
 	"github.com/arsham/expipe/reader"
-	gin "github.com/onsi/ginkgo"
 )
 
 // Constructor is an interface for setting up an object for testing.
-// TestServer() should return a ready to use test server
-// Object() should return the instantiated object
+// TestServer should return a ready to use test server
+// Object should return the instantiated object
 type Constructor interface {
 	reader.Constructor
 	TestServer() *httptest.Server
@@ -40,62 +43,78 @@ type Constructor interface {
 }
 
 // TestSuites returns a map of test name to the runner function.
-func TestSuites(t *testing.T, cons Constructor) {
-
+func TestSuites(t *testing.T, setup func() (Constructor, func())) {
+	t.Parallel()
 	t.Run("ShouldNotChangeTheInput", func(t *testing.T) {
-		testShouldNotChangeTheInput(t, cons)
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		shouldNotChangeTheInput(t, cons)
 	})
 	t.Run("NameCheck", func(t *testing.T) {
-		gin.Describe("Checking name and index name", func() {
-			testNameCheck(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		nameCheck(t, cons)
 	})
 	t.Run("TypeNameCheck", func(t *testing.T) {
-		testTypeNameCheck(cons)
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		typeNameCheck(t, cons)
 	})
 	t.Run("BackoffCheck", func(t *testing.T) {
-		gin.Describe("Checking backoff value", func() {
-			testBackoffCheck(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		backoffCheck(t, cons)
 	})
 	t.Run("IntervalCheck", func(t *testing.T) {
-		gin.Describe("Checking interval value", func() {
-			testIntervalCheck(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		intervalCheck(t, cons)
 	})
 	t.Run("EndpointCheck", func(t *testing.T) {
-		gin.Describe("Checking endpoint value", func() {
-			testEndpointCheck(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		endpointCheck(t, cons)
 	})
 	t.Run("ReceivesJob", func(t *testing.T) {
-		gin.Describe("Receiving payload", func() {
-			testReaderReceivesJob(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		readerReceivesJob(t, cons)
 	})
 	t.Run("ReturnsSameID", func(t *testing.T) {
-		gin.Describe("Returning the same job ID", func() {
-			testReaderReturnsSameID(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		readerReturnsSameID(t, cons)
 	})
 	t.Run("PingingEndpoint", func(t *testing.T) {
-		gin.Describe("Pinging the endpoint", func() {
-			pingingEndpoint(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		pingingEndpoint(t, cons)
 	})
 	t.Run("ErrorsOnEndpointDisapears", func(t *testing.T) {
-		gin.Describe("Backing off when the endpoint disappears", func() {
-			testReaderErrorsOnEndpointDisapears(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		readerErrorsOnEndpointDisapears(t, cons)
 	})
 	t.Run("BacksOffOnEndpointGone", func(t *testing.T) {
-		gin.Describe("Backing off when the endpoint is gone", func() {
-			testReaderBacksOffOnEndpointGone(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		readerBacksOffOnEndpointGone(t, cons)
 	})
 	t.Run("ReadingReturnsErrorIfNotPingedYet", func(t *testing.T) {
-		gin.Describe("Reading without pinging", func() {
-			testReadingReturnsErrorIfNotPingedYet(cons)
-		})
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		readingReturnsErrorIfNotPingedYet(t, cons)
 	})
 }

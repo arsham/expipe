@@ -1,0 +1,7 @@
+# validation:
+# curl --data-binary @.codecov.yml https://codecov.io/validate
+
+ignore:
+  - "**/testing/testing_communication.go"
+  - "**/testing/testing_construction.go"
+  - "**/testing/testing_endpoints.go"

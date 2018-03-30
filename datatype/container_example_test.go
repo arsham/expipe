@@ -15,7 +15,7 @@ import (
 )
 
 func ExampleContainer_Len() {
-	l := []datatype.DataType{datatype.FloatType{}, datatype.FloatType{}}
+	l := []datatype.DataType{&datatype.FloatType{}, &datatype.FloatType{}}
 	c := datatype.New(l)
 	fmt.Println(c.Len())
 	// output:
@@ -24,12 +24,12 @@ func ExampleContainer_Len() {
 
 func ExampleContainer_Add() {
 	c := datatype.New(nil)
-	firstElm := datatype.FloatType{}
+	firstElm := &datatype.FloatType{}
 
 	c.Add(firstElm)
 	fmt.Println(c.Len())
 
-	c.Add(datatype.FloatType{}, datatype.FloatType{})
+	c.Add(&datatype.FloatType{}, &datatype.FloatType{})
 	fmt.Println(c.Len())
 	// output:
 	// 1
@@ -53,7 +53,7 @@ func ExampleContainer_Generate_add() {
 	t := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 
 	c := datatype.Container{}
-	elm := datatype.FloatType{Key: "key", Value: 66.6}
+	elm := datatype.NewFloatType("key", 66.6)
 	c.Add(elm)
 
 	w := new(bytes.Buffer)
