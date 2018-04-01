@@ -22,7 +22,7 @@ install:
 
 script:
   - glide install
-  - ./bin/coverage.sh
+  - ./configs/coverage.sh
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

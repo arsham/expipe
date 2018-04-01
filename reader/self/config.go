@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
 )
 
 // Config holds the necessary configuration for setting up an self reading
 // facility, which is the way to record the app's metrics.
 type Config struct {
-	log          internal.FieldLogger
+	log          tools.FieldLogger
 	SelfName     string
 	SelfTypeName string `mapstructure:"type_name"`
 	SelfInterval string `mapstructure:"interval"`
@@ -45,8 +45,8 @@ func NewConfig(conf ...Conf) (*Config, error) {
 	return obj, nil
 }
 
-// NewInstance instantiates a SelfReader by referencing Config's properties.
-func (c *Config) NewInstance() (reader.DataReader, error) {
+// Reader implements the RecorderConf interface.
+func (c *Config) Reader() (reader.DataReader, error) {
 	return New(
 		reader.WithLogger(c.Logger()),
 		reader.WithEndpoint(c.Endpoint()),
@@ -75,13 +75,13 @@ func (c *Config) Interval() time.Duration { return c.Cinterval }
 func (c *Config) Timeout() time.Duration { return time.Second }
 
 // Logger returns the logger.
-func (c *Config) Logger() internal.FieldLogger { return c.log }
+func (c *Config) Logger() tools.FieldLogger { return c.log }
 
 // Backoff returns the backoff.
 func (c *Config) Backoff() int { return c.SelfBackoff }
 
 // WithLogger produces an error if the log is nil.
-func WithLogger(log internal.FieldLogger) Conf {
+func WithLogger(log tools.FieldLogger) Conf {
 	return func(c *Config) error {
 		if log == nil {
 			return errors.New("nil logger")

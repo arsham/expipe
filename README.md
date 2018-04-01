@@ -27,13 +27,13 @@ and you can view them with [kibana][kibana]. It can read from any applications
 * Can ship the metrics to multiple databases.
 * Shows memory usages and GC pauses of the apps.
 * Metrics can be aggregated for different apps (with elasticsearch's type system).
-* A kibana dashboard is also provided [here](./bin/dashboard.json).
+* A kibana dashboard is also provided [here](./configs/dashboard.json).
 * Maps values how you define them. For example you can change bytes to megabytes.
 * Benchmarks are included.
 
 There are TODO items in the issue section. Feature requests are welcome!
 Please refer to golang's [expvar documentation][expvar] for more information.
-Screen shots can be found in [this](./SCREENSHOTS.md) document. Here is an example:
+Screen shots can be found in [this](./docs/SCREENSHOTS.md) document. Here is an example:
 
 ![Colored](http://i.imgur.com/6U2hxlp.png)
 
@@ -55,7 +55,7 @@ You need golang >= 1.7 and [glide][glide] installed. Simply do:
 go get github.com/arsham/expipe
 cd $GOPATH/src/github.com/arsham/expipe
 glide install
-go install ./cmd/expipe
+go install
 ```
 
 You also need elasticsearch and kibana, here is a couple of docker images you can start with:
@@ -79,7 +79,7 @@ Then click on create button.
 ### Importing Dashboard
 
 Go to `Saved Objects` section of `management`, and click on the `import` button.
-Upload [this](./bin/dashboard.json) file and you're done!
+Upload [this](./configs/dashboard.json) file and you're done!
 
 One of the provided dashboards shows the expipe's own metrics, and you can use
 the other one for everything you have defined in the configuration file.
@@ -103,7 +103,7 @@ expipe -h
 
 ### Advanced
 
-Please refer to [this](./RECIPES.md) document for advanced configuration and mappings.
+Please refer to [this](./docs/RECIPES.md) document for advanced configuration and mappings.
 
 ## LICENSE
 

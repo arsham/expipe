@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/antonholmquist/jason"
-	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/tools"
 	"github.com/spf13/viper"
 )
 
@@ -28,12 +28,10 @@ var (
 	defaultMap            *MapConvert
 )
 
-type memType string
-
 // MapConvert can produce output from GC string list and memory type input.
 type MapConvert struct {
-	gcTypes     []string
-	memoryTypes map[string]memType
+	GCTypes     []string
+	MemoryTypes map[string]string
 }
 
 type treeReader interface {
@@ -49,10 +47,10 @@ func MapsFromViper(v treeReader) *MapConvert {
 	m := &MapConvert{}
 	def := DefaultMapper()
 	if v.IsSet("gc_types") {
-		m.gcTypes = gcTypes(v, def.gcTypes)
+		m.GCTypes = gcTypes(v, def.GCTypes)
 	}
 	if v.IsSet("memory_bytes") {
-		m.memoryTypes = memoryTypes(v, def.memoryTypes)
+		m.MemoryTypes = memoryTypes(v, def.MemoryTypes)
 	}
 	return m
 }
@@ -67,10 +65,10 @@ func DefaultMapper() *MapConvert {
 		v.ReadConfig(defaultMappings())
 		defaultMap = &MapConvert{}
 		if v.IsSet("gc_types") {
-			defaultMap.gcTypes = gcTypes(v, make([]string, 0))
+			defaultMap.GCTypes = gcTypes(v, make([]string, 0))
 		}
 		if v.IsSet("memory_bytes") {
-			defaultMap.memoryTypes = memoryTypes(v, make(map[string]memType))
+			defaultMap.MemoryTypes = memoryTypes(v, make(map[string]string))
 		}
 	})
 	return defaultMap
@@ -82,12 +80,12 @@ func (m *MapConvert) getMemoryTypes(prefix, name string, j *jason.Value) (DataTy
 		expDataTypeErrs.Add(1)
 		return nil, false
 	}
-	b := m.memoryTypes[strings.ToLower(name)]
-	if b.IsByte() {
+	b := m.MemoryTypes[strings.ToLower(name)]
+	if IsByte(b) {
 		return NewByteType(prefix+name, v), true
-	} else if b.IsKiloByte() {
+	} else if IsKiloByte(b) {
 		return NewKiloByteType(prefix+name, v), true
-	} else if b.IsMegaByte() {
+	} else if IsMegaByte(b) {
 		return NewMegaByteType(prefix+name, v), true
 	}
 	return nil, false
@@ -97,7 +95,7 @@ func (m *MapConvert) arrayValue(prefix, name string, a []*jason.Value) DataType 
 	if len(a) == 0 {
 		return NewFloatListType(prefix+name, []float64{})
 	} else if _, err := a[0].Float64(); err == nil {
-		if internal.StringInSlice(name, m.gcTypes) {
+		if tools.StringInSlice(name, m.GCTypes) {
 			return getGCList(prefix+name, a)
 		}
 		return getFloatListValues(prefix+name, a)
@@ -119,15 +117,12 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 
 	for name, value := range input {
 		var result DataType
-		if stringInMapKeys(name, m.memoryTypes) {
-			if stringInMapKeys(name, m.memoryTypes) {
-				var ok bool
-				result, ok = m.getMemoryTypes(prefix, name, &value)
-				if !ok {
-					continue
-				}
-				expByteTypeCount.Add(1)
+		if _, ok := m.MemoryTypes[strings.ToLower(name)]; ok {
+			result, ok = m.getMemoryTypes(prefix, name, &value)
+			if !ok {
+				continue
 			}
+			expByteTypeCount.Add(1)
 		} else if obj, err := value.Object(); err == nil {
 			// we are dealing with nested objects
 			results = append(results, m.Values(prefix+name+".", obj.Map())...)
@@ -157,10 +152,10 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 // Copy returns a new copy of the Mapper.
 func (m *MapConvert) Copy() Mapper {
 	newMapper := &MapConvert{}
-	newMapper.gcTypes = m.gcTypes[:]
-	newMapper.memoryTypes = make(map[string]memType, len(m.memoryTypes))
-	for k, v := range m.memoryTypes {
-		newMapper.memoryTypes[k] = v
+	newMapper.GCTypes = m.GCTypes[:]
+	newMapper.MemoryTypes = make(map[string]string, len(m.MemoryTypes))
+	for k, v := range m.MemoryTypes {
+		newMapper.MemoryTypes[k] = v
 	}
 	return newMapper
 }
@@ -187,9 +182,14 @@ func getFloatListValues(name string, arr []*jason.Value) *FloatListType {
 	return NewFloatListType(name, res)
 }
 
-func (m memType) IsByte() bool     { return string(m) == "b" }
-func (m memType) IsKiloByte() bool { return string(m) == "kb" }
-func (m memType) IsMegaByte() bool { return string(m) == "mb" }
+// IsByte checks the string string to determine if it is a Byte value.
+func IsByte(m string) bool { return string(m) == "b" }
+
+// IsKiloByte checks the string string to determine if it is a KiloByte value.
+func IsKiloByte(m string) bool { return string(m) == "kb" }
+
+// IsMegaByte checks the string string to determine if it is a MegaByte value.
+func IsMegaByte(m string) bool { return string(m) == "mb" }
 
 func gcTypes(v treeReader, gcTypes []string) []string {
 	var result []string
@@ -207,20 +207,10 @@ func gcTypes(v treeReader, gcTypes []string) []string {
 	return result
 }
 
-func memoryTypes(v treeReader, memTypes map[string]memType) map[string]memType {
-	result := make(map[string]memType, len(memTypes))
+func memoryTypes(v treeReader, memTypes map[string]string) map[string]string {
+	result := make(map[string]string, len(memTypes))
 	for name, memoryType := range v.GetStringMapString("memory_bytes") {
-		result[name] = memType(memoryType)
+		result[name] = string(memoryType)
 	}
 	return result
-}
-
-func stringInMapKeys(niddle string, haystack map[string]memType) bool {
-	niddle = strings.ToLower(niddle)
-	for b := range haystack {
-		if strings.ToLower(b) == niddle {
-			return true
-		}
-	}
-	return false
 }

@@ -13,19 +13,19 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader/expvar"
+	"github.com/arsham/expipe/tools"
 	"github.com/spf13/viper"
 )
 
 func TestWithLogger(t *testing.T) {
-	l := (internal.FieldLogger)(nil)
+	l := (tools.FieldLogger)(nil)
 	c := new(expvar.Config)
 	err := expvar.WithLogger(l)(c)
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
-	l = internal.DiscardLogger()
+	l = tools.DiscardLogger()
 	err = expvar.WithLogger(l)(c)
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
@@ -140,7 +140,7 @@ func TestWithViperBadFile(t *testing.T) {
 }
 
 func TestNewConfig(t *testing.T) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	c, err := expvar.NewConfig(
 		expvar.WithLogger(log),
 	)
@@ -166,6 +166,7 @@ func TestNewConfigErrors(t *testing.T) {
 		t.Errorf("c = (%v); want (nil)", c)
 	}
 }
+
 func TestWithMapFile(t *testing.T) {
 	c := new(expvar.Config)
 	err := expvar.WithMapFile("")(c)
@@ -189,8 +190,8 @@ func TestWithMapFile(t *testing.T) {
 	}
 }
 
-func TestNewInstance(t *testing.T) {
-	log := internal.DiscardLogger()
+func TestConfigReader(t *testing.T) {
+	log := tools.DiscardLogger()
 	c, err := expvar.NewConfig(
 		expvar.WithLogger(log),
 	)
@@ -202,7 +203,7 @@ func TestNewInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
 	}
-	e, err := c.NewInstance()
+	e, err := c.Reader()
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
@@ -210,7 +211,7 @@ func TestNewInstance(t *testing.T) {
 		t.Errorf("e = (%v); want (nil)", e)
 	}
 	c.ConfTimeout = time.Second
-	e, err = c.NewInstance()
+	e, err = c.Reader()
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
 	}

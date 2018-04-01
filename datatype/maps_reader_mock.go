@@ -13,15 +13,10 @@ import (
 // MapConvertMock is the mocked version of MapConvert.
 type MapConvertMock struct {
 	GCTypes         []string
-	MemoryTypes     map[string]MemTypeMock
+	MemoryTypes     map[string]string
 	ValuesFunc      func(prefix string, values map[string]*jason.Value) []DataType
 	mu              sync.Mutex
 	DefaultCovertor Mapper
-}
-
-// MemTypeMock is the mocked version of memType.
-type MemTypeMock struct {
-	memType
 }
 
 // Values calls the ValuesFunc if exists, otherwise returns nil.
@@ -37,7 +32,7 @@ func (m *MapConvertMock) Copy() Mapper {
 	newMapper := &MapConvertMock{}
 	newMapper.GCTypes = m.GCTypes[:]
 	newMapper.ValuesFunc = m.ValuesFunc
-	newMapper.MemoryTypes = make(map[string]MemTypeMock, len(m.MemoryTypes))
+	newMapper.MemoryTypes = make(map[string]string, len(m.MemoryTypes))
 	for k, v := range m.MemoryTypes {
 		newMapper.MemoryTypes[k] = v
 	}

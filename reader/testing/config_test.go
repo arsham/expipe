@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	rt "github.com/arsham/expipe/reader/testing"
+	"github.com/arsham/expipe/tools"
 )
 
-func TestConfigNewInstance(t *testing.T) {
+func TestConfigReader(t *testing.T) {
 	name := "name"
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	endpoint := "http://localhost"
 	timeout := time.Second
 	interval := 100 * time.Millisecond
@@ -29,7 +29,7 @@ func TestConfigNewInstance(t *testing.T) {
 		MockTypeName: typeName,
 		MockInterval: interval,
 	}
-	r, err := c.NewInstance()
+	r, err := c.Reader()
 	rec, ok := r.(*rt.Reader)
 	if !ok {
 		t.Error("r.(*rt.Reader): ok = (false); want (true)")

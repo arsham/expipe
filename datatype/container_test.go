@@ -6,6 +6,7 @@ package datatype_test
 
 import (
 	"bytes"
+	"io"
 	"reflect"
 	"strings"
 	"testing"
@@ -22,20 +23,8 @@ func (badDataType) Read([]byte) (int, error)     { return 0, errExample }
 func (badDataType) Equal(datatype.DataType) bool { return true }
 func (badDataType) Reset()                       {}
 
-func inArray(a datatype.DataType, b []datatype.DataType) bool {
-	ap := new(bytes.Buffer)
-	ap.ReadFrom(a)
-	for i := range b {
-		bp := new(bytes.Buffer)
-		bp.ReadFrom(b[i])
-		if strings.Contains(ap.String(), bp.String()) {
-			return true
-		}
-	}
-	return false
-}
-
 func TestList(t *testing.T) {
+	t.Parallel()
 	l := []datatype.DataType{&datatype.FloatType{}}
 	c := datatype.New(l)
 	if !reflect.DeepEqual(c.List(), l) {
@@ -44,6 +33,52 @@ func TestList(t *testing.T) {
 }
 
 func TestJobResultDataTypes(t *testing.T) {
+	t.Parallel()
+	mapper := datatype.DefaultMapper()
+	tcs := []struct {
+		name  string
+		input []byte
+		exp   []datatype.DataType
+	}{
+		{
+			"one value",
+			[]byte(`{"memstats": {"TotalAlloc":666}}`),
+			[]datatype.DataType{
+				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
+				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
+			},
+		},
+		{
+			"multiple values",
+			[]byte(`{"memstats": {"TotalAlloc":666, "HeapIdle":777}}`),
+			[]datatype.DataType{
+				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
+				datatype.NewMegaByteType("memstats.HeapIdle", 777),
+				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
+				datatype.NewMegaByteType("memstats.HeapIdle", 777),
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := datatype.JobResultDataTypes(tc.input, mapper)
+			l := datatype.New(nil)
+			l.Add(tc.exp...)
+			if errors.Cause(err) != nil {
+				t.Errorf("err = (%#v); want (nil)", err)
+			}
+			for _, i := range l.List() {
+				if !inArray(i, c.List()) {
+					t.Errorf("inArray(i, c.List()): want (%v) be in (%v)", i, l.List())
+				}
+			}
+		})
+	}
+}
+
+func TestJobResultDataTypesErrors(t *testing.T) {
+	t.Parallel()
 	mapper := datatype.DefaultMapper()
 	tcs := []struct {
 		name  string
@@ -75,66 +110,50 @@ func TestJobResultDataTypes(t *testing.T) {
 			[]byte(`{"memstats": {"TotalAlloc":[666.5]}}`),
 			datatype.ErrUnidentifiedJason,
 		},
+		{
+			"string instead of int",
+			[]byte(`{"Alloc": "sdsds"}`),
+			datatype.ErrUnidentifiedJason,
+		},
+		{
+			"missing quotation",
+			[]byte(`{"Alloc: 666}`),
+			io.ErrUnexpectedEOF,
+		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := datatype.JobResultDataTypes(tc.input, mapper)
+			results, err := datatype.JobResultDataTypes(tc.input, mapper)
 			if tc.err == errExample {
 				if err == nil {
 					t.Error("err = (nil); want (error)")
 				}
-			} else {
-				if err != tc.err {
-					t.Errorf("err = (%v); got (%v)", err, tc.err)
-				}
+			} else if err != tc.err {
+				t.Errorf("err = (%v); got (%v)", err, tc.err)
 			}
-		})
-	}
-
-	tcs2 := []struct {
-		name  string
-		input []byte
-		exp   []datatype.DataType
-	}{
-		{
-			"one value",
-			[]byte(`{"memstats": {"TotalAlloc":666}}`),
-			[]datatype.DataType{
-				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
-				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
-			},
-		},
-		{
-			"multiple values",
-			[]byte(`{"memstats": {"TotalAlloc":666, "HeapIdle":777}}`),
-			[]datatype.DataType{
-				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
-				datatype.NewMegaByteType("memstats.HeapIdle", 777),
-				datatype.NewMegaByteType("memstats.TotalAlloc", 666),
-				datatype.NewMegaByteType("memstats.HeapIdle", 777),
-			},
-		},
-	}
-
-	for _, tc := range tcs2 {
-		t.Run(tc.name, func(t *testing.T) {
-			c, err := datatype.JobResultDataTypes(tc.input, mapper)
-			l := datatype.New(nil)
-			l.Add(tc.exp...)
-			if errors.Cause(err) != nil {
-				t.Errorf("err = (%#v); want (nil)", err)
-			}
-			for _, i := range l.List() {
-				if !inArray(i, c.List()) {
-					t.Errorf("inArray(i, c.List()): want (%v) be in (%v)", i, l.List())
-				}
+			if results != nil {
+				t.Errorf("results = (%v); want (nil)", results)
 			}
 		})
 	}
 }
 
+func inArray(a datatype.DataType, b []datatype.DataType) bool {
+	ap := new(bytes.Buffer)
+	ap.ReadFrom(a)
+	for i := range b {
+		bp := new(bytes.Buffer)
+		bp.ReadFrom(b[i])
+		if strings.Contains(ap.String(), bp.String()) {
+			return true
+		}
+	}
+	return false
+}
+
 func TestInArray(t *testing.T) {
+	t.Parallel()
 	a := datatype.NewStringType("key", "value")
 	aa := datatype.NewStringType("key", "value1")
 	b := datatype.NewFloatType("key", 6.66)

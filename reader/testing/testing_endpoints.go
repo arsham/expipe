@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/reader"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools"
+	"github.com/arsham/expipe/tools/token"
 	"github.com/pkg/errors"
 )
 
@@ -25,6 +26,7 @@ func pingingEndpoint(t testing.TB, cons Constructor) {
 	cons.SetEndpoint(ts.URL)
 	cons.SetInterval(time.Millisecond)
 	cons.SetTimeout(time.Second)
+	cons.SetLogger(tools.DiscardLogger())
 	ts.Close()
 
 	red, err := cons.Object()
@@ -52,6 +54,7 @@ func pingingEndpoint(t testing.TB, cons Constructor) {
 // readerErrorsOnEndpointDisapears is a helper to test the reader errors
 // when the endpoint goes away.
 func readerErrorsOnEndpointDisapears(t testing.TB, cons Constructor) {
+	var ok bool
 	ctx := context.Background()
 	ts := cons.TestServer()
 	cons.SetName("the name")
@@ -70,10 +73,10 @@ func readerErrorsOnEndpointDisapears(t testing.TB, cons Constructor) {
 	}
 	ts.Close()
 	result, err := red.Read(token.New(ctx))
-	if _, ok := errors.Cause(err).(reader.EndpointNotAvailableError); !ok {
+	if _, ok = errors.Cause(err).(reader.EndpointNotAvailableError); !ok {
 		t.Errorf("err.(reader.EndpointNotAvailableError = (%#v); want (reader.EndpointNotAvailableError)", err)
 	}
-	if !strings.Contains(err.Error(), ts.URL) {
+	if ok && !strings.Contains(err.Error(), ts.URL) {
 		t.Errorf("Contains(err, ts.URL): want (%s) to be in (%s)", ts.URL, err.Error())
 	}
 	if result != nil {
@@ -90,6 +93,7 @@ func readerBacksOffOnEndpointGone(t testing.TB, cons Constructor) {
 	cons.SetEndpoint(ts.URL)
 	cons.SetInterval(time.Hour)
 	cons.SetTimeout(time.Hour)
+	cons.SetLogger(tools.DiscardLogger())
 	cons.SetBackoff(5)
 	red, err := cons.Object()
 	if errors.Cause(err) != nil {
@@ -124,7 +128,7 @@ func readerBacksOffOnEndpointGone(t testing.TB, cons Constructor) {
 
 	t.Skip("check this out")
 	if !backedOff {
-		// 	t.Error("want (true), got (false)")
+		t.Error("want (true), got (false)")
 	}
 }
 

@@ -7,13 +7,13 @@ package testing
 import (
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/tools"
 )
 
 // GetReader provides a MockReader for using in the example.
 func GetReader(url string) *Reader {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	red, err := New(
 		reader.WithLogger(log),
 		reader.WithEndpoint(url),

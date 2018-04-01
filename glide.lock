@@ -1,5 +1,5 @@
-hash: 22e57777052455a2a123e2df40b688e2af5af5e7c721302fc12ee07dab719b63
-updated: 2018-03-29T21:02:42.00504773+01:00
+hash: 8305c19ac8404e869f6c717dce7354b498fb692cfdfa3933b15e438eccfd3195
+updated: 2018-04-02T10:04:35.194784138+01:00
 imports:
 - name: github.com/antonholmquist/jason
   version: 962e09b85496e2e158eec1567fb4c826ce3d55d1
@@ -20,7 +20,7 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/jessevdk/go-flags
-  version: f88afde2fa19a30cf50ba4b05b3d13bc6bae3079
+  version: 1c38ed7ad0cc3d9e66649ac398c30e45f395c4eb
 - name: github.com/magiconair/properties
   version: 2c9e9502788518c97fe44e8955cd069417ee89df
 - name: github.com/mailru/easyjson
@@ -32,60 +32,22 @@ imports:
 - name: github.com/mitchellh/mapstructure
   version: 00c29f56e2386353d58c599509e8dc3801b0d716
 - name: github.com/olivere/elastic
-  version: d78530f6439d6cd674892320b6917d7c4cb25f7f
+  version: 6aa9e8e8e7ac38cd04d07d2f5024cb11d540aa02
   subpackages:
   - config
   - uritemplates
-- name: github.com/onsi/ginkgo
-  version: 03ffd3f46debf00c49ed76d5dbb564ef4839adfe
-  subpackages:
-  - config
-  - internal/codelocation
-  - internal/containernode
-  - internal/failer
-  - internal/leafnodes
-  - internal/remote
-  - internal/spec
-  - internal/spec_iterator
-  - internal/specrunner
-  - internal/suite
-  - internal/testingtproxy
-  - internal/writer
-  - reporters
-  - reporters/stenographer
-  - reporters/stenographer/support/go-colorable
-  - reporters/stenographer/support/go-isatty
-  - types
-- name: github.com/onsi/gomega
-  version: 649b44d988ce182cabcda7dba01fcf3b6179ad19
-  subpackages:
-  - format
-  - internal/assertion
-  - internal/asyncassertion
-  - internal/oraclematcher
-  - internal/testingtsupport
-  - matchers
-  - matchers/support/goraph/bipartitegraph
-  - matchers/support/goraph/edge
-  - matchers/support/goraph/node
-  - matchers/support/goraph/util
-  - types
 - name: github.com/pelletier/go-toml
   version: 66540cf1fcd2c3aee6f6787dfa32a6ae9a870f12
 - name: github.com/pkg/errors
   version: 816c9085562cd7ee03e7f8188a1cfd942858cded
 - name: github.com/satori/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
-- name: github.com/shurcooL/go
-  version: 364c5ae8518b51f5fda954762864d6f4d5c30c89
-  subpackages:
-  - ctxhttp
 - name: github.com/sirupsen/logrus
-  version: 90150a8ed11b6ce285e77e8af2b0109559ce4777
+  version: 778f2e774c725116edbc3d039dc0dfc1cc62aae8
   subpackages:
   - hooks/test
 - name: github.com/spf13/afero
-  version: a880a37ed1804d98f64b3b7d58b5e3f8fbf421c4
+  version: 63644898a8da0bc22138abf860edaf5277b6102e
   subpackages:
   - mem
 - name: github.com/spf13/cast
@@ -93,21 +55,18 @@ imports:
 - name: github.com/spf13/jwalterweatherman
   version: 7c0cea34c8ece3fbeb2b27ab9b59511d360fb394
 - name: github.com/spf13/pflag
-  version: ad68c28ee799163e627e77fcc6e8ecaa866e3535
+  version: 1cd4a0c365d95803411bec89fb7b76bade17053b
 - name: github.com/spf13/viper
   version: b5e8006cbee93ec955a89ab31e0e3ce3204f3736
 - name: golang.org/x/crypto
-  version: 88942b9c40a4c9d203b82b3731787b672d6e809b
+  version: 12892e8c234f4fe6f6803f052061de9057903bb2
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 6078986fec03a1dcc236c34816c71b0e05018fda
+  version: b68f30494add4df6bd8ef5e82803f308e7f7c59c
   subpackages:
   - context
   - context/ctxhttp
-  - html
-  - html/atom
-  - html/charset
 - name: golang.org/x/sys
   version: 378d26f46672a356c46195c28f61bdb4c0a781dd
   subpackages:
@@ -116,22 +75,6 @@ imports:
 - name: golang.org/x/text
   version: ece95c760240037f89ebcbdd7155ac8cb52e38fa
   subpackages:
-  - encoding
-  - encoding/charmap
-  - encoding/htmlindex
-  - encoding/internal
-  - encoding/internal/identifier
-  - encoding/japanese
-  - encoding/korean
-  - encoding/simplifiedchinese
-  - encoding/traditionalchinese
-  - encoding/unicode
-  - internal/language
-  - internal/language/compact
-  - internal/tag
-  - internal/utf8internal
-  - language
-  - runes
   - transform
   - unicode/norm
 - name: gopkg.in/yaml.v2

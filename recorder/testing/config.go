@@ -7,8 +7,8 @@ package testing
 import (
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/tools"
 )
 
 // Config holds the necessary configuration for setting up an elasticsearch
@@ -19,11 +19,11 @@ type Config struct {
 	MockTimeout   time.Duration
 	MockBackoff   int
 	MockIndexName string
-	MockLogger    internal.FieldLogger
+	MockLogger    tools.FieldLogger
 }
 
-// NewInstance returns a mocked object.
-func (c *Config) NewInstance() (recorder.DataRecorder, error) {
+// Recorder implements the RecorderConf interface.
+func (c *Config) Recorder() (recorder.DataRecorder, error) {
 	return New(
 		recorder.WithLogger(c.Logger()),
 		recorder.WithEndpoint(c.Endpoint()),
@@ -47,7 +47,7 @@ func (c *Config) Endpoint() string { return c.MockEndpoint }
 func (c *Config) Timeout() time.Duration { return c.MockTimeout }
 
 // Logger is the mocked version.
-func (c *Config) Logger() internal.FieldLogger { return c.MockLogger }
+func (c *Config) Logger() tools.FieldLogger { return c.MockLogger }
 
 // Backoff is the mocked version.
 func (c *Config) Backoff() int { return c.MockBackoff }

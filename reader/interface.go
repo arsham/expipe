@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools/token"
 )
 
 // DataReader receives job requests to read from the target. It returns
@@ -37,12 +37,14 @@ import (
 // configuration file.
 type DataReader interface {
 	Name() string
-	Ping() error
 	Read(*token.Context) (*Result, error)
+	Ping() error
 	Mapper() datatype.Mapper
 	TypeName() string
 	Timeout() time.Duration
 	Interval() time.Duration
+	Endpoint() string
+	Backoff() int
 }
 
 // Result is constructed every time a new data is fetched.

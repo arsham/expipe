@@ -7,8 +7,8 @@ package elasticsearch
 import (
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +19,7 @@ type Config struct {
 	ESTimeout   string `mapstructure:"timeout"`
 	ESBackoff   int    `mapstructure:"backoff"`
 	ESIndexName string `mapstructure:"index_name"`
-	log         internal.FieldLogger
+	log         tools.FieldLogger
 	ESName      string
 	ConfTimeout time.Duration
 }
@@ -40,8 +40,8 @@ func NewConfig(conf ...Conf) (*Config, error) {
 	return obj, nil
 }
 
-// NewInstance returns an instance of the elasticsearch recorder
-func (c *Config) NewInstance() (recorder.DataRecorder, error) {
+// Recorder implements the RecorderConf interface.
+func (c *Config) Recorder() (recorder.DataRecorder, error) {
 	return New(
 		recorder.WithLogger(c.Logger()),
 		recorder.WithEndpoint(c.Endpoint()),
@@ -65,13 +65,13 @@ func (c *Config) Endpoint() string { return c.ESEndpoint }
 func (c *Config) Timeout() time.Duration { return c.ConfTimeout }
 
 // Logger return the logger
-func (c *Config) Logger() internal.FieldLogger { return c.log }
+func (c *Config) Logger() tools.FieldLogger { return c.log }
 
 // Backoff return the backoff
 func (c *Config) Backoff() int { return c.ESBackoff }
 
 // WithLogger produces an error if the log is nil.
-func WithLogger(log internal.FieldLogger) Conf {
+func WithLogger(log tools.FieldLogger) Conf {
 	return func(c *Config) error {
 		if log == nil {
 			return errors.New("nil logger")

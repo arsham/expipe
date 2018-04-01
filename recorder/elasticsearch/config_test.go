@@ -9,19 +9,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder/elasticsearch"
+	"github.com/arsham/expipe/tools"
 	"github.com/spf13/viper"
 )
 
 func TestWithLogger(t *testing.T) {
-	l := (internal.FieldLogger)(nil)
+	l := (tools.FieldLogger)(nil)
 	c := new(elasticsearch.Config)
 	err := elasticsearch.WithLogger(l)(c)
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
-	l = internal.DiscardLogger()
+	l = tools.DiscardLogger()
 	err = elasticsearch.WithLogger(l)(c)
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
@@ -123,7 +123,7 @@ interval: 2sq
 }
 
 func TestNewConfig(t *testing.T) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	c, err := elasticsearch.NewConfig(
 		elasticsearch.WithLogger(log),
 	)
@@ -135,8 +135,20 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
-func TestNewInstance(t *testing.T) {
-	log := internal.DiscardLogger()
+func TestNewConfigErrors(t *testing.T) {
+	c, err := elasticsearch.NewConfig(
+		elasticsearch.WithLogger(nil),
+	)
+	if err == nil {
+		t.Error("err = (nil); want (error)")
+	}
+	if c != nil {
+		t.Errorf("c = (%v); want (nil)", c)
+	}
+}
+
+func TestConfigRecorder(t *testing.T) {
+	log := tools.DiscardLogger()
 	c, err := elasticsearch.NewConfig(
 		elasticsearch.WithLogger(log),
 	)
@@ -147,7 +159,7 @@ func TestNewInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
 	}
-	e, err := c.NewInstance()
+	e, err := c.Recorder()
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
@@ -156,7 +168,7 @@ func TestNewInstance(t *testing.T) {
 	}
 
 	c.ConfTimeout = time.Second
-	e, err = c.NewInstance()
+	e, err = c.Recorder()
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
 	}

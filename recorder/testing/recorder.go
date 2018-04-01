@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
-	"github.com/shurcooL/go/ctxhttp"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 // Recorder is designed to be used in tests.
@@ -23,13 +23,14 @@ type Recorder struct {
 	name       string
 	endpoint   string
 	indexName  string
-	log        internal.FieldLogger
+	log        tools.FieldLogger
 	timeout    time.Duration
 	backoff    int
 	strike     int
 	ErrorFunc  func() error
 	Smu        sync.RWMutex
 	RecordFunc func(context.Context, *recorder.Job) error
+	PingFunc   func() error
 	Pinged     bool
 }
 
@@ -42,8 +43,14 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 			return nil, errors.Wrap(err, "option creation")
 		}
 	}
+	if r.name == "" {
+		return nil, recorder.ErrEmptyName
+	}
+	if r.endpoint == "" {
+		return nil, recorder.ErrEmptyEndpoint
+	}
 	if r.log == nil {
-		r.log = internal.GetLogger("error")
+		r.log = tools.GetLogger("error")
 	}
 	r.log = r.log.WithField("engine", "recorder_testing")
 	if r.backoff < 5 {
@@ -63,6 +70,9 @@ func (r *Recorder) Ping() error {
 	if r.Pinged {
 		return nil
 	}
+	if r.PingFunc != nil {
+		return r.PingFunc()
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
@@ -75,15 +85,15 @@ func (r *Recorder) Ping() error {
 
 // Record calls the RecordFunc if exists, otherwise continues as normal.
 func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
-	if !r.Pinged {
-		return recorder.ErrPingNotCalled
-	}
 	r.Smu.RLock()
 	if r.RecordFunc != nil {
 		r.Smu.RUnlock()
 		return r.RecordFunc(ctx, job)
 	}
 	r.Smu.RUnlock()
+	if !r.Pinged {
+		return recorder.ErrPingNotCalled
+	}
 
 	if r.strike > r.backoff {
 		return recorder.ErrBackoffExceeded
@@ -133,7 +143,7 @@ func (r *Recorder) Backoff() int { return r.backoff }
 func (r *Recorder) SetBackoff(backoff int) { r.backoff = backoff }
 
 // Logger returns the log.
-func (r *Recorder) Logger() internal.FieldLogger { return r.log }
+func (r *Recorder) Logger() tools.FieldLogger { return r.log }
 
 // SetLogger sets the log of the recorder.
-func (r *Recorder) SetLogger(log internal.FieldLogger) { r.log = log }
+func (r *Recorder) SetLogger(log tools.FieldLogger) { r.log = log }

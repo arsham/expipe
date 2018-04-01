@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +17,7 @@ import (
 
 // Constructor is an interface for setting up an object for testing.
 type Constructor interface {
-	SetLogger(logger internal.FieldLogger)
+	SetLogger(logger tools.FieldLogger)
 	SetName(name string)
 	SetIndexName(indexName string)
 	SetEndpoint(endpoint string)
@@ -26,7 +26,7 @@ type Constructor interface {
 }
 
 // WithLogger sets the log of the recorder
-func WithLogger(log internal.FieldLogger) func(Constructor) error {
+func WithLogger(log tools.FieldLogger) func(Constructor) error {
 	return func(e Constructor) error {
 		if log == nil {
 			return errors.New("recorder nil logger")
@@ -53,7 +53,7 @@ func WithEndpoint(endpoint string) func(Constructor) error {
 		if endpoint == "" {
 			return ErrEmptyEndpoint
 		}
-		url, err := internal.SanitiseURL(endpoint)
+		url, err := tools.SanitiseURL(endpoint)
 		if err != nil {
 			return InvalidEndpointError(endpoint)
 		}

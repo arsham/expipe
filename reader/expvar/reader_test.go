@@ -21,7 +21,7 @@ func getTestServer() *httptest.Server {
 }
 
 type Construct struct {
-	*expvar.Reader
+	*rt.BaseConstruct
 	testServer *httptest.Server
 }
 
@@ -31,24 +31,15 @@ func (c *Construct) TestServer() *httptest.Server {
 }
 
 func (c *Construct) Object() (reader.DataReader, error) {
-	return expvar.New(
-		reader.WithEndpoint(c.Endpoint()),
-		reader.WithMapper(c.Mapper()),
-		reader.WithName(c.Name()),
-		reader.WithTypeName(c.TypeName()),
-		reader.WithInterval(c.Interval()),
-		reader.WithTimeout(c.Timeout()),
-		reader.WithBackoff(c.Backoff()),
-	)
+	return expvar.New(c.Setters()...)
 }
 
 func TestExpvarReader(t *testing.T) {
 	rt.TestSuites(t, func() (rt.Constructor, func()) {
-		r, err := expvar.New(reader.WithName("test"))
-		if err != nil {
-			panic(err)
+		c := &Construct{
+			testServer:    getTestServer(),
+			BaseConstruct: rt.NewBaseConstruct(),
 		}
-		c := &Construct{Reader: r, testServer: getTestServer()}
 		return c, func() { c.testServer.Close() }
 	})
 }

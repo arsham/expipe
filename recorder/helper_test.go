@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
 	recorder_testing "github.com/arsham/expipe/recorder/testing"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +21,7 @@ func TestSetLogger(t *testing.T) {
 		t.Error("err = (nil); want (error)")
 	}
 
-	err = recorder.WithLogger(internal.DiscardLogger())(&r)
+	err = recorder.WithLogger(tools.DiscardLogger())(&r)
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
 	}

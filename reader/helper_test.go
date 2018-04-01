@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
 	rt "github.com/arsham/expipe/reader/testing"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +21,7 @@ func TestSetLogger(t *testing.T) {
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
-	err = reader.WithLogger(internal.DiscardLogger())(&r)
+	err = reader.WithLogger(tools.DiscardLogger())(&r)
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
 	}

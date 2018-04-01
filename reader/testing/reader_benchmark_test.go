@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools"
+	"github.com/arsham/expipe/tools/token"
 )
 
 func BenchmarkReader(b *testing.B) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	ctx := context.Background()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

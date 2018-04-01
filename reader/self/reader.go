@@ -38,12 +38,11 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools"
+	"github.com/arsham/expipe/tools/token"
 	"github.com/pkg/errors"
-
-	"github.com/shurcooL/go/ctxhttp"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 // Reader reads from expipe own application's metric information.
@@ -51,7 +50,7 @@ import (
 type Reader struct {
 	name     string
 	typeName string
-	log      internal.FieldLogger
+	log      tools.FieldLogger
 	mapper   datatype.Mapper
 	interval time.Duration
 	timeout  time.Duration
@@ -85,6 +84,12 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 		}
 	}
 
+	if r.name == "" {
+		return nil, reader.ErrEmptyName
+	}
+	if r.endpoint == "" {
+		return nil, reader.ErrEmptyEndpoint
+	}
 	if r.backoff < 5 {
 		r.backoff = 5
 	}
@@ -101,7 +106,7 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 		r.timeout = 5 * time.Second
 	}
 	if r.log == nil {
-		r.log = internal.GetLogger("error")
+		r.log = tools.GetLogger("error")
 	}
 	r.log = r.log.WithField("engine", "self")
 	r.quit = make(chan struct{})
@@ -194,11 +199,8 @@ func (r *Reader) Backoff() int { return r.backoff }
 // SetBackoff sets the backoff of the reader
 func (r *Reader) SetBackoff(backoff int) { r.backoff = backoff }
 
-// Logger returns the log
-func (r *Reader) Logger() internal.FieldLogger { return r.log }
-
 // SetLogger sets the log of the reader
-func (r *Reader) SetLogger(log internal.FieldLogger) { r.log = log }
+func (r *Reader) SetLogger(log tools.FieldLogger) { r.log = log }
 
 // SetTestMode sets the mode to testing for testing purposes
 // This is because the way self works

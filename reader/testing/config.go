@@ -7,8 +7,8 @@ package testing
 import (
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/tools"
 )
 
 // Config is used for instantiating a mock reader.
@@ -19,11 +19,11 @@ type Config struct {
 	MockTimeout  time.Duration
 	MockInterval time.Duration
 	MockBackoff  int
-	MockLogger   internal.FieldLogger
+	MockLogger   tools.FieldLogger
 }
 
-// NewInstance  returns a mocked version of the config.
-func (c *Config) NewInstance() (reader.DataReader, error) {
+// Reader implements the ReaderConf interface.
+func (c *Config) Reader() (reader.DataReader, error) {
 	return New(
 		reader.WithLogger(c.Logger()),
 		reader.WithEndpoint(c.Endpoint()),
@@ -51,7 +51,7 @@ func (c *Config) Interval() time.Duration { return c.MockInterval }
 func (c *Config) Timeout() time.Duration { return c.MockTimeout }
 
 // Logger returns the logger.
-func (c *Config) Logger() internal.FieldLogger { return c.MockLogger }
+func (c *Config) Logger() tools.FieldLogger { return c.MockLogger }
 
 // Backoff returns the backoff.
 func (c *Config) Backoff() int { return c.MockBackoff }

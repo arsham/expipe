@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools"
+	"github.com/arsham/expipe/tools/token"
 )
 
 // The other test goes through a normal path, we need to test the actual path.
 func TestSelfReaderReadsExpvar(t *testing.T) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	ts := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	typeName := "my_type"
 	mapper := datatype.DefaultMapper()
