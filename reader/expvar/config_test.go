@@ -166,6 +166,7 @@ func TestNewConfigErrors(t *testing.T) {
 		t.Errorf("c = (%v); want (nil)", c)
 	}
 }
+
 func TestWithMapFile(t *testing.T) {
 	c := new(expvar.Config)
 	err := expvar.WithMapFile("")(c)
@@ -189,7 +190,7 @@ func TestWithMapFile(t *testing.T) {
 	}
 }
 
-func TestNewInstance(t *testing.T) {
+func TestConfigReader(t *testing.T) {
 	log := internal.DiscardLogger()
 	c, err := expvar.NewConfig(
 		expvar.WithLogger(log),
@@ -202,7 +203,7 @@ func TestNewInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
 	}
-	e, err := c.NewInstance()
+	e, err := c.Reader()
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
@@ -210,7 +211,7 @@ func TestNewInstance(t *testing.T) {
 		t.Errorf("e = (%v); want (nil)", e)
 	}
 	c.ConfTimeout = time.Second
-	e, err = c.NewInstance()
+	e, err = c.Reader()
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
 	}

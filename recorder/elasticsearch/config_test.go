@@ -135,7 +135,19 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
-func TestNewInstance(t *testing.T) {
+func TestNewConfigErrors(t *testing.T) {
+	c, err := elasticsearch.NewConfig(
+		elasticsearch.WithLogger(nil),
+	)
+	if err == nil {
+		t.Error("err = (nil); want (error)")
+	}
+	if c != nil {
+		t.Errorf("c = (%v); want (nil)", c)
+	}
+}
+
+func TestConfigRecorder(t *testing.T) {
 	log := internal.DiscardLogger()
 	c, err := elasticsearch.NewConfig(
 		elasticsearch.WithLogger(log),
@@ -147,7 +159,7 @@ func TestNewInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
 	}
-	e, err := c.NewInstance()
+	e, err := c.Recorder()
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
@@ -156,7 +168,7 @@ func TestNewInstance(t *testing.T) {
 	}
 
 	c.ConfTimeout = time.Second
-	e, err = c.NewInstance()
+	e, err = c.Recorder()
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
 	}

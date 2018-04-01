@@ -12,7 +12,7 @@ import (
 	rt "github.com/arsham/expipe/reader/testing"
 )
 
-func TestConfigNewInstance(t *testing.T) {
+func TestConfigReader(t *testing.T) {
 	name := "name"
 	log := internal.DiscardLogger()
 	endpoint := "http://localhost"
@@ -29,7 +29,7 @@ func TestConfigNewInstance(t *testing.T) {
 		MockTypeName: typeName,
 		MockInterval: interval,
 	}
-	r, err := c.NewInstance()
+	r, err := c.Reader()
 	rec, ok := r.(*rt.Reader)
 	if !ok {
 		t.Error("r.(*rt.Reader): ok = (false); want (true)")

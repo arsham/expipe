@@ -1,0 +1,46 @@
+name: 0
+>>>
+readers:
+    red1:
+        type: expvar
+recorders:
+    rec1:
+        type: elasticsearch
+routes:
+    route1:
+        recorders: not_exists
+        readers: red1
+<<<
+info: not_exists not in recorders
+===
+name: 1
+>>>
+readers:
+    red1:
+        type: expvar
+recorders:
+    rec1:
+        type: elasticsearch
+routes:
+    route1:
+        recorders: rec1
+        readers: not_exists
+<<<
+info: not_exists not in readers
+===
+name: 2
+>>>
+readers:
+    red1:
+        type: expvar
+    red2:
+        type: expvar
+recorders:
+    rec1:
+        type: elasticsearch
+routes:
+    route1:
+        readers: red2
+        recorders: red1 # wrong one!
+<<<
+info: red1 not in recorders

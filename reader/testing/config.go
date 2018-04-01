@@ -22,8 +22,8 @@ type Config struct {
 	MockLogger   internal.FieldLogger
 }
 
-// NewInstance  returns a mocked version of the config.
-func (c *Config) NewInstance() (reader.DataReader, error) {
+// Reader implements the ReaderConf interface.
+func (c *Config) Reader() (reader.DataReader, error) {
 	return New(
 		reader.WithLogger(c.Logger()),
 		reader.WithEndpoint(c.Endpoint()),

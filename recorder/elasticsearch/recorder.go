@@ -57,6 +57,12 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 			return nil, errors.Wrap(err, "option creation")
 		}
 	}
+	if r.name == "" {
+		return nil, recorder.ErrEmptyName
+	}
+	if r.endpoint == "" {
+		return nil, recorder.ErrEmptyEndpoint
+	}
 	if r.log == nil {
 		r.log = internal.GetLogger("error")
 	}

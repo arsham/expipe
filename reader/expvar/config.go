@@ -52,8 +52,8 @@ func NewConfig(conf ...Conf) (*Config, error) {
 	return obj, nil
 }
 
-// NewInstance returns an instance of the expvar reader.
-func (c *Config) NewInstance() (reader.DataReader, error) {
+// Reader implements the ReaderConf interface.
+func (c *Config) Reader() (reader.DataReader, error) {
 	return New(
 		reader.WithLogger(c.Logger()),
 		reader.WithEndpoint(c.Endpoint()),

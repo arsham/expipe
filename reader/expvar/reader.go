@@ -65,6 +65,12 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 		}
 	}
 
+	if r.name == "" {
+		return nil, reader.ErrEmptyName
+	}
+	if r.endpoint == "" {
+		return nil, reader.ErrEmptyEndpoint
+	}
 	if r.backoff < 5 {
 		r.backoff = 5
 	}
@@ -183,9 +189,6 @@ func (r *Reader) Backoff() int { return r.backoff }
 
 // SetBackoff sets the backoff of the reader.
 func (r *Reader) SetBackoff(backoff int) { r.backoff = backoff }
-
-// Logger returns the log.
-func (r *Reader) Logger() internal.FieldLogger { return r.log }
 
 // SetLogger sets the log of the reader.
 func (r *Reader) SetLogger(log internal.FieldLogger) { r.log = log }

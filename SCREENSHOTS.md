@@ -47,5 +47,3 @@ This is the same graph as above, notice how we used a lucene query to filter out
 This is an example of how the data is represented inside elasticsearch
 
 ![Colored](http://i.imgur.com/waal9cu.png)
-
-

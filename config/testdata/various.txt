@@ -1,0 +1,140 @@
+name: MapMultiReadersToOneRecorder
+>>>
+routes:
+    route1:
+        readers:
+            - app_0
+            - app_2
+            - app_4
+        recorders:
+            - elastic_1
+    route2:
+        readers:
+            - app_0
+            - app_5
+        recorders:
+            - elastic_2
+    route3:
+        readers:
+            - app_1
+            - app_2
+        recorders:
+            - elastic_1
+<<<
+info: nothing
+===
+name: GetRoutesValues
+>>>
+routes:
+    route1:
+        recorders:
+            - route1_rec1
+            - route1_rec2
+        readers: [route1_red1, route1_red2]
+    route2:
+        recorders: [route2_rec1, route2_rec2]
+        readers:
+            - route2_red1
+            - route2_red2
+<<<
+info: nothing
+===
+name: CheckRoutesAgainstReadersRecordersPasses
+>>>
+readers:
+    red1:
+        type: expvar
+    red2:
+        type: expvar
+recorders:
+    rec1:
+        type: elasticsearch
+    rec2:
+        type: elasticsearch
+routes:
+    route1:
+        recorders:
+            - rec1
+        readers: [red1, red2]
+    route2:
+        recorders:
+            - rec1
+            - rec2
+        readers: red1
+    route3:
+        recorders:
+            - rec1
+            - rec2
+        readers:
+            - red1
+            - red2
+<<<
+info: nothing
+===
+name: LoadConfiguration
+>>>
+readers:
+    reader_1: # populating to get to the passing tests
+        type_name: expvar
+        interval: 1s
+        timeout: 1s
+        endpoint: localhost:8200
+        backoff: 9
+    reader_2:
+        type_name: self
+        interval: 1s
+        timeout: 1s
+        endpoint: localhost:8200
+        backoff: 9
+recorders:
+    recorder_1:
+        interval: 1s
+        timeout: 1s
+        endpoint: localhost:8200
+        backoff: 9
+        index_name: erwer
+routes: blah
+<<<
+info: nothing
+===
+name: ParseReader
+>>>
+readers:
+    reader1:
+        type: expvar
+        type_name: expvar_type
+        endpoint: http://localhost
+        routepath: /debug/vars
+        interval: 2s
+        timeout: 3s
+        log_level: info
+        backoff: 15
+<<<
+info: nothing
+===
+name: LoadYAMLSuccess
+>>>
+readers:
+    reader1:
+        type: expvar
+        endpoint: localhost:1234
+        type_name: my_app
+        map_file: maps.yml
+        interval: 2s
+        timeout: 3s
+        backoff: 10
+recorders:
+    recorder1:
+        type: elasticsearch
+        endpoint: http://127.0.0.1:9200
+        index_name: index
+        timeout: 8s
+        backoff: 10
+routes:
+    route1:
+        readers:
+            - reader1
+        recorders:
+            - recorder1
+<<<
+info: nothing

@@ -325,6 +325,9 @@ func TestEngineOnlyErrorsIfNoneOfReadersPinged(t *testing.T) {
 
 // FIXME: break this test down
 func TestEngineShutsDownOnAllReadersGoOutOfScope(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestEngineShutsDownOnAllReadersGoOutOfScope count in short mode")
+	}
 	t.Parallel()
 	stopReader1 := uint32(0)
 	stopReader2 := uint32(0)

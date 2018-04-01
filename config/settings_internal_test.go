@@ -23,30 +23,11 @@ func TestLoadConfiguration(t *testing.T) {
 	log := internal.DiscardLogger()
 	v.SetConfigType("yaml")
 
-	input := bytes.NewBuffer([]byte(`
-    readers:
-        reader_1: # populating to get to the passing tests
-            type_name: expvar
-            interval: 1s
-            timeout: 1s
-            endpoint: localhost:8200
-            backoff: 9
-        reader_2:
-            type_name: self
-            interval: 1s
-            timeout: 1s
-            endpoint: localhost:8200
-            backoff: 9
-    recorders:
-        recorder_1:
-            interval: 1s
-            timeout: 1s
-            endpoint: localhost:8200
-            backoff: 9
-            index_name: erwer
-    routes: blah
-    `))
-	v.ReadConfig(input)
+	tc, err := FixtureWithSection("various.txt", "LoadConfiguration")
+	if err != nil {
+		t.Fatalf("error getting fixture: %v", err)
+	}
+	v.ReadConfig(tc.Body)
 
 	readers := map[string]string{"reader_1": "not_exists"}
 	recorders := map[string]string{"recorder_1": "elasticsearch"}
@@ -54,7 +35,7 @@ func TestLoadConfiguration(t *testing.T) {
 		readers:   []string{"reader_1"},
 		recorders: []string{"recorder_1"},
 	}}
-	_, err := loadConfiguration(v, log, routeMap, readers, recorders)
+	_, err = loadConfiguration(v, log, routeMap, readers, recorders)
 	if _, ok := errors.Cause(err).(NotSupportedError); !ok {
 		t.Errorf("err.(NotSupportedError) = (%T); want NotSupportedError", err)
 	}
@@ -106,20 +87,12 @@ func TestParseReader(t *testing.T) {
 		t.Error("err = (nil); want (error)")
 	}
 
-	input := bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
-            type: expvar
-            type_name: expvar_type
-            endpoint: http://localhost
-            routepath: /debug/vars
-            interval: 2s
-            timeout: 3s
-            log_level: info
-            backoff: 15
-    `))
+	input, err := FixtureWithSection("various.txt", "ParseReader")
+	if err != nil {
+		t.Fatalf("error getting section: %v", err)
+	}
 
-	v.ReadConfig(input)
+	v.ReadConfig(input.Body)
 	c, err := parseReader(v, log, "expvar", "reader1")
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
@@ -159,7 +132,6 @@ func TestGetReaders(t *testing.T) {
 	}
 
 	// testing known types
-
 	tcs := []struct {
 		input *bytes.Buffer
 		value string
@@ -225,7 +197,6 @@ func TestGetRecorders(t *testing.T) {
 	}
 
 	// testing known types
-
 	tcs := []struct {
 		input *bytes.Buffer
 		value string
@@ -239,7 +210,6 @@ func TestGetRecorders(t *testing.T) {
 			value: "elasticsearch",
 		},
 	}
-
 	for i, tc := range tcs {
 		name := fmt.Sprintf("case_%d", i)
 		t.Run(name, func(t *testing.T) {

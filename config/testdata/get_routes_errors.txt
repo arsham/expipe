@@ -1,0 +1,57 @@
+name: 0
+>>>
+routes:
+    route1:
+        recorders: rec1
+<<<
+info: readers
+===
+name: 1
+>>>
+routes:
+    route1:
+        readers: read1
+<<<
+info: recorders
+===
+name: 2
+>>>
+routes:
+    route1:
+        recorders:
+            - rec1
+            - rec2
+<<<
+info: readers
+===
+name: 3
+>>>
+routes:
+    route1:
+        readers:
+            - read1
+            - read2
+<<<
+info: recorders
+===
+name: 4
+>>>
+routes:
+    route1:
+        readers: red1, red2
+        recorders:
+            - rec1
+            - rec2
+<<<
+info: readers
+===
+name: 5
+>>>
+routes:
+    route1:
+        readers:
+            - read1
+            - read2
+        recorders: rec1, rec2
+<<<
+info: recorders

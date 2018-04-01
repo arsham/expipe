@@ -37,12 +37,14 @@ import (
 // configuration file.
 type DataReader interface {
 	Name() string
-	Ping() error
 	Read(*token.Context) (*Result, error)
+	Ping() error
 	Mapper() datatype.Mapper
 	TypeName() string
 	Timeout() time.Duration
 	Interval() time.Duration
+	Endpoint() string
+	Backoff() int
 }
 
 // Result is constructed every time a new data is fetched.

@@ -14,7 +14,9 @@
 
 ### Per Application Setup
 
-On any dashboards/visualisations, you can specify the metrics for a specific app. Let's assume one of your app name (type_name in the configuration file) is called `Arsham`. Then in the search bar on top type in: `_type:Arsham`
+On any dashboards/visualisations, you can specify the metrics for a specific
+app. Let's assume one of your app name (type_name in the configuration file) is
+called `Arsham`. Then in the search bar on top type in: `_type:Arsham`
 
 ## Configuration File
 
@@ -56,7 +58,8 @@ recorders:                         # This section is where the data will be ship
         timeout: 18s
         backoff: 10
 
-routes:                            # You can specify metrics of which application will be recorded in which target
+# You can specify metrics of which application will be recorded in which target
+routes:
     route1:
         readers:
             - FirstApp
@@ -84,7 +87,9 @@ expipe -c expipe.yml
 
 ### How Routes Are Defined
 
-You can mix and match the routes, but the engine will choose the best setup to achieve your goal without duplicating the results. For instance assume you set the routes like this:
+You can mix and match the routes, but the engine will choose the best set up to
+achieve your goal without duplicating the results. For instance assume you set
+the routes like this:
 
 ```yaml
 readers:
@@ -125,7 +130,7 @@ routes:
 ```
 Expipe creates three engines like so:
 
-```
+```yaml
     elastic_0 records data from app_0, app_1
     elastic_1 records data from app_0, app_1, app_2, app_4
     elastic_2 records data from app_0, app_5
@@ -136,8 +141,9 @@ Expipe creates three engines like so:
 
 You can change the numbers to your liking:
 
-```
-gc_types:                      # These inputs will be collected into one list and zero values will be removed
+```yaml
+# These inputs will be collected into one list and zero values will be removed
+gc_types:
     memstats.PauseEnd
     memstats.PauseNs
 
@@ -158,14 +164,7 @@ go test $(glide nv)
 Or for testing readers:
 
 ```bash
-go test ./readers
-```
-
-You can also install [ginkgo][ginkgo] and run the tests:
-
-```bash
-go get github.com/onsi/ginkgo/ginkgo
-ginkgo
+go test ./readers/...
 ```
 
 ## Coverage
@@ -194,5 +193,3 @@ go test -run=^$ -bench=. -cpuprofile=cpu.out -benchmem -memprofile=mem.out
 go tool pprof -pdf $BASENAME.test cpu.out > cpu.pdf && open cpu.pdf
 go tool pprof -pdf $BASENAME.test mem.out > mem.pdf && open mem.pdf
 ```
-
-[ginkgo]: http://onsi.github.io/ginkgo/

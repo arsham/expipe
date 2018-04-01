@@ -64,6 +64,10 @@ func TestSanitiseURLPasses(t *testing.T) {
 		{"https://127.0.0.1/a", "https://127.0.0.1/a"},
 		{"127.0.0.1", "http://127.0.0.1"},
 		{"127.0.0.1/aaa", "http://127.0.0.1/aaa"},
+		{"plurinucleate.com/seabeach/overable?a=nonefficient&b=velation#erythraeidae", "http://plurinucleate.com/seabeach/overable?a=nonefficient&b=velation#erythraeidae"},
+		{"tabebuia.com/proportionment/myelosyphilis?a=sunlessness&b=harlequinesque#hypsochrome", "http://tabebuia.com/proportionment/myelosyphilis?a=sunlessness&b=harlequinesque#hypsochrome"},
+		{"stochastical.com/suppurant/sesquiduplicate?a=gilguy&b=sideral#impuritanism", "http://stochastical.com/suppurant/sesquiduplicate?a=gilguy&b=sideral#impuritanism"},
+		{"colliform.com/gonimic/oxynaphthoic?a=finland&b=amentiform#inexistence", "http://colliform.com/gonimic/oxynaphthoic?a=finland&b=amentiform#inexistence"},
 	}
 
 	for i, tc := range tcs {

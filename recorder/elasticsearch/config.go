@@ -40,8 +40,8 @@ func NewConfig(conf ...Conf) (*Config, error) {
 	return obj, nil
 }
 
-// NewInstance returns an instance of the elasticsearch recorder
-func (c *Config) NewInstance() (recorder.DataRecorder, error) {
+// Recorder implements the RecorderConf interface.
+func (c *Config) Recorder() (recorder.DataRecorder, error) {
 	return New(
 		recorder.WithLogger(c.Logger()),
 		recorder.WithEndpoint(c.Endpoint()),

@@ -154,7 +154,7 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
-func TestNewInstance(t *testing.T) {
+func TestConfigReader(t *testing.T) {
 	log := internal.DiscardLogger()
 	c, err := self.NewConfig(
 		self.WithLogger(log),
@@ -166,7 +166,7 @@ func TestNewInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
 	}
-	e, err := c.NewInstance()
+	e, err := c.Reader()
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
@@ -175,7 +175,7 @@ func TestNewInstance(t *testing.T) {
 	}
 
 	c.SelfBackoff = 5
-	e, err = c.NewInstance()
+	e, err = c.Reader()
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
 	}

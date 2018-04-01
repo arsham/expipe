@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
 	"github.com/pkg/errors"
@@ -50,6 +51,12 @@ func shouldNotChangeTheInput(t testing.TB, cons Constructor) {
 	if red.Timeout() != timeout {
 		t.Errorf("red.Timeout() = (%d); want (%d)", red.Timeout(), timeout)
 	}
+	if red.Endpoint() != endpoint {
+		t.Errorf("red.Endpoint() = (%s); want (%s)", red.Endpoint(), endpoint)
+	}
+	if red.Backoff() != backoff {
+		t.Errorf("red.Backoff() = (%d); want (%d)", red.Backoff(), backoff)
+	}
 }
 
 func nameCheck(t testing.TB, cons Constructor) {
@@ -57,8 +64,16 @@ func nameCheck(t testing.TB, cons Constructor) {
 	cons.SetTimeout(time.Hour)
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetBackoff(5)
-	cons.SetName("")
 	red, err := cons.Object()
+	if errors.Cause(err) != reader.ErrEmptyName {
+		t.Errorf("err = (%v); want (reader.ErrEmptyName)", err)
+	}
+	if !reflect.ValueOf(red).IsNil() {
+		t.Errorf("red = (%v); want (nil)", red)
+	}
+
+	cons.SetName("")
+	red, err = cons.Object()
 	if errors.Cause(err) != reader.ErrEmptyName {
 		t.Errorf("err = (%v); want (reader.ErrEmptyName)", err)
 	}
@@ -69,11 +84,22 @@ func nameCheck(t testing.TB, cons Constructor) {
 
 func typeNameCheck(t testing.TB, cons Constructor) {
 	cons.SetName(name)
-	cons.SetTypeName("")
 	cons.SetTimeout(time.Hour)
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetBackoff(5)
 	red, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
+	if reflect.ValueOf(red).IsNil() {
+		t.Fatal("red = (nil); want (DataReader)")
+	}
+	if red.TypeName() != red.Name() {
+		t.Errorf("TypeName() = (%s); want (%s)", red.TypeName(), red.Name())
+	}
+
+	cons.SetTypeName("")
+	red, err = cons.Object()
 	if errors.Cause(err) != reader.ErrEmptyTypeName {
 		t.Errorf("err = (%#v); want (reader.ErrEmptyTypeName)", err)
 	}
@@ -88,8 +114,16 @@ func backoffCheck(t testing.TB, cons Constructor) {
 	cons.SetTypeName("my_type_name")
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetTimeout(time.Second)
-	cons.SetBackoff(backoff)
 	red, err := cons.Object()
+	if reflect.ValueOf(red).IsNil() {
+		t.Error("red = (nil); want (DataReader)")
+	}
+	if red.Backoff() < 5 {
+		t.Errorf("Backoff() = (%d); want (>=5)", red.Backoff())
+	}
+
+	cons.SetBackoff(backoff)
+	red, err = cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("red = (%v); want (nil)", red)
 	}
@@ -121,23 +155,22 @@ func intervalCheck(t testing.TB, cons Constructor) {
 }
 
 func endpointCheck(t testing.TB, cons Constructor) {
+	var ok bool
 	invalidEndpoint := "this is invalid"
 	cons.SetName("the name")
 	cons.SetTypeName("my type")
 	cons.SetTimeout(time.Second)
 	cons.SetInterval(time.Second)
 	cons.SetBackoff(5)
-	cons.SetEndpoint(invalidEndpoint)
+
 	red, err := cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("red = (%v); want (nil)", red)
+		t.Errorf("red = (%#v); want (nil)", red)
 	}
-	if _, ok := errors.Cause(err).(reader.InvalidEndpointError); !ok {
-		t.Errorf("err.(reader.InvalidEndpointError) = (%#v); want (reader.InvalidEndpointError)", err)
+	if errors.Cause(err) != reader.ErrEmptyEndpoint {
+		t.Errorf("err = (%#v); want (reader.ErrEmptyEndpoint)", err)
 	}
-	if !strings.Contains(err.Error(), invalidEndpoint) {
-		t.Errorf("want (%s) to be in (%s)", invalidEndpoint, err.Error())
-	}
+
 	cons.SetEndpoint("")
 	red, err = cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
@@ -145,5 +178,52 @@ func endpointCheck(t testing.TB, cons Constructor) {
 	}
 	if errors.Cause(err) != reader.ErrEmptyEndpoint {
 		t.Errorf("err = (%#v); want (reader.ErrEmptyEndpoint)", err)
+	}
+
+	cons.SetEndpoint(invalidEndpoint)
+	red, err = cons.Object()
+	if !reflect.ValueOf(red).IsNil() {
+		t.Errorf("red = (%v); want (nil)", red)
+	}
+	if _, ok = errors.Cause(err).(reader.InvalidEndpointError); !ok {
+		t.Errorf("err.(reader.InvalidEndpointError) = (%#v); want (reader.InvalidEndpointError)", err)
+	}
+	if ok && !strings.Contains(err.Error(), invalidEndpoint) {
+		t.Errorf("want (%s) to be in (%s)", invalidEndpoint, err.Error())
+	}
+}
+
+func timeoutCheck(t testing.TB, cons Constructor) {
+	cons.SetName(name)
+	cons.SetEndpoint(cons.TestServer().URL)
+	cons.SetBackoff(5)
+	red, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
+	if reflect.ValueOf(red).IsNil() {
+		t.Fatal("red = (nil); want (DataReader)")
+	}
+	if red.Timeout() != 5*time.Second {
+		t.Errorf("Timeout() = (%s); want (%s)", red.Timeout(), 5*time.Second)
+	}
+}
+
+func setMapperCheck(t testing.TB, cons Constructor) {
+	mapper := datatype.DefaultMapper()
+	cons.SetName(name)
+	cons.SetEndpoint(cons.TestServer().URL)
+	cons.SetBackoff(5)
+	cons.SetMapper(mapper)
+	cons.SetLogger(internal.DiscardLogger())
+	red, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
+	if reflect.ValueOf(red).IsNil() {
+		t.Fatal("red = (nil); want (DataReader)")
+	}
+	if red.Mapper() != mapper {
+		t.Errorf("Mapper() = (%#v); want (%#v)", red.Mapper(), mapper)
 	}
 }

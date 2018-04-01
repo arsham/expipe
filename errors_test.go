@@ -6,49 +6,58 @@ package expipe_test
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
+	"testing/quick"
 
 	"github.com/arsham/expipe"
 	"github.com/arsham/expipe/token"
-	"github.com/pkg/errors"
 )
 
-func TestErrPing(t *testing.T) {
-	name := "divine"
-	body := "is a myth"
-	err := expipe.PingError{name: fmt.Errorf(body)}
-	check(t, err.Error(), name)
-	check(t, err.Error(), body)
-
-	name2 := "science"
-	body2 := "just works!"
-	err = expipe.PingError{
-		name:  fmt.Errorf(body),
-		name2: fmt.Errorf(body2),
+func TestPingError(t *testing.T) {
+	f := func(names, bodies []string) bool {
+		if len(bodies) == 0 {
+			bodies = []string{"luFcTbIescdcjouUCWgnfRHgLLqMON3Ty"}
+		}
+		if len(names) == 0 {
+			names = []string{"BtAnEiSCdBbEzgTjCAeoDcMtZsvmuwf4zWIIwuz"}
+		}
+		max := math.Min(float64(len(names)), float64(len(bodies)))
+		for i := 0; i < int(max); i++ {
+			err := expipe.PingError{names[i]: fmt.Errorf(bodies[i])}
+			if !check(t, err.Error(), names[i]) && check(t, err.Error(), bodies[i]) {
+				return false
+			}
+		}
+		return true
 	}
-	check(t, err.Error(), name)
-	check(t, err.Error(), body)
-	check(t, err.Error(), name2)
-	check(t, err.Error(), body2)
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
 }
 
-func TestErrJob(t *testing.T) {
-	name := "divine"
-	body := errors.New("is a myth")
-	id := token.NewUID()
-	err := expipe.JobError{
-		ID:   id,
-		Name: name,
-		Err:  body,
+func TestJobError(t *testing.T) {
+	f := func(name, body string) bool {
+		id := token.NewUID()
+		err := expipe.JobError{
+			ID:   id,
+			Name: name,
+			Err:  fmt.Errorf(body),
+		}
+		return check(t, err.Error(), name) &&
+			check(t, err.Error(), body) &&
+			check(t, err.Error(), id.String())
 	}
-	check(t, err.Error(), name)
-	check(t, err.Error(), body.Error())
-	check(t, err.Error(), id.String())
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
 }
 
-func check(t *testing.T, err, msg string) {
+func check(t *testing.T, err, msg string) bool {
 	if !strings.Contains(err, msg) {
-		t.Errorf("Contains(err, msg): want (%s) in (%s)", msg, err)
+		t.Errorf("Contains(err, msg): want (%#v) in (%#v)", msg, err)
+		return false
 	}
+	return true
 }

@@ -7,6 +7,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/arsham/expipe/internal"
@@ -14,91 +15,19 @@ import (
 	"github.com/spf13/viper"
 )
 
-func equalSlice(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if !internal.StringInSlice(a[i], b) {
-			return false
-		}
-	}
-	return true
-}
-
 func TestGetRoutesErrors(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
-
-	tcs := []struct {
-		input   *bytes.Buffer
-		section string
-	}{
-		{ // 0
-			input: bytes.NewBuffer([]byte(`
-    routes:
-        route1:
-            recorders: rec1
-    `)),
-			section: "readers",
-		},
-		{ // 1
-			input: bytes.NewBuffer([]byte(`
-    routes:
-        route1:
-            readers: read1
-    `)),
-			section: "recorders",
-		},
-		{ // 2
-			input: bytes.NewBuffer([]byte(`
-    routes:
-        route1:
-            recorders:
-                - rec1
-                - rec2
-    `)),
-			section: "readers",
-		},
-		{ // 3
-			input: bytes.NewBuffer([]byte(`
-    routes:
-        route1:
-            readers:
-                - read1
-                - read2
-    `)),
-			section: "recorders",
-		},
-		{ // 4
-			input: bytes.NewBuffer([]byte(`
-    routes:
-        route1:
-            readers: red1, red2
-            recorders:
-                - rec1
-                - rec2
-    `)),
-			section: "readers",
-		},
-		{ // 5
-			input: bytes.NewBuffer([]byte(`
-    routes:
-        route1:
-            readers:
-                - read1
-                - read2
-            recorders: rec1, rec2
-    `)),
-			section: "recorders",
-		},
+	tcs, err := ReadFixtures("get_routes_errors.txt")
+	if err != nil {
+		t.Fatalf("error parsing fixture: %v", err)
 	}
 
-	for i, tc := range tcs {
-		name := fmt.Sprintf("case_%d", i)
+	for _, tc := range tcs {
+		name := fmt.Sprintf("case_%s", tc.Name)
 		t.Run(name, func(t *testing.T) {
-			v.ReadConfig(tc.input)
+			v.ReadConfig(tc.Body)
 			_, err := getRoutes(v)
 			err = errors.Cause(err)
 			if err == nil {
@@ -109,8 +38,8 @@ func TestGetRoutesErrors(t *testing.T) {
 			}
 			val := err.(*RoutersError)
 
-			if val.Section != tc.section {
-				t.Errorf("val.Section = (%v); want (%s)", val.Section, tc.section)
+			if val.Section != tc.Info {
+				t.Errorf("val.Section = (%v); want (%s)", val.Section, tc.Info)
 			}
 		})
 	}
@@ -118,7 +47,6 @@ func TestGetRoutesErrors(t *testing.T) {
 
 func TestGetRoutesValues(t *testing.T) {
 	t.Parallel()
-
 	v := viper.New()
 	v.SetConfigType("yaml")
 
@@ -148,21 +76,12 @@ func TestGetRoutesValues(t *testing.T) {
 		}
 	}
 
-	input = bytes.NewBuffer([]byte(`
-    routes:
-        route1:
-            recorders:
-                - route1_rec1
-                - route1_rec2
-            readers: [route1_red1, route1_red2]
-        route2:
-            recorders: [route2_rec1, route2_rec2]
-            readers:
-                - route2_red1
-                - route2_red2
-    `))
+	tc, err := FixtureWithSection("various.txt", "GetRoutesValues")
+	if err != nil {
+		t.Fatalf("error parsing fixture: %v", err)
+	}
 
-	v.ReadConfig(input)
+	v.ReadConfig(tc.Body)
 	routes, err = getRoutes(v)
 	if err != nil {
 		t.Fatalf("want no errors, got (%s)", err)
@@ -188,66 +107,20 @@ func TestCheckRoutesAgainstReadersRecordersErrors(t *testing.T) {
 	log := internal.DiscardLogger()
 	v.SetConfigType("yaml")
 
-	tcs := []struct {
-		input *bytes.Buffer
-		err   error
-	}{
-		{
-			input: bytes.NewBuffer([]byte(`
-    readers:
-        red1:
-            type: expvar
-    recorders:
-        rec1:
-            type: elasticsearch
-    routes:
-        route1:
-            recorders: not_exists
-            readers: red1
-    `)),
-			err: NewRoutersError("routers", "not_exists not in recorders", nil),
-		},
-		{
-			input: bytes.NewBuffer([]byte(`
-    readers:
-        red1:
-            type: expvar
-    recorders:
-        rec1:
-            type: elasticsearch
-    routes:
-        route1:
-            recorders: rec1
-            readers: not_exists
-    `)),
-			err: NewRoutersError("routers", "not_exists not in readers", nil),
-		},
-		{
-			input: bytes.NewBuffer([]byte(`
-    readers:
-        red1:
-            type: expvar
-        red2:
-            type: expvar
-    recorders:
-        rec1:
-            type: elasticsearch
-    routes:
-        route1:
-            readers: red2
-            recorders: red1 # wrong one!
-    `)),
-			err: NewRoutersError("routers", "red1 not in recorders", nil),
-		},
+	tcs, err := ReadFixtures("check_routes_against_readers_recorders_errors.txt")
+	if err != nil {
+		t.Fatalf("error parsing fixture: %v", err)
 	}
 
-	for i, tc := range tcs {
-		name := fmt.Sprintf("case_%d", i)
+	for _, tc := range tcs {
+		name := fmt.Sprintf("case_%s", tc.Name)
 		t.Run(name, func(t *testing.T) {
-			v.ReadConfig(tc.input)
+			v.ReadConfig(tc.Body)
+			tcErr := NewRoutersError("routers", tc.Info, nil)
 			_, err := LoadYAML(log, v)
-			if errors.Cause(err).Error() != tc.err.Error() {
-				t.Fatalf("err.Error() = (%v); want (%v)", err, tc.err)
+			_, ok := errors.Cause(err).(*RoutersError)
+			if !ok || !strings.Contains(err.Error(), tc.Info) {
+				t.Fatalf("err.Error() = (%s); want (%s)", err, tcErr)
 			}
 		})
 	}
@@ -258,37 +131,12 @@ func TestCheckRoutesAgainstReadersRecordersPasses(t *testing.T) {
 	v := viper.New()
 	v.SetConfigType("yaml")
 
-	input := bytes.NewBuffer([]byte(`
-    readers:
-        red1:
-            type: expvar
-        red2:
-            type: expvar
-    recorders:
-        rec1:
-            type: elasticsearch
-        rec2:
-            type: elasticsearch
-    routes:
-        route1:
-            recorders:
-                - rec1
-            readers: [red1, red2]
-        route2:
-            recorders:
-                - rec1
-                - rec2
-            readers: red1
-        route3:
-            recorders:
-                - rec1
-                - rec2
-            readers:
-                - red1
-                - red2
-    `))
+	tc, err := FixtureWithSection("various.txt", "CheckRoutesAgainstReadersRecordersPasses")
+	if err != nil {
+		t.Fatalf("error parsing fixture: %v", err)
+	}
 
-	v.ReadConfig(input)
+	v.ReadConfig(tc.Body)
 	readerKeys, _ := getReaders(v)
 	recorderKeys, _ := getRecorders(v)
 	routes, _ := getRoutes(v)
@@ -303,30 +151,12 @@ func TestMapMultiReadersToOneRecorder(t *testing.T) {
 	v := viper.New()
 	v.SetConfigType("yaml")
 
-	input := bytes.NewBuffer([]byte(`
-routes:
-    route1:
-        readers:
-            - app_0
-            - app_2
-            - app_4
-        recorders:
-            - elastic_1
-    route2:
-        readers:
-            - app_0
-            - app_5
-        recorders:
-            - elastic_2
-    route3:
-        readers:
-            - app_1
-            - app_2
-        recorders:
-            - elastic_1
-    `))
+	tc, err := FixtureWithSection("various.txt", "MapMultiReadersToOneRecorder")
+	if err != nil {
+		t.Fatalf("error parsing fixture: %v", err)
+	}
 
-	v.ReadConfig(input)
+	v.ReadConfig(tc.Body)
 	routes, _ := getRoutes(v)
 	routeMap := mapReadersRecorders(routes)
 

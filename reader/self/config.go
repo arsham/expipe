@@ -45,8 +45,8 @@ func NewConfig(conf ...Conf) (*Config, error) {
 	return obj, nil
 }
 
-// NewInstance instantiates a SelfReader by referencing Config's properties.
-func (c *Config) NewInstance() (reader.DataReader, error) {
+// Reader implements the RecorderConf interface.
+func (c *Config) Reader() (reader.DataReader, error) {
 	return New(
 		reader.WithLogger(c.Logger()),
 		reader.WithEndpoint(c.Endpoint()),

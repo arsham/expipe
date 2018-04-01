@@ -400,10 +400,23 @@ func TestStartReadersTicking(t *testing.T) {
 }
 
 func TestRemoveReader(t *testing.T) {
-	r1, _ := rdt.New(reader.WithName("r1"))
-	r2, _ := rdt.New(reader.WithName("r2"))
-	r3, _ := rdt.New(reader.WithName("r3"))
-	r4, _ := rdt.New(reader.WithName("r4"))
+	endpoint := "http://localhost"
+	r1, err := rdt.New(reader.WithName("r1"), reader.WithEndpoint(endpoint))
+	if err != nil {
+		t.Fatalf("rdt.New(name: r1): err = (%#v); want (nil)", err)
+	}
+	r2, err := rdt.New(reader.WithName("r2"), reader.WithEndpoint(endpoint))
+	if err != nil {
+		t.Fatalf("rdt.New(name: r2): err = (%#v); want (nil)", err)
+	}
+	r3, err := rdt.New(reader.WithName("r3"), reader.WithEndpoint(endpoint))
+	if err != nil {
+		t.Fatalf("rdt.New(name: r3): err = (%#v); want (nil)", err)
+	}
+	r4, err := rdt.New(reader.WithName("r4"), reader.WithEndpoint(endpoint))
+	if err != nil {
+		t.Fatalf("rdt.New(name: r4): err = (%#v); want (nil)", err)
+	}
 	e := &Engine{}
 	e.setReaders(map[string]reader.DataReader{
 		r1.Name(): r1,
@@ -423,6 +436,10 @@ func TestRemoveReader(t *testing.T) {
 }
 
 func TestEventLoopCatchesReaderError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestEventLoopCatchesReaderError count in short mode")
+	}
+	t.Parallel()
 	log, _ := test.NewNullLogger()
 
 	ctx, cancel := context.WithCancel(context.Background())

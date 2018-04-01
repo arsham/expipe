@@ -71,31 +71,12 @@ func TestLoadYAMLSuccess(t *testing.T) {
 	v := viper.New()
 	v.SetConfigType("yaml")
 	log := internal.DiscardLogger()
-	input := bytes.NewBuffer([]byte(`
-    readers:
-        reader1:
-            type: expvar
-            endpoint: localhost:1234
-            type_name: my_app
-            map_file: maps.yml
-            interval: 2s
-            timeout: 3s
-            backoff: 10
-    recorders:
-        recorder1:
-            type: elasticsearch
-            endpoint: http://127.0.0.1:9200
-            index_name: index
-            timeout: 8s
-            backoff: 10
-    routes:
-        route1:
-            readers:
-                - reader1
-            recorders:
-                - recorder1
-    `))
-	v.ReadConfig(input)
+	input, err := config.FixtureWithSection("various.txt", "LoadYAMLSuccess")
+	if err != nil {
+		t.Fatalf("error getting section: %v", err)
+	}
+
+	v.ReadConfig(input.Body)
 	confMap, err := config.LoadYAML(log, v)
 	if errors.Cause(err) != nil {
 		t.Errorf("err = (%v); want (nil)", err)
@@ -116,8 +97,8 @@ func TestLoadSettingsErrors(t *testing.T) {
 	input := bytes.NewBuffer([]byte(""))
 	v.ReadConfig(input)
 	_, err := config.LoadYAML(log, v)
-	if err != config.EmptyConfigErr {
-		t.Errorf("want (%v), got (%v)", config.EmptyConfigErr, err)
+	if err != config.ErrEmptyConfig {
+		t.Errorf("want (%v), got (%v)", config.ErrEmptyConfig, err)
 	}
 
 	input = bytes.NewBuffer([]byte(`
@@ -128,7 +109,7 @@ func TestLoadSettingsErrors(t *testing.T) {
 	v.ReadConfig(input)
 	_, err = config.LoadYAML(log, v)
 	if reflect.TypeOf(err) != reflect.TypeOf(nilErr) {
-		t.Errorf("err =  (%v); want (%v)", err, config.EmptyConfigErr)
+		t.Errorf("err =  (%v); want (%v)", err, config.ErrEmptyConfig)
 	}
 
 	if !strings.Contains(err.Error(), "log_level") {

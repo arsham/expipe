@@ -18,7 +18,7 @@ var (
 	ErrNoCtx    = fmt.Errorf("no ctx provided")
 )
 
-// PingError is the error when one of readers/recorder has a ping error
+// PingError is the error when one of readers/recorder has a ping error.
 type PingError map[string]error
 
 func (e PingError) Error() string {

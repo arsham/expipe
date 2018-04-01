@@ -35,10 +35,12 @@ import (
 // timed-out or cancelled, the recorder should return with the context's error.
 type DataRecorder interface {
 	Name() string
+	Record(context.Context, *Job) error
 	Ping() error
 	IndexName() string
 	Timeout() time.Duration
-	Record(context.Context, *Job) error
+	Endpoint() string
+	Backoff() int
 }
 
 // Job is sent with a context and a payload to be recorded.

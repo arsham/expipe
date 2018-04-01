@@ -15,7 +15,7 @@ import (
 	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
 	"github.com/pkg/errors"
-	"github.com/shurcooL/go/ctxhttp"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 // Recorder is designed to be used in tests.
@@ -30,6 +30,7 @@ type Recorder struct {
 	ErrorFunc  func() error
 	Smu        sync.RWMutex
 	RecordFunc func(context.Context, *recorder.Job) error
+	PingFunc   func() error
 	Pinged     bool
 }
 
@@ -41,6 +42,12 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "option creation")
 		}
+	}
+	if r.name == "" {
+		return nil, recorder.ErrEmptyName
+	}
+	if r.endpoint == "" {
+		return nil, recorder.ErrEmptyEndpoint
 	}
 	if r.log == nil {
 		r.log = internal.GetLogger("error")
@@ -63,6 +70,9 @@ func (r *Recorder) Ping() error {
 	if r.Pinged {
 		return nil
 	}
+	if r.PingFunc != nil {
+		return r.PingFunc()
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
@@ -75,15 +85,15 @@ func (r *Recorder) Ping() error {
 
 // Record calls the RecordFunc if exists, otherwise continues as normal.
 func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
-	if !r.Pinged {
-		return recorder.ErrPingNotCalled
-	}
 	r.Smu.RLock()
 	if r.RecordFunc != nil {
 		r.Smu.RUnlock()
 		return r.RecordFunc(ctx, job)
 	}
 	r.Smu.RUnlock()
+	if !r.Pinged {
+		return recorder.ErrPingNotCalled
+	}
 
 	if r.strike > r.backoff {
 		return recorder.ErrBackoffExceeded

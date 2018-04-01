@@ -48,6 +48,9 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	if r.name == "" {
 		return nil, reader.ErrEmptyName
 	}
+	if r.endpoint == "" {
+		return nil, reader.ErrEmptyEndpoint
+	}
 	if r.backoff < 5 {
 		r.backoff = 5
 	}

@@ -14,7 +14,6 @@ import (
 // InvalidURLError is returned when the URL is not a valid one.
 type InvalidURLError string
 
-// Error returns the string representation of the error.
 func (i InvalidURLError) Error() string {
 	return fmt.Sprintf("invalid url: %s", string(i))
 }

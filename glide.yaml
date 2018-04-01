@@ -1,18 +1,13 @@
 package: github.com/arsham/expipe
 import:
-- package: github.com/sirupsen/logrus
 - package: github.com/antonholmquist/jason
 - package: github.com/asaskevich/govalidator
+- package: github.com/jessevdk/go-flags
 - package: github.com/olivere/elastic
-- package: github.com/onsi/ginkgo
-- package: github.com/onsi/gomega
 - package: github.com/pkg/errors
 - package: github.com/satori/go.uuid
-- package: github.com/shurcooL/go
-  subpackages:
-  - ctxhttp
+- package: github.com/sirupsen/logrus
 - package: github.com/spf13/viper
 - package: golang.org/x/net
   subpackages:
   - context/ctxhttp
-- package: github.com/jessevdk/go-flags

@@ -12,7 +12,7 @@ import (
 	rt "github.com/arsham/expipe/recorder/testing"
 )
 
-func TestConfigNewinstance(t *testing.T) {
+func TestConfigRecorder(t *testing.T) {
 	name := "name"
 	log := internal.DiscardLogger()
 	endpoint := "http://localhost"
@@ -28,7 +28,7 @@ func TestConfigNewinstance(t *testing.T) {
 		MockIndexName: indexName,
 	}
 
-	r, err := c.NewInstance()
+	r, err := c.Recorder()
 	rec, ok := r.(*rt.Recorder)
 	if !ok {
 		t.Error("ok = (false); want (true)")
