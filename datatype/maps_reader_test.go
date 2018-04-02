@@ -15,7 +15,7 @@ import (
 
 	"github.com/antonholmquist/jason"
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/tools"
 	"github.com/spf13/viper"
 )
 
@@ -143,9 +143,9 @@ func TestLoadMapsReaderGCTypes(t *testing.T) {
 	v.ReadConfig(input)
 	maps := datatype.MapsFromViper(v)
 	for _, c := range []string{"PauseEnd", "memstats.PauseNs"} {
-		if !internal.StringInSlice(c, maps.GCTypes) {
+		if !tools.StringInSlice(c, maps.GCTypes) {
 			v := strings.Join(maps.GCTypes, ", ")
-			t.Errorf("internal.StringInSlice(c, maps.GCTypes): (%s) not found in returned valued. got (%s)", c, v)
+			t.Errorf("tools.StringInSlice(c, maps.GCTypes): (%s) not found in returned valued. got (%s)", c, v)
 		}
 	}
 	input = bytes.NewBuffer([]byte(`

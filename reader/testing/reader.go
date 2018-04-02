@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools"
+	"github.com/arsham/expipe/tools/token"
 	"github.com/pkg/errors"
 
 	"golang.org/x/net/context/ctxhttp"
@@ -26,7 +26,7 @@ type Reader struct {
 	typeName string
 	endpoint string
 	mapper   datatype.Mapper
-	log      internal.FieldLogger
+	log      tools.FieldLogger
 	interval time.Duration
 	timeout  time.Duration
 	backoff  int
@@ -67,7 +67,7 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 		r.timeout = 5 * time.Second
 	}
 	if r.log == nil {
-		r.log = internal.GetLogger("info")
+		r.log = tools.GetLogger("info")
 	}
 	r.log = r.log.WithField("engine", "reader_testing")
 	return r, nil
@@ -168,7 +168,7 @@ func (r *Reader) Backoff() int { return r.backoff }
 func (r *Reader) SetBackoff(backoff int) { r.backoff = backoff }
 
 // Logger returns the log.
-func (r *Reader) Logger() internal.FieldLogger { return r.log }
+func (r *Reader) Logger() tools.FieldLogger { return r.log }
 
 // SetLogger sets the log of the reader.
-func (r *Reader) SetLogger(log internal.FieldLogger) { r.log = log }
+func (r *Reader) SetLogger(log tools.FieldLogger) { r.log = log }

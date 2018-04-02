@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools/token"
 )
 
 // DataReader receives job requests to read from the target. It returns

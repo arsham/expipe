@@ -9,19 +9,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader/self"
+	"github.com/arsham/expipe/tools"
 	"github.com/spf13/viper"
 )
 
 func TestWithLogger(t *testing.T) {
-	l := (internal.FieldLogger)(nil)
+	l := (tools.FieldLogger)(nil)
 	c := new(self.Config)
 	err := self.WithLogger(l)(c)
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
-	l = internal.DiscardLogger()
+	l = tools.DiscardLogger()
 	err = self.WithLogger(l)(c)
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
@@ -133,7 +133,7 @@ func TestWithViperBadFile(t *testing.T) {
 }
 
 func TestNewConfig(t *testing.T) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	c, err := self.NewConfig(
 		self.WithLogger(log),
 	)
@@ -155,7 +155,7 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestConfigReader(t *testing.T) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	c, err := self.NewConfig(
 		self.WithLogger(log),
 	)

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +25,7 @@ func shouldNotChangeTheInput(t *testing.T, cons Constructor) {
 	endpoint := cons.TestServer().URL
 	timeout := time.Second
 	backoff := 5
-	logger := internal.DiscardLogger()
+	logger := tools.DiscardLogger()
 	cons.SetName(name)
 	cons.SetIndexName(indexName)
 	cons.SetEndpoint(endpoint)

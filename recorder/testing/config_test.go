@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	rt "github.com/arsham/expipe/recorder/testing"
+	"github.com/arsham/expipe/tools"
 )
 
 func TestConfigRecorder(t *testing.T) {
 	name := "name"
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	endpoint := "http://localhost"
 	timeout := time.Second
 	backoff := 5

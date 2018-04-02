@@ -7,13 +7,13 @@ package testing
 import (
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/tools"
 )
 
 // GetRecorder provides a SimpleRecorder for using in the example.
 func GetRecorder(url string) *Recorder {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	red, err := New(
 		recorder.WithLogger(log),
 		recorder.WithEndpoint(url),

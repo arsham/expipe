@@ -11,7 +11,7 @@ import (
 
 	"github.com/arsham/expipe/reader"
 	rt "github.com/arsham/expipe/reader/testing"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools/token"
 	"github.com/pkg/errors"
 )
 

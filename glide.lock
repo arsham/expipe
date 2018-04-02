@@ -1,5 +1,5 @@
 hash: 8305c19ac8404e869f6c717dce7354b498fb692cfdfa3933b15e438eccfd3195
-updated: 2018-04-01T07:33:54.714098215+01:00
+updated: 2018-04-02T10:04:35.194784138+01:00
 imports:
 - name: github.com/antonholmquist/jason
   version: 962e09b85496e2e158eec1567fb4c826ce3d55d1
@@ -47,7 +47,7 @@ imports:
   subpackages:
   - hooks/test
 - name: github.com/spf13/afero
-  version: a880a37ed1804d98f64b3b7d58b5e3f8fbf421c4
+  version: 63644898a8da0bc22138abf860edaf5277b6102e
   subpackages:
   - mem
 - name: github.com/spf13/cast

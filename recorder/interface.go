@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools/token"
 )
 
 // DataRecorder receives a payload for shipping data to a repository.

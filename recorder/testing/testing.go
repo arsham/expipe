@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/tools"
 )
 
 // Constructor is an interface for setting up an object for testing.
@@ -130,7 +130,7 @@ func (b *BaseConstruct) Setters() []func(recorder.Constructor) error {
 }
 
 // SetLogger adds a Logger value to setter configuration.
-func (b *BaseConstruct) SetLogger(logger internal.FieldLogger) {
+func (b *BaseConstruct) SetLogger(logger tools.FieldLogger) {
 	b.add("logger", recorder.WithLogger(logger))
 }
 

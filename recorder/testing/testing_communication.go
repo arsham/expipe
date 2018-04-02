@@ -11,7 +11,7 @@ import (
 
 	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/recorder"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools/token"
 	"github.com/pkg/errors"
 )
 

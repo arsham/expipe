@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/tools"
 )
 
 func BenchmarkRecorder(b *testing.B) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	ctx := context.Background()
 
 	ts := httptest.NewServer(

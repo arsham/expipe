@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/antonholmquist/jason"
-	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/tools"
 	"github.com/spf13/viper"
 )
 
@@ -95,7 +95,7 @@ func (m *MapConvert) arrayValue(prefix, name string, a []*jason.Value) DataType 
 	if len(a) == 0 {
 		return NewFloatListType(prefix+name, []float64{})
 	} else if _, err := a[0].Float64(); err == nil {
-		if internal.StringInSlice(name, m.GCTypes) {
+		if tools.StringInSlice(name, m.GCTypes) {
 			return getGCList(prefix+name, a)
 		}
 		return getFloatListValues(prefix+name, a)

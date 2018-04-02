@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools/token"
 	"github.com/pkg/errors"
 )
 

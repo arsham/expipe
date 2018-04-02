@@ -9,19 +9,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder/elasticsearch"
+	"github.com/arsham/expipe/tools"
 	"github.com/spf13/viper"
 )
 
 func TestWithLogger(t *testing.T) {
-	l := (internal.FieldLogger)(nil)
+	l := (tools.FieldLogger)(nil)
 	c := new(elasticsearch.Config)
 	err := elasticsearch.WithLogger(l)(c)
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
-	l = internal.DiscardLogger()
+	l = tools.DiscardLogger()
 	err = elasticsearch.WithLogger(l)(c)
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
@@ -123,7 +123,7 @@ interval: 2sq
 }
 
 func TestNewConfig(t *testing.T) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	c, err := elasticsearch.NewConfig(
 		elasticsearch.WithLogger(log),
 	)
@@ -148,7 +148,7 @@ func TestNewConfigErrors(t *testing.T) {
 }
 
 func TestConfigRecorder(t *testing.T) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	c, err := elasticsearch.NewConfig(
 		elasticsearch.WithLogger(log),
 	)

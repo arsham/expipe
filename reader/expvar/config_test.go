@@ -13,19 +13,19 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader/expvar"
+	"github.com/arsham/expipe/tools"
 	"github.com/spf13/viper"
 )
 
 func TestWithLogger(t *testing.T) {
-	l := (internal.FieldLogger)(nil)
+	l := (tools.FieldLogger)(nil)
 	c := new(expvar.Config)
 	err := expvar.WithLogger(l)(c)
 	if err == nil {
 		t.Error("err = (nil); want (error)")
 	}
-	l = internal.DiscardLogger()
+	l = tools.DiscardLogger()
 	err = expvar.WithLogger(l)(c)
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
@@ -140,7 +140,7 @@ func TestWithViperBadFile(t *testing.T) {
 }
 
 func TestNewConfig(t *testing.T) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	c, err := expvar.NewConfig(
 		expvar.WithLogger(log),
 	)
@@ -191,7 +191,7 @@ func TestWithMapFile(t *testing.T) {
 }
 
 func TestConfigReader(t *testing.T) {
-	log := internal.DiscardLogger()
+	log := tools.DiscardLogger()
 	c, err := expvar.NewConfig(
 		expvar.WithLogger(log),
 	)

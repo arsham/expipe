@@ -10,10 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arsham/expipe/internal"
-
 	"github.com/arsham/expipe/reader"
-	"github.com/arsham/expipe/token"
+	"github.com/arsham/expipe/tools"
+	"github.com/arsham/expipe/tools/token"
 	"github.com/pkg/errors"
 )
 
@@ -27,7 +26,7 @@ func pingingEndpoint(t testing.TB, cons Constructor) {
 	cons.SetEndpoint(ts.URL)
 	cons.SetInterval(time.Millisecond)
 	cons.SetTimeout(time.Second)
-	cons.SetLogger(internal.DiscardLogger())
+	cons.SetLogger(tools.DiscardLogger())
 	ts.Close()
 
 	red, err := cons.Object()
@@ -94,7 +93,7 @@ func readerBacksOffOnEndpointGone(t testing.TB, cons Constructor) {
 	cons.SetEndpoint(ts.URL)
 	cons.SetInterval(time.Hour)
 	cons.SetTimeout(time.Hour)
-	cons.SetLogger(internal.DiscardLogger())
+	cons.SetLogger(tools.DiscardLogger())
 	cons.SetBackoff(5)
 	red, err := cons.Object()
 	if errors.Cause(err) != nil {

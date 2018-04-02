@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +17,7 @@ import (
 
 // Constructor is a Reader object that will accept configurations.
 type Constructor interface {
-	SetLogger(logger internal.FieldLogger)
+	SetLogger(logger tools.FieldLogger)
 	SetName(name string)
 	SetTypeName(typeName string)
 	SetEndpoint(endpoint string)
@@ -28,7 +28,7 @@ type Constructor interface {
 }
 
 // WithLogger sets the log of the reader.
-func WithLogger(log internal.FieldLogger) func(Constructor) error {
+func WithLogger(log tools.FieldLogger) func(Constructor) error {
 	return func(e Constructor) error {
 		if log == nil {
 			return errors.New("reader nil logger")
@@ -55,7 +55,7 @@ func WithEndpoint(endpoint string) func(Constructor) error {
 		if endpoint == "" {
 			return ErrEmptyEndpoint
 		}
-		url, err := internal.SanitiseURL(endpoint)
+		url, err := tools.SanitiseURL(endpoint)
 		if err != nil {
 			return InvalidEndpointError(endpoint)
 		}

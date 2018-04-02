@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/datatype"
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
 )
 
@@ -27,7 +27,7 @@ func shouldNotChangeTheInput(t testing.TB, cons Constructor) {
 	interval := time.Second
 	timeout := time.Second
 	backoff := 5
-	logger := internal.DiscardLogger()
+	logger := tools.DiscardLogger()
 	cons.SetName(name)
 	cons.SetTypeName(typeName)
 	cons.SetEndpoint(endpoint)
@@ -215,7 +215,7 @@ func setMapperCheck(t testing.TB, cons Constructor) {
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetBackoff(5)
 	cons.SetMapper(mapper)
-	cons.SetLogger(internal.DiscardLogger())
+	cons.SetLogger(tools.DiscardLogger())
 	red, err := cons.Object()
 	if errors.Cause(err) != nil {
 		t.Errorf("err = (%#v); want (nil)", err)

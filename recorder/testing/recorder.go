@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/arsham/expipe/internal"
 	"github.com/arsham/expipe/recorder"
+	"github.com/arsham/expipe/tools"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context/ctxhttp"
 )
@@ -23,7 +23,7 @@ type Recorder struct {
 	name       string
 	endpoint   string
 	indexName  string
-	log        internal.FieldLogger
+	log        tools.FieldLogger
 	timeout    time.Duration
 	backoff    int
 	strike     int
@@ -50,7 +50,7 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 		return nil, recorder.ErrEmptyEndpoint
 	}
 	if r.log == nil {
-		r.log = internal.GetLogger("error")
+		r.log = tools.GetLogger("error")
 	}
 	r.log = r.log.WithField("engine", "recorder_testing")
 	if r.backoff < 5 {
@@ -143,7 +143,7 @@ func (r *Recorder) Backoff() int { return r.backoff }
 func (r *Recorder) SetBackoff(backoff int) { r.backoff = backoff }
 
 // Logger returns the log.
-func (r *Recorder) Logger() internal.FieldLogger { return r.log }
+func (r *Recorder) Logger() tools.FieldLogger { return r.log }
 
 // SetLogger sets the log of the recorder.
-func (r *Recorder) SetLogger(log internal.FieldLogger) { r.log = log }
+func (r *Recorder) SetLogger(log tools.FieldLogger) { r.log = log }
