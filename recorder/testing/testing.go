@@ -93,6 +93,12 @@ func TestSuites(t *testing.T, setup func() (Constructor, func())) {
 		defer cleanup()
 		recordingReturnsErrorIfNotPingedYet(t, cons)
 	})
+	t.Run("ErrorsOnBadPayload", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		errorsOnBadPayload(t, cons)
+	})
 }
 
 // BaseConstruct implements Constructor interface.

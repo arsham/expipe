@@ -140,14 +140,14 @@ func TestReadFunc(t *testing.T) {
 			}
 		},
 	}
-	err := rec.Record(nil, nil)
+	err := rec.Record(context.TODO(), nil)
 	if !called {
 		t.Error("Record(nil): called = (false); want (true)")
 	}
 	if err != err1 {
 		t.Errorf("Record(nil) = (%#v); want (%v)", err, err1)
 	}
-	err = rec.Record(nil, nil)
+	err = rec.Record(context.TODO(), nil)
 	if err != err2 {
 		t.Errorf("Record(nil) = (%#v); want (%v)", err, err2)
 	}

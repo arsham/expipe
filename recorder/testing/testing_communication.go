@@ -18,8 +18,8 @@ import (
 // recorderReceivesPayload tests the recorder receives the payload correctly.
 func recorderReceivesPayload(t *testing.T, cons Constructor) {
 	ctx := context.Background()
-	cons.SetName("the name")
-	cons.SetIndexName("my_index")
+	cons.SetName(name)
+	cons.SetIndexName(indexName)
 	cons.SetTimeout(time.Second)
 	cons.SetBackoff(5)
 	cons.SetEndpoint(cons.TestServer().URL)
@@ -57,8 +57,8 @@ func recorderReceivesPayload(t *testing.T, cons Constructor) {
 // recorderSendsResult tests the recorder send the results to the endpoint.
 func recorderSendsResult(t *testing.T, cons Constructor) {
 	ctx := context.Background()
-	cons.SetName("the name")
-	cons.SetIndexName("index_name")
+	cons.SetName(name)
+	cons.SetIndexName(indexName)
 	cons.SetTimeout(time.Second)
 	cons.SetBackoff(15)
 	cons.SetEndpoint(cons.TestServer().URL)
@@ -74,12 +74,49 @@ func recorderSendsResult(t *testing.T, cons Constructor) {
 	payload := &recorder.Job{
 		ID:        token.NewUID(),
 		Payload:   p,
-		IndexName: "my_index",
+		IndexName: indexName,
 		TypeName:  "my_type",
 		Time:      time.Now(),
 	}
 	err = rec.Record(ctx, payload)
 	if errors.Cause(err) != nil {
 		t.Errorf("err = (%v); want (nil)", err)
+	}
+}
+
+type badType struct{}
+
+var errHappened = errors.New("this is bad")
+
+func (badType) Read(b []byte) (int, error)         { return 0, errHappened }
+func (badType) Equal(other datatype.DataType) bool { return false }
+func (badType) Reset()                             {}
+
+func errorsOnBadPayload(t *testing.T, cons Constructor) {
+	ctx := context.Background()
+	cons.SetName(name)
+	cons.SetIndexName(indexName)
+	cons.SetTimeout(time.Second)
+	cons.SetBackoff(15)
+	cons.SetEndpoint(cons.TestServer().URL)
+	rec, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	err = rec.Ping()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	p := datatype.New([]datatype.DataType{&badType{}})
+	payload := &recorder.Job{
+		ID:        token.NewUID(),
+		Payload:   p,
+		IndexName: indexName,
+		TypeName:  "my_type",
+		Time:      time.Now(),
+	}
+	err = rec.Record(ctx, payload)
+	if errors.Cause(err) == nil {
+		t.Errorf("err = (nil); want (%#v)", errHappened)
 	}
 }

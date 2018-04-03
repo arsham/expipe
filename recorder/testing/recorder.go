@@ -5,6 +5,7 @@
 package testing
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/url"
@@ -97,6 +98,12 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 
 	if r.strike > r.backoff {
 		return recorder.ErrBackoffExceeded
+	}
+	// complying with recorder logic
+	w := new(bytes.Buffer)
+	_, err := job.Payload.Generate(w, job.Time)
+	if err != nil {
+		return errors.Wrap(err, "generating payload")
 	}
 
 	res, err := http.Get(r.endpoint)

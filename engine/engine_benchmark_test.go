@@ -54,7 +54,7 @@ func BenchmarkEngineOnManyRecorders(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			e, _ := engine.EngineWithReadRecs(ctx, log, rec, reds)
+			e, _ := engineWithReadRecs(ctx, log, rec, reds)
 
 			done := make(chan struct{})
 			go func(done chan struct{}) {

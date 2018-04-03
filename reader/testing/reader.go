@@ -45,11 +45,19 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 			return nil, errors.Wrap(err, "option creation")
 		}
 	}
+	if err := checkReader(r); err != nil {
+		return nil, err
+	}
+	r.log = r.log.WithField("engine", "reader_testing")
+	return r, nil
+}
+
+func checkReader(r *Reader) error {
 	if r.name == "" {
-		return nil, reader.ErrEmptyName
+		return reader.ErrEmptyName
 	}
 	if r.endpoint == "" {
-		return nil, reader.ErrEmptyEndpoint
+		return reader.ErrEmptyEndpoint
 	}
 	if r.backoff < 5 {
 		r.backoff = 5
@@ -69,8 +77,7 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	if r.log == nil {
 		r.log = tools.GetLogger("info")
 	}
-	r.log = r.log.WithField("engine", "reader_testing")
-	return r, nil
+	return nil
 }
 
 // Ping pings the endpoint and return nil if was successful.

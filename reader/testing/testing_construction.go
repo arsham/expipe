@@ -115,6 +115,9 @@ func backoffCheck(t testing.TB, cons Constructor) {
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetTimeout(time.Second)
 	red, err := cons.Object()
+	if err != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
 	if reflect.ValueOf(red).IsNil() {
 		t.Error("red = (nil); want (DataReader)")
 	}

@@ -112,7 +112,7 @@ func readerBacksOffOnEndpointGone(t testing.TB, cons Constructor) {
 	// We don't know the backoff amount set in the reader, so we try
 	// 100 times until it closes.
 	for i := 0; i < 100; i++ {
-		_, err := red.Read(job)
+		_, err = red.Read(job)
 		if err == reader.ErrBackoffExceeded {
 			backedOff = true
 			break

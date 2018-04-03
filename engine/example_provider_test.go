@@ -5,11 +5,13 @@
 package engine_test
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
 
+	"github.com/arsham/expipe/engine"
 	"github.com/arsham/expipe/reader"
 	rdt "github.com/arsham/expipe/reader/testing"
 	"github.com/arsham/expipe/recorder"
@@ -59,4 +61,37 @@ func getRecorder(log tools.FieldLogger, url string) recorder.DataRecorder {
 	}
 	rec.Pinged = true
 	return rec
+}
+
+// engineWithReadRecs creates an Engine instance with already set-up reader and
+// recorders. The Engine's work starts from here by streaming all readers
+// payloads to the recorder. Returns an error if there are recorders with
+// the same name, or any of constructions results in errors.
+func engineWithReadRecs(ctx context.Context, log tools.FieldLogger, rec recorder.DataRecorder, reds map[string]reader.DataReader) (*engine.Engine, error) {
+	failedErrors := make(map[string]error)
+	err := rec.Ping()
+	if err != nil {
+		return nil, engine.PingError{rec.Name(): err}
+	}
+
+	readers := make([]reader.DataReader, 0)
+	canDo := false
+	for name, red := range reds {
+		err := red.Ping()
+		if err != nil {
+			failedErrors[name] = err
+			continue
+		}
+		readers = append(readers, red)
+		canDo = true
+	}
+	if !canDo {
+		return nil, engine.PingError(failedErrors)
+	}
+	return engine.New(
+		engine.WithCtx(ctx),
+		engine.WithLogger(log),
+		engine.WithReaders(readers...),
+		engine.WithRecorder(rec),
+	)
 }

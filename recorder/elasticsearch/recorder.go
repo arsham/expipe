@@ -154,9 +154,12 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 // the Client, it is a part of its behaviour.
 func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
 	w := new(bytes.Buffer)
-	list.Generate(w, timestamp)
+	_, err := list.Generate(w, timestamp)
+	if err != nil {
+		errors.Wrap(err, "generating payload")
+	}
 	payload := w.String()
-	_, err := r.client.Index().
+	_, err = r.client.Index().
 		Index(r.indexName).
 		Type(typeName).
 		BodyString(payload).

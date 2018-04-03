@@ -47,10 +47,11 @@ var Opts struct {
 // Main is the entrypoint of the application. It is been called from the main.main
 func Main() {
 	flags.Parse(&Opts)
-	log, confSlice, err := Config()
+	l, confSlice, err := Config()
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+	log = l
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

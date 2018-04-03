@@ -27,7 +27,7 @@ func ExampleEngine_sendingJobs() {
 	red, redTearDown := getReader(log)
 	defer redTearDown()
 	rec := getRecorder(log, ts.URL)
-	e, err := engine.EngineWithReadRecs(ctx, log, rec, red)
+	e, err := engineWithReadRecs(ctx, log, rec, red)
 	if err != nil {
 		panic(err)
 	}

@@ -46,13 +46,13 @@ func NewFloatType(key string, value float64) *FloatType {
 }
 
 // Read includes both Key and Value.
-func (f *FloatType) Read(b []byte) (n int, err error) {
+func (f *FloatType) Read(b []byte) (int, error) {
 	if f.index >= int64(len(f.content)) {
 		return 0, io.EOF
 	}
-	n = copy(b, f.content[f.index:])
+	n := copy(b, f.content[f.index:])
 	f.index += int64(n)
-	return
+	return n, nil
 }
 
 // Reset resets the content to be empty, but it retains the underlying
@@ -87,13 +87,13 @@ func NewStringType(key, value string) *StringType {
 }
 
 // Read includes both Key and Value.
-func (s *StringType) Read(b []byte) (n int, err error) {
+func (s *StringType) Read(b []byte) (int, error) {
 	if s.index >= int64(len(s.content)) {
 		return 0, io.EOF
 	}
-	n = copy(b, s.content[s.index:])
+	n := copy(b, s.content[s.index:])
 	s.index += int64(n)
-	return
+	return n, nil
 }
 
 // Reset resets the content to be empty, but it retains the underlying
@@ -130,13 +130,13 @@ func NewFloatListType(key string, value []float64) *FloatListType {
 }
 
 // Read includes both Key and Value.
-func (f *FloatListType) Read(b []byte) (n int, err error) {
+func (f *FloatListType) Read(b []byte) (int, error) {
 	if f.index >= int64(len(f.content)) {
 		return 0, io.EOF
 	}
-	n = copy(b, f.content[f.index:])
+	n := copy(b, f.content[f.index:])
 	f.index += int64(n)
-	return
+	return n, nil
 }
 
 // Reset resets the content to be empty, but it retains the underlying
@@ -184,13 +184,13 @@ func NewGCListType(key string, value []uint64) *GCListType {
 }
 
 // Read includes both Key and Value.
-func (g *GCListType) Read(b []byte) (n int, err error) {
+func (g *GCListType) Read(b []byte) (int, error) {
 	if g.index >= int64(len(g.content)) {
 		return 0, io.EOF
 	}
-	n = copy(b, g.content[g.index:])
+	n := copy(b, g.content[g.index:])
 	g.index += int64(n)
-	return
+	return n, nil
 }
 
 // Reset resets the content to be empty, but it retains the underlying
@@ -232,13 +232,13 @@ func NewByteType(key string, value float64) *ByteType {
 }
 
 // Read includes both Key and Value.
-func (bt *ByteType) Read(b []byte) (n int, err error) {
+func (bt *ByteType) Read(b []byte) (int, error) {
 	if bt.index >= int64(len(bt.content)) {
 		return 0, io.EOF
 	}
-	n = copy(b, bt.content[bt.index:])
+	n := copy(b, bt.content[bt.index:])
 	bt.index += int64(n)
-	return
+	return n, nil
 }
 
 // Reset resets the content to be empty, but it retains the underlying
@@ -271,13 +271,13 @@ func NewKiloByteType(key string, value float64) *KiloByteType {
 }
 
 // Read includes both Key and Value.
-func (k *KiloByteType) Read(b []byte) (n int, err error) {
+func (k *KiloByteType) Read(b []byte) (int, error) {
 	if k.index >= int64(len(k.content)) {
 		return 0, io.EOF
 	}
-	n = copy(b, k.content[k.index:])
+	n := copy(b, k.content[k.index:])
 	k.index += int64(n)
-	return
+	return n, nil
 }
 
 // Reset resets the content to be empty, but it retains the underlying
@@ -310,13 +310,13 @@ func NewMegaByteType(key string, value float64) *MegaByteType {
 }
 
 // Read includes both Key and Value.
-func (m *MegaByteType) Read(b []byte) (n int, err error) {
+func (m *MegaByteType) Read(b []byte) (int, error) {
 	if m.index >= int64(len(m.content)) {
 		return 0, io.EOF
 	}
-	n = copy(b, m.content[m.index:])
+	n := copy(b, m.content[m.index:])
 	m.index += int64(n)
-	return
+	return n, nil
 }
 
 // Reset resets the content to be empty, but it retains the underlying

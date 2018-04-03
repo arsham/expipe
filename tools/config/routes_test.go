@@ -56,25 +56,8 @@ func TestGetRoutesValues(t *testing.T) {
             recorders: rec1
             readers: red1
     `))
-	var want []string
 	v.ReadConfig(input)
-	routes, err := getRoutes(v)
-	if err != nil {
-		t.Fatalf("want no errors, got (%s)", err)
-	}
-	for name, route := range routes {
-		if name != "route1" {
-			t.Errorf("name = (%s); want (route1)", name)
-		}
-		want = []string{"rec1"}
-		if !equalSlice(want, route.recorders) {
-			t.Errorf("equalSlice(want, route.recorders) = (%v); want (%v)", route.recorders, want)
-		}
-		want = []string{"red1"}
-		if !equalSlice(want, route.readers) {
-			t.Errorf("equalSlice(want, route.readers) = (%v); want (%v)", route.readers, want)
-		}
-	}
+	var want []string
 
 	tc, err := FixtureWithSection("various.txt", "GetRoutesValues")
 	if err != nil {
@@ -82,7 +65,7 @@ func TestGetRoutesValues(t *testing.T) {
 	}
 
 	v.ReadConfig(tc.Body)
-	routes, err = getRoutes(v)
+	routes, err := getRoutes(v)
 	if err != nil {
 		t.Fatalf("want no errors, got (%s)", err)
 	}

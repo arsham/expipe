@@ -65,8 +65,17 @@ func New(options ...func(*Engine) error) (*Engine, error) {
 	if len(e.readers) == 0 {
 		return nil, ErrNoReader
 	}
+	e.name = decorateName(*e)
 	e.log = e.log.WithField("engine", e.name)
 	return e, nil
+}
+
+func decorateName(e Engine) string {
+	var readerNames []string
+	for name := range e.readers {
+		readerNames = append(readerNames, name)
+	}
+	return fmt.Sprintf("( %s <-<< %s )", e.recorder.Name(), strings.Join(readerNames, ","))
 }
 
 // WithCtx uses ctx as the Engine's background context.
@@ -93,19 +102,13 @@ func WithReaders(reds ...reader.DataReader) func(*Engine) error {
 			}
 			readers[redConf.Name()] = redConf
 		}
-		if len(readers) == 0 { // TEST:
+		if len(failedErrors) > 0 && len(readers) == 0 {
+			return PingError(failedErrors)
+		}
+		if len(readers) == 0 {
 			return ErrNoReader
 		}
-		// if len(failedErrors) > 0 { // CHECK:  [not sure]
-		// 	return ErrPing(failedErrors)
-		// }
 		e.readers = readers
-		// TODO: separate this part [refactor]
-		var readerNames []string
-		for name := range e.readers {
-			readerNames = append(readerNames, name)
-		}
-		e.name = fmt.Sprintf("( %s <-<< %s )", e.recorder.Name(), strings.Join(readerNames, ","))
 		e.readerJobs = make(chan *reader.Result, len(e.readers)) // TODO: increase this is as required (10)
 		return nil
 	}

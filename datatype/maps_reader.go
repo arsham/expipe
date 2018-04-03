@@ -183,13 +183,13 @@ func getFloatListValues(name string, arr []*jason.Value) *FloatListType {
 }
 
 // IsByte checks the string string to determine if it is a Byte value.
-func IsByte(m string) bool { return string(m) == "b" }
+func IsByte(m string) bool { return m == "b" }
 
 // IsKiloByte checks the string string to determine if it is a KiloByte value.
-func IsKiloByte(m string) bool { return string(m) == "kb" }
+func IsKiloByte(m string) bool { return m == "kb" }
 
 // IsMegaByte checks the string string to determine if it is a MegaByte value.
-func IsMegaByte(m string) bool { return string(m) == "mb" }
+func IsMegaByte(m string) bool { return m == "mb" }
 
 func gcTypes(v treeReader, gcTypes []string) []string {
 	var result []string
@@ -210,7 +210,7 @@ func gcTypes(v treeReader, gcTypes []string) []string {
 func memoryTypes(v treeReader, memTypes map[string]string) map[string]string {
 	result := make(map[string]string, len(memTypes))
 	for name, memoryType := range v.GetStringMapString("memory_bytes") {
-		result[name] = string(memoryType)
+		result[name] = memoryType
 	}
 	return result
 }

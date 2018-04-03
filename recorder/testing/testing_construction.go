@@ -126,6 +126,9 @@ func backoffCheck(t *testing.T, cons Constructor) {
 	if reflect.ValueOf(rec).IsNil() {
 		t.Error("rec = (nil); want (DataRecorder)")
 	}
+	if err != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
 	if rec.Backoff() < 5 {
 		t.Errorf("Backoff() = (%d); want (>=5)", rec.Backoff())
 	}

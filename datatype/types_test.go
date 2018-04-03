@@ -97,72 +97,74 @@ func TestDataTypeEquality(t *testing.T) {
 		b datatype.DataType
 	}
 	testCase := []struct {
+		number   int
 		input    inputType
 		expected bool
 	}{
-		{input: inputType{a: datatype.NewFloatType("a", 1.1), b: datatype.NewFloatType("a", 1.1)}, expected: true},  // 0
-		{input: inputType{a: datatype.NewFloatType("a", 1.1), b: datatype.NewFloatType("b", 1.1)}, expected: false}, // 1
-		{input: inputType{a: datatype.NewFloatType("a", 1.1), b: datatype.NewFloatType("a", 1.2)}, expected: false}, // 2
-		{input: inputType{a: datatype.NewFloatType("a", 1.1), b: nil}, expected: false},                             // 3
+		{number: 0, input: inputType{a: datatype.NewFloatType("a", 1.1), b: datatype.NewFloatType("a", 1.1)}, expected: true},
+		{number: 1, input: inputType{a: datatype.NewFloatType("a", 1.1), b: datatype.NewFloatType("b", 1.1)}, expected: false},
+		{number: 2, input: inputType{a: datatype.NewFloatType("a", 1.1), b: datatype.NewFloatType("a", 1.2)}, expected: false},
+		{number: 3, input: inputType{a: datatype.NewFloatType("a", 1.1), b: nil}, expected: false},
 
-		{input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewStringType("a", "1.1")}, expected: true},  // 4
-		{input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewStringType("a", "1.2")}, expected: false}, // 5
-		{input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewStringType("b", "1.1")}, expected: false}, // 6
-		{input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewStringType("a", "1.2")}, expected: false}, // 7
-		{input: inputType{a: datatype.NewStringType("a", "1.1"), b: nil}, expected: false},                                // 8
+		{number: 4, input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewStringType("a", "1.1")}, expected: true},
+		{number: 5, input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewStringType("a", "1.2")}, expected: false},
+		{number: 6, input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewStringType("b", "1.1")}, expected: false},
+		{number: 7, input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewStringType("a", "1.2")}, expected: false},
+		{number: 8, input: inputType{a: datatype.NewStringType("a", "1.1"), b: nil}, expected: false},
 
-		{input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewByteType("a", 1.1)}, expected: true},  // 9
-		{input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewByteType("a", 1.2)}, expected: false}, // 10
-		{input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewByteType("b", 1.1)}, expected: false}, // 11
-		{input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewByteType("a", 1.2)}, expected: false}, // 12
-		{input: inputType{a: datatype.NewByteType("a", 1.1), b: nil}, expected: false},                            // 13
+		{number: 9, input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewByteType("a", 1.1)}, expected: true},
+		{number: 10, input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewByteType("a", 1.2)}, expected: false},
+		{number: 11, input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewByteType("b", 1.1)}, expected: false},
+		{number: 12, input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewByteType("a", 1.2)}, expected: false},
+		{number: 13, input: inputType{a: datatype.NewByteType("a", 1.1), b: nil}, expected: false},
 
-		{input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewKiloByteType("a", 1.1)}, expected: true},  // 14
-		{input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewKiloByteType("a", 1.2)}, expected: false}, // 15
-		{input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewKiloByteType("b", 1.1)}, expected: false}, // 16
-		{input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewKiloByteType("a", 1.2)}, expected: false}, // 17
-		{input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: nil}, expected: false},                                // 18
+		{number: 14, input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewKiloByteType("a", 1.1)}, expected: true},
+		{number: 15, input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewKiloByteType("a", 1.2)}, expected: false},
+		{number: 16, input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewKiloByteType("b", 1.1)}, expected: false},
+		{number: 17, input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewKiloByteType("a", 1.2)}, expected: false},
+		{number: 18, input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: nil}, expected: false},
 
-		{input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewMegaByteType("a", 1.1)}, expected: true},  // 19
-		{input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewMegaByteType("a", 1.2)}, expected: false}, // 20
-		{input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewMegaByteType("a", 1.2)}, expected: false}, // 21
-		{input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewMegaByteType("b", 1.1)}, expected: false}, // 22
-		{input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: nil}, expected: false},                                // 23
+		{number: 19, input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewMegaByteType("a", 1.1)}, expected: true},
+		{number: 20, input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewMegaByteType("a", 1.2)}, expected: false},
+		{number: 21, input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewMegaByteType("a", 1.2)}, expected: false},
+		{number: 22, input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewMegaByteType("b", 1.1)}, expected: false},
+		{number: 23, input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: nil}, expected: false},
 
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("a", []float64{1.1})}, expected: true},            // 24
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("b", []float64{1.1})}, expected: false},           // 25
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("a", []float64{1.2})}, expected: false},           // 26
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: datatype.NewFloatListType("a", []float64{1.1, 2.2})}, expected: true},  // 27
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: datatype.NewFloatListType("a", []float64{2.2, 1.1})}, expected: true},  // 28
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("b", []float64{1.1})}, expected: false},           // 29
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("a", []float64{1.2})}, expected: false},           // 30
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: datatype.NewFloatListType("b", []float64{2.2, 1.1})}, expected: false}, // 31
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: datatype.NewFloatListType("b", []float64{1.1, 2.2})}, expected: false}, // 32
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: nil}, expected: false},                                                 // 33
+		{number: 24, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("a", []float64{1.1})}, expected: true},
+		{number: 25, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("b", []float64{1.1})}, expected: false},
+		{number: 26, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("a", []float64{1.2})}, expected: false},
+		{number: 27, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: datatype.NewFloatListType("a", []float64{1.1, 2.2})}, expected: true},
+		{number: 28, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: datatype.NewFloatListType("a", []float64{2.2, 1.1})}, expected: true},
+		{number: 29, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("b", []float64{1.1})}, expected: false},
+		{number: 30, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewFloatListType("a", []float64{1.2})}, expected: false},
+		{number: 31, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: datatype.NewFloatListType("b", []float64{2.2, 1.1})}, expected: false},
+		{number: 32, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: datatype.NewFloatListType("b", []float64{1.1, 2.2})}, expected: false},
+		{number: 33, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1, 2.2}), b: nil}, expected: false},
 
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewGCListType("a", []uint64{1})}, expected: true},        // 34
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewGCListType("b", []uint64{1})}, expected: false},       // 35
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("a", []uint64{1, 2})}, expected: true},  // 36
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("a", []uint64{2, 1})}, expected: true},  // 37
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewGCListType("b", []uint64{1})}, expected: false},       // 38
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("b", []uint64{2, 1})}, expected: false}, // 39
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("b", []uint64{1, 2})}, expected: false}, // 40
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewGCListType("b", []uint64{1, 2})}, expected: false},    // 41
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("b", []uint64{1})}, expected: false},    // 42
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: nil}, expected: false},                                         // 43
+		{number: 34, input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewGCListType("a", []uint64{1})}, expected: true},
+		{number: 35, input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewGCListType("b", []uint64{1})}, expected: false},
+		{number: 36, input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("a", []uint64{1, 2})}, expected: true},
+		{number: 37, input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("a", []uint64{2, 1})}, expected: true},
+		{number: 38, input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewGCListType("b", []uint64{1})}, expected: false},
+		{number: 39, input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("b", []uint64{2, 1})}, expected: false},
+		{number: 40, input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("b", []uint64{1, 2})}, expected: false},
+		{number: 41, input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewGCListType("b", []uint64{1, 2})}, expected: false},
+		{number: 42, input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("b", []uint64{1})}, expected: false},
+		{number: 43, input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: nil}, expected: false},
+		{number: 43, input: inputType{a: datatype.NewGCListType("a", []uint64{1, 2}), b: datatype.NewGCListType("a", []uint64{2, 1, 3})}, expected: false},
 
-		{input: inputType{a: datatype.NewFloatType("a", 1.1), b: datatype.NewStringType("a", "1.1")}, expected: false},                      // 44
-		{input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewFloatType("a", 1.2)}, expected: false},                      // 45
-		{input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewKiloByteType("a", 1.2)}, expected: false},                       // 46
-		{input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewMegaByteType("a", 1.2)}, expected: false},                   // 47
-		{input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewByteType("a", 1.2)}, expected: false},                       // 48
-		{input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewGCListType("a", []uint64{1})}, expected: false}, // 49
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewFloatListType("a", []float64{1.1})}, expected: false}, // 50
-		{input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: nil}, expected: false},                                            // 51
+		{number: 44, input: inputType{a: datatype.NewFloatType("a", 1.1), b: datatype.NewStringType("a", "1.1")}, expected: false},
+		{number: 45, input: inputType{a: datatype.NewStringType("a", "1.1"), b: datatype.NewFloatType("a", 1.2)}, expected: false},
+		{number: 46, input: inputType{a: datatype.NewByteType("a", 1.1), b: datatype.NewKiloByteType("a", 1.2)}, expected: false},
+		{number: 47, input: inputType{a: datatype.NewKiloByteType("a", 1.1), b: datatype.NewMegaByteType("a", 1.2)}, expected: false},
+		{number: 48, input: inputType{a: datatype.NewMegaByteType("a", 1.1), b: datatype.NewByteType("a", 1.2)}, expected: false},
+		{number: 49, input: inputType{a: datatype.NewFloatListType("a", []float64{1.1}), b: datatype.NewGCListType("a", []uint64{1})}, expected: false},
+		{number: 50, input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: datatype.NewFloatListType("a", []float64{1.1})}, expected: false},
+		{number: 51, input: inputType{a: datatype.NewGCListType("a", []uint64{1}), b: nil}, expected: false},
 	}
 
-	for i, tc := range testCase {
-		name := fmt.Sprintf("case %d", i)
+	for _, tc := range testCase {
+		name := fmt.Sprintf("case %d", tc.number)
 		t.Run(name, func(t *testing.T) {
 			res := tc.input.a.Equal(tc.input.b)
 			if res != tc.expected {
