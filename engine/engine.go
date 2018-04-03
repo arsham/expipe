@@ -65,17 +65,17 @@ func New(options ...func(*Engine) error) (*Engine, error) {
 	if len(e.readers) == 0 {
 		return nil, ErrNoReader
 	}
-	e.name = decorateName(*e)
+	e.name = decorateName(e.readers, e.recorder)
 	e.log = e.log.WithField("engine", e.name)
 	return e, nil
 }
 
-func decorateName(e Engine) string {
+func decorateName(readers map[string]reader.DataReader, recorder recorder.DataRecorder) string {
 	var readerNames []string
-	for name := range e.readers {
+	for name := range readers {
 		readerNames = append(readerNames, name)
 	}
-	return fmt.Sprintf("( %s <-<< %s )", e.recorder.Name(), strings.Join(readerNames, ","))
+	return fmt.Sprintf("( %s <-<< %s )", recorder.Name(), strings.Join(readerNames, ","))
 }
 
 // WithCtx uses ctx as the Engine's background context.
