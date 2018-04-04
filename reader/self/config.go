@@ -49,7 +49,7 @@ func NewConfig(conf ...Conf) (*Config, error) {
 func (c *Config) Reader() (reader.DataReader, error) {
 	return New(
 		reader.WithLogger(c.Logger()),
-		reader.WithEndpoint(c.Endpoint()),
+		WithTempServer(),
 		reader.WithMapper(c.mapper),
 		reader.WithName(c.Name()),
 		reader.WithTypeName(c.TypeName()),

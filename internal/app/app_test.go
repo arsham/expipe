@@ -5,6 +5,7 @@
 package app_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -22,6 +23,40 @@ import (
 	flags "github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
 )
+
+// returns the file base name and tear down function
+func setup(content []byte) (string, func()) {
+	cwd, _ := os.Getwd()
+	file, err := ioutil.TempFile(cwd, "yaml")
+	if err != nil {
+		panic(err)
+	}
+	oldName := file.Name() //required for viper
+	newName := file.Name() + ".yml"
+	os.Rename(oldName, newName)
+	file.Write(content)
+	return path.Base(file.Name()), func() {
+		os.Remove(newName)
+	}
+}
+
+// readFixtures reads the fixture file.
+func readFixtures(t *testing.T, filename string) [][]byte {
+	f, err := os.Open("testdata/" + filename)
+	if err != nil {
+		t.Fatalf("reading test fixtures: %v", err)
+	}
+	contents, err := ioutil.ReadAll(f)
+	if err != nil {
+		t.Fatalf("reading test fixtures: %v", err)
+	}
+
+	ret := bytes.Split(contents, []byte("==="))
+	if len(ret) < 1 {
+		t.Fatalf("reading test fixtures: %v", err)
+	}
+	return ret
+}
 
 func TestConfigLogLevel(t *testing.T) {
 	p := flags.NewParser(&app.Opts, flags.IgnoreUnknown)
@@ -61,130 +96,9 @@ func TestConfigFileDoesNotExists(t *testing.T) {
 	}
 }
 
-// returns the file base name and tear down function
-func setup(content []byte) (string, func()) {
-	cwd, _ := os.Getwd()
-	file, err := ioutil.TempFile(cwd, "yaml")
-	if err != nil {
-		panic(err)
-	}
-	oldName := file.Name() //required for viper
-	newName := file.Name() + ".yml"
-	os.Rename(oldName, newName)
-	file.Write(content)
-	return path.Base(file.Name()), func() {
-		os.Remove(newName)
-	}
-}
-func errTestCases() [][]byte {
-	return [][]byte{
-		[]byte(``),
-		[]byte(`readers:
-        recorders:`),
-		[]byte(`readers: exp
-        recorders: es`),
-		[]byte(`app:
-            type: expvar
-        recorders:
-            app2:
-                type: elasticsearch
-        routes:
-            readers: app`),
-		[]byte(`app:
-            type: expvar
-        recorders:
-            app2:
-                type: elasticsearch
-        routes:
-            readers: app
-            recorders: app2`),
-		[]byte(`  app: #malformed
-            type: expvar
-        recorders:
-            app2:
-                type: elasticsearch
-        routes:
-            readers: app`),
-		[]byte(`readers:
-            my_app: # service name
-                type: expvar
-                endpoint: localhost:1234
-                routepath: /debug/vars
-                type_name: my_app
-                map_file: maps.yml
-                interval: 500ms
-                timeout: 3s
-                backoff: 10
-        recorders:
-            elastic1: # service name
-                type: elasticsearch
-                endpoint: http://127.0.0.1:9200
-                index_name: expipe
-                timeout: 8s
-                backoff: 10
-        routes:
-            route1:
-                readers:
-                    - my_app1
-                recorders:
-                    - elastic1
-        `),
-		[]byte(`readers:
-            my_app: # service name
-                type: expvar
-                endpoint: localhost:1234
-                routepath: /debug/vars
-                type_name: my_app
-                map_file: maps.yml
-                interval: 500ms
-                timeout: 3s
-                backoff: 10
-        recorders:
-            elastic1: # service name
-                type: elasticsearch
-                endpoint: http://127.0.0.1:9200
-                index_name: expipe
-                timeout: 8s
-                backoff: 10
-        routes:
-            route1:
-                readers:
-                    - my_app
-                recorders:
-                    - elastic111
-        `),
-	}
-}
-
-func passingInput() []byte {
-	return []byte(`readers:
-    my_app: # service name
-        type: expvar
-        endpoint: localhost:1234
-        routepath: /debug/vars
-        type_name: my_app
-        map_file: maps.yml
-        interval: 500ms
-        timeout: 3s
-        backoff: 10
-recorders:
-    elastic1: # service name
-        type: elasticsearch
-        endpoint: http://127.0.0.1:9200
-        index_name: expipe
-        timeout: 8s
-        backoff: 10
-routes:
-    route1:
-        readers:
-            - my_app
-        recorders:
-            - elastic1
-`)
-}
-
 func TestMainAndFromConfigFileErrors(t *testing.T) {
-	for i, tc := range errTestCases() {
+	tcs := readFixtures(t, "main_and_from_config_file_errors.txt")
+	for i, tc := range tcs {
 		name := fmt.Sprintf("fromFlagsCase_%d", i)
 		t.Run(name, func(t *testing.T) {
 			filename, teardown := setup(tc)
@@ -209,7 +123,7 @@ func TestMainAndFromConfigFileErrors(t *testing.T) {
 }
 
 func TestMainAndFromConfigFilePasses(t *testing.T) {
-	filename, teardown := setup(passingInput())
+	filename, teardown := setup(readFixtures(t, "main_and_from_config_file_passes.txt")[0])
 	defer teardown()
 	defer func() {
 		os.Unsetenv("CONFIG")
@@ -310,6 +224,35 @@ func TestMainAndFromFlagsPasses(t *testing.T) {
 	}
 }
 
+func TestConfig(t *testing.T) {
+	os.Unsetenv("CONFIG")
+	os.Setenv("READER", "localhost1:222/dev")
+	os.Setenv("RECORDER", "localhost2:9200")
+	os.Setenv("TIMEOUT", time.Second.String())
+	os.Setenv("BACKOFF", strconv.Itoa(20))
+	os.Setenv("INDEX", "222")
+	os.Setenv("TYPE", "222")
+	defer func() {
+		os.Unsetenv("CONFIG")
+		os.Unsetenv("READER")
+		os.Unsetenv("RECORDER")
+		os.Unsetenv("TIMEOUT")
+		os.Unsetenv("BACKOFF")
+		os.Unsetenv("INDEX")
+		os.Unsetenv("TYPE")
+	}()
+	p := flags.NewParser(&app.Opts, flags.IgnoreUnknown)
+	p.Parse()
+
+	_, result, err := app.Config()
+	if err != nil {
+		t.Errorf("want nil, got (%v)", err)
+	}
+	if reflect.TypeOf(result) != reflect.TypeOf(&config.ConfMap{}) {
+		t.Errorf("want config.ConfMap, got (%v)", result)
+	}
+}
+
 func TestCaptureSignals(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	sigCh := make(chan os.Signal)
@@ -333,4 +276,26 @@ func TestCaptureSignals(t *testing.T) {
 	case <-time.After(timeout * 2):
 		t.Error("exit function wasn't called")
 	}
+}
+
+func TestConfigReadSampleYAML(t *testing.T) {
+	filename, teardown := setup(readFixtures(t, "config_read_sample_yaml.txt")[0])
+	defer teardown()
+	defer func() {
+		os.Unsetenv("CONFIG")
+	}()
+
+	os.Setenv("CONFIG", filename)
+	p := flags.NewParser(&app.Opts, flags.IgnoreUnknown)
+	p.Parse()
+
+	_, result, _ := app.Config()
+	if len(result.Readers) != 3 {
+		t.Errorf("len(result.Readers) = (%d); want (3)", len(result.Readers))
+	}
+	if len(result.Routes) != 3 {
+		t.Errorf("len(result.Routes) = (%d); want (3)", len(result.Routes))
+	}
+	// for each routes
+
 }

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/tools"
 	"github.com/arsham/expipe/tools/config"
 	"github.com/pkg/errors"
@@ -83,6 +84,46 @@ func TestLoadYAMLSuccess(t *testing.T) {
 	}
 	if confMap == nil {
 		t.Error("confMap = (nil); want (confMap)")
+	}
+}
+func stringInMapKeys(niddle string, haystack map[string]reader.DataReader) bool {
+	for b := range haystack {
+		if b == niddle {
+			return true
+		}
+	}
+	return false
+}
+
+func TestLoadYAMLRemoveUnused(t *testing.T) {
+	t.Parallel()
+	v := viper.New()
+	v.SetConfigType("yaml")
+	log := tools.DiscardLogger()
+	input, err := config.FixtureWithSection("various.txt", "LoadYAMLRemoveUnused")
+	if err != nil {
+		t.Fatalf("error getting section: %v", err)
+	}
+
+	v.ReadConfig(input.Body)
+	confMap, err := config.LoadYAML(log, v)
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	if confMap == nil {
+		t.Fatal("confMap = (nil); want (confMap)")
+	}
+	unwantedReaders := []string{"reader2", "reader3"}
+	unwantedRecorders := []string{"recorder3"}
+	for red, rec := range confMap.Routes {
+		if tools.StringInSlice(red, unwantedReaders) {
+			t.Errorf("(%s) reader should not be in (%v))", red, unwantedReaders)
+		}
+		for _, r := range rec {
+			if tools.StringInSlice(r, unwantedRecorders) {
+				t.Errorf("(%s) recorder should not be in (%v))", r, unwantedRecorders)
+			}
+		}
 	}
 }
 

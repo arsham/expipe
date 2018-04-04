@@ -1,0 +1,23 @@
+readers:
+    my_app: # service name
+        type: expvar
+        endpoint: localhost:1234
+        routepath: /debug/vars
+        type_name: my_app
+        map_file: maps.yml
+        interval: 500ms
+        timeout: 3s
+        backoff: 10
+recorders:
+    elastic1: # service name
+        type: elasticsearch
+        endpoint: http://127.0.0.1:9200
+        index_name: expipe
+        timeout: 8s
+        backoff: 10
+routes:
+    route1:
+        readers:
+            - my_app
+        recorders:
+            - elastic1

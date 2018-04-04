@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/arsham/expipe/tools"
-	"github.com/pkg/errors"
 )
 
 // This file contains the construction functions required for instantiating
@@ -29,7 +28,7 @@ type Constructor interface {
 func WithLogger(log tools.FieldLogger) func(Constructor) error {
 	return func(e Constructor) error {
 		if log == nil {
-			return errors.New("recorder nil logger")
+			return ErrNillLogger
 		}
 		e.SetLogger(log)
 		return nil

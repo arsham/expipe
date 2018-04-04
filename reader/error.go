@@ -20,6 +20,7 @@ var (
 	ErrBackoffExceeded = fmt.Errorf("endpoint gone too long")
 	ErrPingNotCalled   = fmt.Errorf("the caller forgot to ask me pinging")
 	ErrInvalidJSON     = fmt.Errorf("payload is invalid JSON object")
+	ErrNillLogger      = fmt.Errorf("nil logger")
 )
 
 // InvalidEndpointError is the error when the endpoint is not a valid url.

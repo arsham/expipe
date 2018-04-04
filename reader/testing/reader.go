@@ -22,18 +22,18 @@ import (
 
 // Reader is useful for testing purposes.
 type Reader struct {
-	name     string
-	typeName string
-	endpoint string
-	mapper   datatype.Mapper
-	log      tools.FieldLogger
-	interval time.Duration
-	timeout  time.Duration
-	backoff  int
-	strike   int
-	ReadFunc func(*token.Context) (*reader.Result, error)
-	PingFunc func() error
-	Pinged   bool
+	MockName     string
+	MockTypeName string
+	MockEndpoint string
+	MockMapper   datatype.Mapper
+	log          tools.FieldLogger
+	MockInterval time.Duration
+	timeout      time.Duration
+	backoff      int
+	strike       int
+	ReadFunc     func(*token.Context) (*reader.Result, error)
+	PingFunc     func() error
+	Pinged       bool
 }
 
 // New is a reader for using in tests.
@@ -53,23 +53,23 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 }
 
 func checkReader(r *Reader) error {
-	if r.name == "" {
+	if r.MockName == "" {
 		return reader.ErrEmptyName
 	}
-	if r.endpoint == "" {
+	if r.MockEndpoint == "" {
 		return reader.ErrEmptyEndpoint
 	}
 	if r.backoff < 5 {
 		r.backoff = 5
 	}
-	if r.mapper == nil {
-		r.mapper = &datatype.MapConvertMock{}
+	if r.MockMapper == nil {
+		r.MockMapper = &datatype.MapConvertMock{}
 	}
-	if r.typeName == "" {
-		r.typeName = r.name
+	if r.MockTypeName == "" {
+		r.MockTypeName = r.MockName
 	}
-	if r.interval == 0 {
-		r.interval = time.Second
+	if r.MockInterval == 0 {
+		r.MockInterval = time.Second
 	}
 	if r.timeout == 0 {
 		r.timeout = 5 * time.Second
@@ -90,9 +90,9 @@ func (r *Reader) Ping() error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
-	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
+	_, err := ctxhttp.Head(ctx, nil, r.MockEndpoint)
 	if err != nil {
-		return reader.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
+		return reader.EndpointNotAvailableError{Endpoint: r.MockEndpoint, Err: err}
 	}
 	r.Pinged = true
 	return nil
@@ -109,13 +109,13 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if r.strike > r.backoff {
 		return nil, reader.ErrBackoffExceeded
 	}
-	resp, err := ctxhttp.Get(job, nil, r.endpoint)
+	resp, err := ctxhttp.Get(job, nil, r.MockEndpoint)
 	if err != nil {
 		if v, ok := err.(*url.Error); ok {
 			if strings.Contains(v.Error(), "getsockopt: connection refused") {
 				r.strike++
 			}
-			err = reader.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
+			err = reader.EndpointNotAvailableError{Endpoint: r.MockEndpoint, Err: err}
 		}
 		return nil, err
 	}
@@ -136,34 +136,34 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 }
 
 // Name returns the name.
-func (r *Reader) Name() string { return r.name }
+func (r *Reader) Name() string { return r.MockName }
 
 // SetName sets the name of the reader.
-func (r *Reader) SetName(name string) { r.name = name }
+func (r *Reader) SetName(name string) { r.MockName = name }
 
 // Endpoint returns the endpoint.
-func (r *Reader) Endpoint() string { return r.endpoint }
+func (r *Reader) Endpoint() string { return r.MockEndpoint }
 
 // SetEndpoint sets the endpoint of the reader.
-func (r *Reader) SetEndpoint(endpoint string) { r.endpoint = endpoint }
+func (r *Reader) SetEndpoint(endpoint string) { r.MockEndpoint = endpoint }
 
 // TypeName returns the type name.
-func (r *Reader) TypeName() string { return r.typeName }
+func (r *Reader) TypeName() string { return r.MockTypeName }
 
 // SetTypeName sets the type name of the reader.
-func (r *Reader) SetTypeName(typeName string) { r.typeName = typeName }
+func (r *Reader) SetTypeName(typeName string) { r.MockTypeName = typeName }
 
 // Mapper returns the mapper.
-func (r *Reader) Mapper() datatype.Mapper { return r.mapper }
+func (r *Reader) Mapper() datatype.Mapper { return r.MockMapper }
 
 // SetMapper sets the mapper of the reader.
-func (r *Reader) SetMapper(mapper datatype.Mapper) { r.mapper = mapper }
+func (r *Reader) SetMapper(mapper datatype.Mapper) { r.MockMapper = mapper }
 
 // Interval returns the interval.
-func (r *Reader) Interval() time.Duration { return r.interval }
+func (r *Reader) Interval() time.Duration { return r.MockInterval }
 
 // SetInterval sets the interval of the reader.
-func (r *Reader) SetInterval(interval time.Duration) { r.interval = interval }
+func (r *Reader) SetInterval(interval time.Duration) { r.MockInterval = interval }
 
 // Timeout returns the timeout.
 func (r *Reader) Timeout() time.Duration { return r.timeout }

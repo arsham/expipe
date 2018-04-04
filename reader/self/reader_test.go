@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/reader/self"
@@ -48,4 +49,24 @@ func TestSelfReader(t *testing.T) {
 		}
 		return c, func() { c.testServer.Close() }
 	})
+}
+
+func TestWithTempServer(t *testing.T) {
+	var r reader.Constructor
+	r = new(rt.Reader)
+	err := self.WithTempServer()(r)
+	if err == nil {
+		t.Error("WithTempServer(): err = (nil); want (error)")
+	}
+	r = new(self.Reader)
+	err = self.WithTempServer()(r)
+	if err != nil {
+		t.Errorf("WithTempServer(): err = (%#v); want (nil)", err)
+	}
+	s := r.(*self.Reader)
+	reader.WithTimeout(time.Second)(s)
+	err = s.Ping()
+	if err != nil {
+		t.Errorf("Ping(): err = (%#v); want (nil)", err)
+	}
 }

@@ -13,9 +13,10 @@ import (
 
 // Errors returning from Engine operations.
 var (
-	ErrNoReader = fmt.Errorf("no reader provided")
-	ErrNoLogger = fmt.Errorf("no logger provided")
-	ErrNoCtx    = fmt.Errorf("no ctx provided")
+	ErrNoReader   = fmt.Errorf("no reader provided")
+	ErrNoRecorder = fmt.Errorf("no recorder provided")
+	ErrNoLogger   = fmt.Errorf("no logger provided")
+	ErrNoCtx      = fmt.Errorf("no ctx provided")
 )
 
 // PingError is the error when one of readers/recorder has a ping error.

@@ -1,5 +1,5 @@
 hash: 8305c19ac8404e869f6c717dce7354b498fb692cfdfa3933b15e438eccfd3195
-updated: 2018-04-02T10:04:35.194784138+01:00
+updated: 2018-04-04T21:37:50.262025493+01:00
 imports:
 - name: github.com/antonholmquist/jason
   version: 962e09b85496e2e158eec1567fb4c826ce3d55d1
@@ -8,7 +8,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/hashicorp/hcl
-  version: f40e974e75af4e271d97ce0fc917af5898ae7bda
+  version: ef8a98b0bbce4a65b5aa4c368430a80ddc533168
   subpackages:
   - hcl/ast
   - hcl/parser
@@ -44,8 +44,6 @@ imports:
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/sirupsen/logrus
   version: 778f2e774c725116edbc3d039dc0dfc1cc62aae8
-  subpackages:
-  - hooks/test
 - name: github.com/spf13/afero
   version: 63644898a8da0bc22138abf860edaf5277b6102e
   subpackages:
@@ -55,25 +53,25 @@ imports:
 - name: github.com/spf13/jwalterweatherman
   version: 7c0cea34c8ece3fbeb2b27ab9b59511d360fb394
 - name: github.com/spf13/pflag
-  version: 1cd4a0c365d95803411bec89fb7b76bade17053b
+  version: 1ce0cc6db4029d97571db82f85092fccedb572ce
 - name: github.com/spf13/viper
-  version: b5e8006cbee93ec955a89ab31e0e3ce3204f3736
+  version: 8dc2790b029dc41e2b8ff772c63c26adbb1db70d
 - name: golang.org/x/crypto
-  version: 12892e8c234f4fe6f6803f052061de9057903bb2
+  version: b2aa35443fbc700ab74c586ae79b81c171851023
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: b68f30494add4df6bd8ef5e82803f308e7f7c59c
+  version: b3c676e531a6dc479fa1b35ac961c13f5e2b4d2e
   subpackages:
   - context
   - context/ctxhttp
 - name: golang.org/x/sys
-  version: 378d26f46672a356c46195c28f61bdb4c0a781dd
+  version: 1d206c9fa8975fb4cf00df1dc8bf3283dc24ba0e
   subpackages:
   - unix
   - windows
 - name: golang.org/x/text
-  version: ece95c760240037f89ebcbdd7155ac8cb52e38fa
+  version: 2cb43934f0eece38629746959acc633cba083fe4
   subpackages:
   - transform
   - unicode/norm

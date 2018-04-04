@@ -57,8 +57,13 @@ func Main() {
 
 	sigCh := make(chan os.Signal, 1)
 	CaptureSignals(cancel, sigCh, os.Exit, 1*time.Second)
+	s := engine.Service{
+		Ctx:  ctx,
+		Log:  log,
+		Conf: confSlice,
+	}
 
-	done, err := engine.StartEngines(ctx, log, confSlice)
+	done, err := s.Start()
 	if err != nil {
 		log.Fatalf(err.Error())
 	}

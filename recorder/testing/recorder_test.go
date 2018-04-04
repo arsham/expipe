@@ -130,23 +130,22 @@ func TestReadFunc(t *testing.T) {
 		err2   = errors.New("error 2")
 	)
 	rec := rt.Recorder{
-		RecordFunc: func(context.Context, *recorder.Job) error {
+		RecordFunc: func(context.Context, recorder.Job) error {
 			if !called {
 				called = true
 				return err1
-			} else {
-				return err2
 			}
+			return err2
 		},
 	}
-	err := rec.Record(context.TODO(), nil)
+	err := rec.Record(context.TODO(), recorder.Job{})
 	if !called {
 		t.Error("Record(nil): called = (false); want (true)")
 	}
 	if err != err1 {
 		t.Errorf("Record(nil) = (%#v); want (%v)", err, err1)
 	}
-	err = rec.Record(context.TODO(), nil)
+	err = rec.Record(context.TODO(), recorder.Job{})
 	if err != err2 {
 		t.Errorf("Record(nil) = (%#v); want (%v)", err, err2)
 	}

@@ -21,18 +21,18 @@ import (
 
 // Recorder is designed to be used in tests.
 type Recorder struct {
-	name       string
-	endpoint   string
-	indexName  string
-	log        tools.FieldLogger
-	timeout    time.Duration
-	backoff    int
-	strike     int
-	ErrorFunc  func() error
-	Smu        sync.RWMutex
-	RecordFunc func(context.Context, *recorder.Job) error
-	PingFunc   func() error
-	Pinged     bool
+	MockName      string
+	MockEndpoint  string
+	MockIndexName string
+	MockLog       tools.FieldLogger
+	MockTimeout   time.Duration
+	MockBackoff   int
+	strike        int
+	ErrorFunc     func() error
+	Smu           sync.RWMutex
+	RecordFunc    func(context.Context, recorder.Job) error
+	PingFunc      func() error
+	Pinged        bool
 }
 
 // New is a recorder for using in tests.
@@ -44,24 +44,24 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 			return nil, errors.Wrap(err, "option creation")
 		}
 	}
-	if r.name == "" {
+	if r.MockName == "" {
 		return nil, recorder.ErrEmptyName
 	}
-	if r.endpoint == "" {
+	if r.MockEndpoint == "" {
 		return nil, recorder.ErrEmptyEndpoint
 	}
-	if r.log == nil {
-		r.log = tools.GetLogger("error")
+	if r.MockLog == nil {
+		r.MockLog = tools.GetLogger("error")
 	}
-	r.log = r.log.WithField("engine", "recorder_testing")
-	if r.backoff < 5 {
-		r.backoff = 5
+	r.MockLog = r.MockLog.WithField("engine", "recorder_testing")
+	if r.MockBackoff < 5 {
+		r.MockBackoff = 5
 	}
-	if r.indexName == "" {
-		r.indexName = r.name
+	if r.MockIndexName == "" {
+		r.MockIndexName = r.MockName
 	}
-	if r.timeout == 0 {
-		r.timeout = 5 * time.Second
+	if r.MockTimeout == 0 {
+		r.MockTimeout = 5 * time.Second
 	}
 	return r, nil
 }
@@ -74,18 +74,18 @@ func (r *Recorder) Ping() error {
 	if r.PingFunc != nil {
 		return r.PingFunc()
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), r.MockTimeout)
 	defer cancel()
-	_, err := ctxhttp.Head(ctx, nil, r.endpoint)
+	_, err := ctxhttp.Head(ctx, nil, r.MockEndpoint)
 	if err != nil {
-		return recorder.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
+		return recorder.EndpointNotAvailableError{Endpoint: r.MockEndpoint, Err: err}
 	}
 	r.Pinged = true
 	return nil
 }
 
 // Record calls the RecordFunc if exists, otherwise continues as normal.
-func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
+func (r *Recorder) Record(ctx context.Context, job recorder.Job) error {
 	r.Smu.RLock()
 	if r.RecordFunc != nil {
 		r.Smu.RUnlock()
@@ -96,7 +96,7 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 		return recorder.ErrPingNotCalled
 	}
 
-	if r.strike > r.backoff {
+	if r.strike > r.MockBackoff {
 		return recorder.ErrBackoffExceeded
 	}
 	// complying with recorder logic
@@ -106,7 +106,7 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 		return errors.Wrap(err, "generating payload")
 	}
 
-	res, err := http.Get(r.endpoint)
+	res, err := http.Get(r.MockEndpoint)
 	if err != nil {
 		if v, ok := err.(*url.Error); ok {
 			if strings.Contains(v.Error(), "getsockopt: connection refused") {
@@ -120,37 +120,37 @@ func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
 }
 
 // Name returns the name.
-func (r *Recorder) Name() string { return r.name }
+func (r *Recorder) Name() string { return r.MockName }
 
 // SetName sets the name of the recorder.
-func (r *Recorder) SetName(name string) { r.name = name }
+func (r *Recorder) SetName(name string) { r.MockName = name }
 
 // Endpoint returns the endpoint.
-func (r *Recorder) Endpoint() string { return r.endpoint }
+func (r *Recorder) Endpoint() string { return r.MockEndpoint }
 
 // SetEndpoint sets the endpoint of the recorder.
-func (r *Recorder) SetEndpoint(endpoint string) { r.endpoint = endpoint }
+func (r *Recorder) SetEndpoint(endpoint string) { r.MockEndpoint = endpoint }
 
 // IndexName returns the index name.
-func (r *Recorder) IndexName() string { return r.indexName }
+func (r *Recorder) IndexName() string { return r.MockIndexName }
 
 // SetIndexName sets the index name of the recorder.
-func (r *Recorder) SetIndexName(indexName string) { r.indexName = indexName }
+func (r *Recorder) SetIndexName(indexName string) { r.MockIndexName = indexName }
 
 // Timeout returns the timeout.
-func (r *Recorder) Timeout() time.Duration { return r.timeout }
+func (r *Recorder) Timeout() time.Duration { return r.MockTimeout }
 
 // SetTimeout sets the timeout of the recorder.
-func (r *Recorder) SetTimeout(timeout time.Duration) { r.timeout = timeout }
+func (r *Recorder) SetTimeout(timeout time.Duration) { r.MockTimeout = timeout }
 
 // Backoff returns the backoff.
-func (r *Recorder) Backoff() int { return r.backoff }
+func (r *Recorder) Backoff() int { return r.MockBackoff }
 
 // SetBackoff sets the backoff of the recorder.
-func (r *Recorder) SetBackoff(backoff int) { r.backoff = backoff }
+func (r *Recorder) SetBackoff(backoff int) { r.MockBackoff = backoff }
 
 // Logger returns the log.
-func (r *Recorder) Logger() tools.FieldLogger { return r.log }
+func (r *Recorder) Logger() tools.FieldLogger { return r.MockLog }
 
 // SetLogger sets the log of the recorder.
-func (r *Recorder) SetLogger(log tools.FieldLogger) { r.log = log }
+func (r *Recorder) SetLogger(log tools.FieldLogger) { r.MockLog = log }

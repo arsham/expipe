@@ -69,7 +69,7 @@ func recorderBacksOffOnEndpointGone(t *testing.T, cons Constructor) {
 
 	ts.Close()
 	p := datatype.New([]datatype.DataType{})
-	payload := &recorder.Job{
+	payload := recorder.Job{
 		ID:        token.NewUID(),
 		Payload:   p,
 		IndexName: "my index",
@@ -122,7 +122,7 @@ func recordingReturnsErrorIfNotPingedYet(t *testing.T, cons Constructor) {
 	}
 
 	p := datatype.New([]datatype.DataType{})
-	payload := &recorder.Job{
+	payload := recorder.Job{
 		ID:        token.NewUID(),
 		Payload:   p,
 		IndexName: "my index",

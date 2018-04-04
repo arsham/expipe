@@ -41,7 +41,7 @@ func BenchmarkRecorder(b *testing.B) {
 	}
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		job := &recorder.Job{
+		job := recorder.Job{
 			Payload:   nil,
 			IndexName: "my index",
 			Time:      time.Now(),

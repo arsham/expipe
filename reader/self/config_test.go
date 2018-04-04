@@ -182,4 +182,7 @@ func TestConfigReader(t *testing.T) {
 	if e.(*self.Reader) == nil {
 		t.Error("e.(*self.Reader) = (nil); want (c = Reader)")
 	}
+	if e.Endpoint() == c.SelfEndpoint {
+		t.Errorf("Endpoint() = (%s); want (tempServer)", e.Endpoint())
+	}
 }

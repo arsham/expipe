@@ -45,9 +45,9 @@ type ConfMap struct {
 	// Recorders contains a map of recorder names to their instantiated objects.
 	Recorders map[string]recorder.DataRecorder
 
-	// Routes contains a map of recorder names to a list of readers.
-	// map["rec1"][]string{"red1", "red2"}: means whatever is read
-	// from red1 and red2, will be shipped to rec1.
+	// Routes contains a map of reader names to a list of recorders.
+	// map["red1"][]string{"rec1", "rec2"}: means whatever is read
+	// from red1, will be shipped to rec1 and rec2.
 	Routes map[string][]string
 }
 
@@ -73,34 +73,29 @@ func LoadYAML(log *tools.Logger, v *viper.Viper) (*ConfMap, error) {
 		recorderKeys map[string]string
 		routes       routeMap
 		err          error
-		conf         *ConfMap
 	)
 	if len(v.AllSettings()) == 0 {
 		return nil, ErrEmptyConfig
 	}
 	if v.IsSet("settings") {
-		err = checkSettingsSect(log, v)
-		if err != nil {
+		if err = checkSettingsSect(log, v); err != nil {
 			return nil, &StructureErr{"settings", "", err}
 		}
 	}
 
 	if readerKeys, err = getReaders(v); err != nil {
-		conf, err = nil, errors.WithMessage(err, "readerKeys")
-
-	} else if recorderKeys, err = getRecorders(v); err != nil {
-		conf, err = nil, errors.WithMessage(err, "recorderKeys")
-
-	} else if routes, err = getRoutes(v); err != nil {
-		conf, err = nil, errors.WithMessage(err, "routes")
-
-	} else if err = checkAgainstReadRecorders(routes, readerKeys, recorderKeys); err != nil {
-		conf, err = nil, errors.WithMessage(err, "checkAgainstReadRecorders")
-
-	} else {
-		conf, err = loadConfiguration(v, log, routes, readerKeys, recorderKeys)
+		return nil, errors.WithMessage(err, "readerKeys")
 	}
-	return conf, err
+	if recorderKeys, err = getRecorders(v); err != nil {
+		return nil, errors.WithMessage(err, "recorderKeys")
+	}
+	if routes, err = getRoutes(v); err != nil {
+		return nil, errors.WithMessage(err, "routes")
+	}
+	if err = checkAgainstReadRecorders(routes, readerKeys, recorderKeys); err != nil {
+		return nil, errors.WithMessage(err, "checkAgainstReadRecorders")
+	}
+	return loadConfiguration(v, log, routes, readerKeys, recorderKeys)
 }
 
 // readers is a map of keyName:typeName
@@ -151,7 +146,7 @@ func getRoutes(v *viper.Viper) (routeMap, error) {
 		return nil, NewNotSpecifiedError("routes", "", nil)
 	}
 	for name := range v.GetStringMap("routes") {
-		rot := route{}
+		rt := route{}
 		for recRedType, list := range v.GetStringMapStringSlice("routes." + name) {
 			for _, target := range list {
 				if strings.Contains(target, ",") {
@@ -159,12 +154,12 @@ func getRoutes(v *viper.Viper) (routeMap, error) {
 				}
 
 				if recRedType == "readers" {
-					rot.readers = append(rot.readers, target)
+					rt.readers = append(rt.readers, target)
 				} else if recRedType == "recorders" {
-					rot.recorders = append(rot.recorders, target)
+					rt.recorders = append(rt.recorders, target)
 				}
 			}
-			routes[name] = rot
+			routes[name] = rt
 		}
 
 		if len(routes[name].readers) == 0 {
@@ -205,17 +200,42 @@ func loadConfiguration(v *viper.Viper, log tools.FieldLogger, routes routeMap, r
 		if err != nil {
 			return nil, errors.Wrap(err, "reader keys")
 		}
+		if !readerInRoutes(name, routes) {
+			continue
+		}
 		confMap.Readers[name] = r
 	}
+
 	for name, recorder := range recorderKeys {
 		r, err := readRecorders(v, log, recorder, name)
 		if err != nil {
 			return nil, errors.Wrap(err, "recorder keys")
 		}
+		if !recorderInRoutes(name, routes) {
+			continue
+		}
 		confMap.Recorders[name] = r
 	}
 	confMap.Routes = mapReadersRecorders(routes)
 	return confMap, nil
+}
+
+func readerInRoutes(name string, routes routeMap) bool {
+	for _, r := range routes {
+		if tools.StringInSlice(name, r.readers) {
+			return true
+		}
+	}
+	return false
+}
+
+func recorderInRoutes(name string, routes routeMap) bool {
+	for _, r := range routes {
+		if tools.StringInSlice(name, r.recorders) {
+			return true
+		}
+	}
+	return false
 }
 
 func parseReader(v *viper.Viper, log tools.FieldLogger, readerType, name string) (reader.DataReader, error) {
@@ -257,20 +277,21 @@ func readRecorders(v *viper.Viper, log tools.FieldLogger, recorderType, name str
 	return nil, NotSupportedError(recorderType)
 }
 
+// This function returns a map of reader->recorders
 // TODO: [refactor] this code
 func mapReadersRecorders(routes routeMap) map[string][]string {
 	// We don't know how this matrix will be, let's go dynamic!
 	// This looks ugly. The whole logic should change. But it doesn't have any impact on the program, it just runs once.
-	recorderMap := make(map[string][]string)
+	readerMap := make(map[string][]string) //
 	for _, route := range routes {
-		// Add the recorders to the map
-		for _, recName := range route.recorders {
-			// now iterate through the readers and add them
-			for _, readName := range route.readers {
-				if _, ok := recorderMap[recName]; !ok {
-					recorderMap[recName] = []string{readName}
+		// Add the readers to the map
+		for _, redName := range route.readers {
+			// now iterate through the recorders and add them
+			for _, recName := range route.recorders {
+				if _, ok := readerMap[redName]; !ok {
+					readerMap[redName] = []string{recName}
 				} else {
-					recorderMap[recName] = append(recorderMap[recName], readName)
+					readerMap[redName] = append(readerMap[redName], recName)
 					// Shall we go another level deep??? :p
 					// I'm kidding, seriously, refactor this thing
 					// Do you know why the chicken crossed the road?
@@ -284,15 +305,15 @@ func mapReadersRecorders(routes routeMap) map[string][]string {
 
 	// Let's clean up
 	resultMap := make(map[string][]string)
-	for recName, reds := range recorderMap {
+	for redName, redsddd := range readerMap {
 		checkMap := make(map[string]bool)
-		for _, readName := range reds {
-			if _, ok := checkMap[readName]; !ok {
-				checkMap[readName] = true
-				if _, ok := resultMap[recName]; !ok {
-					resultMap[recName] = []string{readName}
+		for _, recName := range redsddd {
+			if _, ok := checkMap[recName]; !ok {
+				checkMap[recName] = true
+				if _, ok := resultMap[redName]; !ok {
+					resultMap[redName] = []string{recName}
 				} else {
-					resultMap[recName] = append(resultMap[recName], readName)
+					resultMap[redName] = append(resultMap[redName], recName)
 					// Remember that chicken? It's roasted now.
 				}
 			}

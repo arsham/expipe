@@ -33,6 +33,7 @@ import (
 	"expvar"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"time"
@@ -48,18 +49,19 @@ import (
 // Reader reads from expipe own application's metric information.
 // It implements DataReader interface.
 type Reader struct {
-	name     string
-	typeName string
-	log      tools.FieldLogger
-	mapper   datatype.Mapper
-	interval time.Duration
-	timeout  time.Duration
-	backoff  int
-	strike   int
-	quit     chan struct{}
-	endpoint string
-	pinged   bool
-	testMode bool // this is for internal tests. You should not set it to true.
+	name       string
+	typeName   string
+	log        tools.FieldLogger
+	mapper     datatype.Mapper
+	interval   time.Duration
+	timeout    time.Duration
+	backoff    int
+	strike     int
+	quit       chan struct{}
+	endpoint   string
+	pinged     bool
+	testMode   bool // this is for internal tests. You should not set it to true.
+	tempServer *httptest.Server
 }
 
 // New exposes expipe's own metrics.
@@ -259,4 +261,19 @@ func (r *Reader) readMetricsFromURL(job *token.Context) (*reader.Result, error) 
 		Mapper:   r.Mapper(),
 	}
 	return res, nil
+}
+
+// WithTempServer creates a temp server that does nothing and attach it to the
+// reader to response to Engine pings.
+func WithTempServer() func(reader.Constructor) error {
+	return func(e reader.Constructor) error {
+		if sl, ok := e.(*Reader); ok {
+			sl.tempServer = httptest.NewServer(http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {}),
+			)
+			sl.endpoint = sl.tempServer.URL
+			return nil
+		}
+		return errors.New("incompatible server")
+	}
 }

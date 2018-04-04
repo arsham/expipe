@@ -123,7 +123,7 @@ func (r *Recorder) Ping() error {
 // receiving jobs when the endpoint's absence has exceeded the backoff value.
 // It returns an error if the ping is not called or the endpoint
 // is not responding too many times.
-func (r *Recorder) Record(ctx context.Context, job *recorder.Job) error {
+func (r *Recorder) Record(ctx context.Context, job recorder.Job) error {
 	if !r.pinged {
 		return recorder.ErrPingNotCalled
 	}

@@ -129,12 +129,12 @@ func TestCheckRoutesAgainstReadersRecordersPasses(t *testing.T) {
 	}
 }
 
-func TestMapMultiReadersToOneRecorder(t *testing.T) {
+func TestMapMultiRecordersToOneReader(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	v.SetConfigType("yaml")
 
-	tc, err := FixtureWithSection("various.txt", "MapMultiReadersToOneRecorder")
+	tc, err := FixtureWithSection("various.txt", "MapMultiRecordersToOneReader")
 	if err != nil {
 		t.Fatalf("error parsing fixture: %v", err)
 	}
@@ -143,28 +143,80 @@ func TestMapMultiReadersToOneRecorder(t *testing.T) {
 	routes, _ := getRoutes(v)
 	routeMap := mapReadersRecorders(routes)
 
-	if len(routeMap) != 2 { // we have two recorders
+	if len(routeMap) != 2 { // we have two readers
 		t.Errorf("len(routeMap) = (%d); want (2)", len(routeMap))
 	}
 
-	wantKeys := []string{"elastic_1", "elastic_2"}
+	wantKeys := []string{"app_0", "app_1"}
 	for key := range routeMap {
 		if !tools.StringInSlice(key, wantKeys) {
 			t.Fatalf("(%v) not in (%v)", key, wantKeys)
 		}
 	}
 
-	wantKeys = []string{"app_0", "app_4", "app_1", "app_2"}
-	for _, key := range routeMap["elastic_1"] {
+	wantKeys = []string{"elastic_0", "elastic_4", "elastic_1", "elastic_2"}
+	for _, key := range routeMap["app_0"] {
 		if !tools.StringInSlice(key, wantKeys) {
 			t.Errorf("(%v) not in (%v)", key, wantKeys)
 		}
 	}
 
-	wantKeys = []string{"app_0", "app_5"}
-	for _, key := range routeMap["elastic_2"] {
+	wantKeys = []string{"elastic_0", "elastic_1", "elastic_2", "elastic_3", "elastic_4"}
+	for _, key := range routeMap["app_1"] {
 		if !tools.StringInSlice(key, wantKeys) {
 			t.Errorf("(%v) not in (%v)", key, wantKeys)
+		}
+	}
+}
+
+func TestRouteDropUnusedReaderRecorders(t *testing.T) {
+	t.Parallel()
+	v := viper.New()
+	v.SetConfigType("yaml")
+
+	tc, err := FixtureWithSection("various.txt", "RouteDropUnusedReaderRecorders")
+	if err != nil {
+		t.Fatalf("error parsing fixture: %v", err)
+	}
+
+	v.ReadConfig(tc.Body)
+	routes, _ := getRoutes(v)
+	routeMap := mapReadersRecorders(routes)
+
+	if len(routeMap) != 3 { // we have three readers
+		t.Errorf("len(routeMap) = (%d); want (3)", len(routeMap))
+	}
+
+	wantKeys := []string{"red1", "red2", "red4"}
+	for key := range routeMap {
+		if !tools.StringInSlice(key, wantKeys) {
+			t.Fatalf("(%v) not in (%v): routeMap = (%v)", key, wantKeys, routeMap)
+		}
+	}
+	for key := range routeMap {
+		if tools.StringInSlice("red3", wantKeys) {
+			t.Errorf("(%v) is in (%v): routeMap = (%v)", key, wantKeys, routeMap)
+			break
+		}
+	}
+
+	wantKeys = []string{"rec0", "rec4", "rec1", "rec2"}
+	for _, key := range routeMap["red0"] {
+		if !tools.StringInSlice(key, wantKeys) {
+			t.Errorf("(%v) not in (%v)", key, wantKeys)
+		}
+	}
+
+	wantKeys = []string{"rec3", "rec5"}
+	for _, key := range routeMap["red0"] {
+		if tools.StringInSlice(key, wantKeys) {
+			t.Errorf("(%v) is in (%v)", key, wantKeys)
+		}
+	}
+
+	for _, key := range routeMap["red1"] {
+		if tools.StringInSlice(key, wantKeys) {
+			t.Errorf("(%v) is in (%v)", key, wantKeys)
 		}
 	}
 }

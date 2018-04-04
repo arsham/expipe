@@ -86,9 +86,8 @@ func TestReadFunc(t *testing.T) {
 			if !called {
 				called = true
 				return nil, err1
-			} else {
-				return nil, err2
 			}
+			return nil, err2
 		},
 	}
 	_, err := red.Read(nil)

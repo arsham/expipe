@@ -1,0 +1,78 @@
+readers:
+recorders:
+===
+readers: exp
+recorders: es
+===
+app:
+    type: expvar
+recorders:
+    app2:
+        type: elasticsearch
+routes:
+    readers: app
+===
+app:
+    type: expvar
+recorders:
+    app2:
+        type: elasticsearch
+routes:
+    readers: app
+    recorders: app2
+===
+  app: #malformed
+    type: expvar
+recorders:
+    app2:
+        type: elasticsearch
+routes:
+    readers: app
+===
+readers:
+    my_app: # service name
+        type: expvar
+        endpoint: localhost:1234
+        routepath: /debug/vars
+        type_name: my_app
+        map_file: maps.yml
+        interval: 500ms
+        timeout: 3s
+        backoff: 10
+recorders:
+    elastic1: # service name
+        type: elasticsearch
+        endpoint: http://127.0.0.1:9200
+        index_name: expipe
+        timeout: 8s
+        backoff: 10
+routes:
+    route1:
+        readers:
+            - my_app1
+        recorders:
+            - elastic1
+===
+readers:
+    my_app: # service name
+        type: expvar
+        endpoint: localhost:1234
+        routepath: /debug/vars
+        type_name: my_app
+        map_file: maps.yml
+        interval: 500ms
+        timeout: 3s
+        backoff: 10
+recorders:
+    elastic1: # service name
+        type: elasticsearch
+        endpoint: http://127.0.0.1:9200
+        index_name: expipe
+        timeout: 8s
+        backoff: 10
+routes:
+    route1:
+        readers:
+            - my_app
+        recorders:
+            - elastic111

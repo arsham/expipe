@@ -17,7 +17,7 @@ import (
 )
 
 // This example shows when a record job is issued, the recorder hits the endpoint.
-func ExampleDataRecorder() {
+func ExampleDataRecorder_record() {
 	ctx := context.Background()
 	receivedPayload := make(chan string)
 	pinged := false
@@ -37,7 +37,7 @@ func ExampleDataRecorder() {
 	payload := datatype.New([]datatype.DataType{
 		datatype.NewStringType("key", "value"),
 	})
-	job := &recorder.Job{
+	job := recorder.Job{
 		Payload:   payload,
 		IndexName: "my index",
 		Time:      time.Now(),

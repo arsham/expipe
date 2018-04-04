@@ -10,9 +10,7 @@ import (
 )
 
 // Recorder related errors.
-// ErrEmptyName is returned when the package name is empty.
 // ErrEmptyEndpoint is returned when the given endpoint is empty.
-// ErrEmptyIndexName is returned when the index_name is an empty string.
 // ErrBackoffExceeded is returned when the endpoint's absence has exceeded the
 // backoff value. It is not strictly an error, it is however a pointer to an
 // error in the past.
@@ -23,6 +21,7 @@ var (
 	ErrEmptyIndexName  = fmt.Errorf("index_name cannot be empty")
 	ErrBackoffExceeded = fmt.Errorf("endpoint gone too long")
 	ErrPingNotCalled   = fmt.Errorf("the caller forgot to ask me pinging")
+	ErrNillLogger      = fmt.Errorf("nil logger")
 )
 
 // InvalidEndpointError is returned when the endpoint is not a valid URL.

@@ -35,7 +35,7 @@ func recorderReceivesPayload(t *testing.T, cons Constructor) {
 		t.Errorf("err = (%v); want (nil)", err)
 	}
 	p := datatype.New([]datatype.DataType{})
-	payload := &recorder.Job{
+	payload := recorder.Job{
 		ID:        token.NewUID(),
 		Payload:   p,
 		IndexName: "my index",
@@ -71,7 +71,7 @@ func recorderSendsResult(t *testing.T, cons Constructor) {
 		t.Errorf("err = (%v); want (nil)", err)
 	}
 	p := datatype.New([]datatype.DataType{&datatype.StringType{Key: "test", Value: "test"}})
-	payload := &recorder.Job{
+	payload := recorder.Job{
 		ID:        token.NewUID(),
 		Payload:   p,
 		IndexName: indexName,
@@ -108,7 +108,7 @@ func errorsOnBadPayload(t *testing.T, cons Constructor) {
 		t.Errorf("err = (%v); want (nil)", err)
 	}
 	p := datatype.New([]datatype.DataType{&badType{}})
-	payload := &recorder.Job{
+	payload := recorder.Job{
 		ID:        token.NewUID(),
 		Payload:   p,
 		IndexName: indexName,

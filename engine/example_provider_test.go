@@ -19,14 +19,21 @@ import (
 	"github.com/arsham/expipe/tools"
 )
 
-func getReader(log tools.FieldLogger) (map[string]reader.DataReader, func()) {
+func getReader(log tools.FieldLogger) reader.DataReader {
+	done := make(chan struct{})
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		desire := `{"the key": "is the value!"}`
 		_, err := io.WriteString(w, desire)
 		if err != nil {
 			panic(err)
 		}
+		close(done)
 	}))
+
+	go func() {
+		<-done
+		ts.Close()
+	}()
 
 	red, err := rdt.New(
 		reader.WithLogger(log),
@@ -42,9 +49,12 @@ func getReader(log tools.FieldLogger) (map[string]reader.DataReader, func()) {
 		panic(err)
 	}
 	red.Pinged = true
-	return map[string]reader.DataReader{red.Name(): red}, func() {
-		ts.Close()
-	}
+	return red
+}
+
+func getRecorders(log tools.FieldLogger, url string) map[string]recorder.DataRecorder {
+	rec := getRecorder(log, url)
+	return map[string]recorder.DataRecorder{rec.Name(): rec}
 }
 
 func getRecorder(log tools.FieldLogger, url string) recorder.DataRecorder {
@@ -63,26 +73,26 @@ func getRecorder(log tools.FieldLogger, url string) recorder.DataRecorder {
 	return rec
 }
 
-// engineWithReadRecs creates an Engine instance with already set-up reader and
-// recorders. The Engine's work starts from here by streaming all readers
-// payloads to the recorder. Returns an error if there are recorders with
-// the same name, or any of constructions results in errors.
-func engineWithReadRecs(ctx context.Context, log tools.FieldLogger, rec recorder.DataRecorder, reds map[string]reader.DataReader) (*engine.Engine, error) {
+// engineWithReadRecs creates an Engine instance with already set-up readers and
+// recorders. The Engine's work starts from here by streaming reader payloads
+// to the recorders. Returns an error if there are recorders with the same
+// name, or any of constructions results in errors.
+func engineWithReadRecs(ctx context.Context, log tools.FieldLogger, red reader.DataReader, recs map[string]recorder.DataRecorder) (engine.Engine, error) {
 	failedErrors := make(map[string]error)
-	err := rec.Ping()
+	err := red.Ping()
 	if err != nil {
-		return nil, engine.PingError{rec.Name(): err}
+		return nil, engine.PingError{red.Name(): err}
 	}
 
-	readers := make([]reader.DataReader, 0)
+	recorders := make([]recorder.DataRecorder, 0)
 	canDo := false
-	for name, red := range reds {
-		err := red.Ping()
+	for name, rec := range recs {
+		err := rec.Ping()
 		if err != nil {
 			failedErrors[name] = err
 			continue
 		}
-		readers = append(readers, red)
+		recorders = append(recorders, rec)
 		canDo = true
 	}
 	if !canDo {
@@ -91,7 +101,7 @@ func engineWithReadRecs(ctx context.Context, log tools.FieldLogger, rec recorder
 	return engine.New(
 		engine.WithCtx(ctx),
 		engine.WithLogger(log),
-		engine.WithReaders(readers...),
-		engine.WithRecorder(rec),
+		engine.WithReader(red),
+		engine.WithRecorders(recorders...),
 	)
 }
