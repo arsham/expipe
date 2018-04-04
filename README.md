@@ -1,5 +1,6 @@
 # Expipe
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/0326b965f56d498d8d504b407c15152e)](https://app.codacy.com/app/arsham/expipe?utm_source=github.com&utm_medium=referral&utm_content=arsham/expipe&utm_campaign=badger)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GoDoc](https://godoc.org/github.com/arsham/expipe?status.svg)](http://godoc.org/github.com/arsham/expipe)
 [![Build Status](https://travis-ci.org/arsham/expipe.svg?branch=master)](https://travis-ci.org/arsham/expipe)
