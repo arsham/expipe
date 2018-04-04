@@ -19,6 +19,7 @@ services:
 install:
   - go get github.com/Masterminds/glide
   - go get github.com/mattn/goveralls
+  - go get github.com/schrej/godacov
 
 script:
   - glide install
@@ -26,3 +27,4 @@ script:
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - godacov -t $CODACY_PROJECT_TOKEN -r ./coverage.txt -c $TRAVIS_COMMIT

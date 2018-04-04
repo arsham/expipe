@@ -73,6 +73,7 @@ func LoadYAML(log *tools.Logger, v *viper.Viper) (*ConfMap, error) {
 		recorderKeys map[string]string
 		routes       routeMap
 		err          error
+		conf         *ConfMap
 	)
 	if len(v.AllSettings()) == 0 {
 		return nil, ErrEmptyConfig
@@ -85,19 +86,21 @@ func LoadYAML(log *tools.Logger, v *viper.Viper) (*ConfMap, error) {
 	}
 
 	if readerKeys, err = getReaders(v); err != nil {
-		return nil, errors.WithMessage(err, "readerKeys")
-	}
-	if recorderKeys, err = getRecorders(v); err != nil {
-		return nil, errors.WithMessage(err, "recorderKeys")
-	}
-	if routes, err = getRoutes(v); err != nil {
-		return nil, errors.WithMessage(err, "routes")
-	}
-	if err = checkAgainstReadRecorders(routes, readerKeys, recorderKeys); err != nil {
-		return nil, errors.WithMessage(err, "checkAgainstReadRecorders")
-	}
+		conf, err = nil, errors.WithMessage(err, "readerKeys")
 
-	return loadConfiguration(v, log, routes, readerKeys, recorderKeys)
+	} else if recorderKeys, err = getRecorders(v); err != nil {
+		conf, err = nil, errors.WithMessage(err, "recorderKeys")
+
+	} else if routes, err = getRoutes(v); err != nil {
+		conf, err = nil, errors.WithMessage(err, "routes")
+
+	} else if err = checkAgainstReadRecorders(routes, readerKeys, recorderKeys); err != nil {
+		conf, err = nil, errors.WithMessage(err, "checkAgainstReadRecorders")
+
+	} else {
+		conf, err = loadConfiguration(v, log, routes, readerKeys, recorderKeys)
+	}
+	return conf, err
 }
 
 // readers is a map of keyName:typeName
@@ -254,6 +257,7 @@ func readRecorders(v *viper.Viper, log tools.FieldLogger, recorderType, name str
 	return nil, NotSupportedError(recorderType)
 }
 
+// TODO: [refactor] this code
 func mapReadersRecorders(routes routeMap) map[string][]string {
 	// We don't know how this matrix will be, let's go dynamic!
 	// This looks ugly. The whole logic should change. But it doesn't have any impact on the program, it just runs once.

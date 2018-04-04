@@ -5,6 +5,7 @@
 [![Build Status](https://travis-ci.org/arsham/expipe.svg?branch=master)](https://travis-ci.org/arsham/expipe)
 [![Coverage Status](https://codecov.io/gh/arsham/expipe/branch/master/graph/badge.svg)](https://codecov.io/gh/arsham/expipe)
 [![Go Report Card](https://goreportcard.com/badge/github.com/arsham/expipe)](https://goreportcard.com/report/github.com/arsham/expipe)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/6cc048fae4ba4129b05226308a0bd7e9)](https://www.codacy.com/app/arsham/expipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=arsham/expipe&amp;utm_campaign=Badge_Grade)
 
 Expipe can record your application's `metrics` in [ElasticSearch][elasticsearch]
 and you can view them with [kibana][kibana]. It can read from any applications

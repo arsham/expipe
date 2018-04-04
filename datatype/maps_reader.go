@@ -75,6 +75,10 @@ func DefaultMapper() *MapConvert {
 }
 
 func (m *MapConvert) getMemoryTypes(prefix, name string, j *jason.Value) (DataType, bool) {
+	var (
+		data DataType
+		ok   bool
+	)
 	v, err := j.Float64()
 	if err != nil {
 		expDataTypeErrs.Add(1)
@@ -82,13 +86,15 @@ func (m *MapConvert) getMemoryTypes(prefix, name string, j *jason.Value) (DataTy
 	}
 	b := m.MemoryTypes[strings.ToLower(name)]
 	if IsByte(b) {
-		return NewByteType(prefix+name, v), true
+		data, ok = NewByteType(prefix+name, v), true
 	} else if IsKiloByte(b) {
-		return NewKiloByteType(prefix+name, v), true
+		data, ok = NewKiloByteType(prefix+name, v), true
 	} else if IsMegaByte(b) {
-		return NewMegaByteType(prefix+name, v), true
+		data, ok = NewMegaByteType(prefix+name, v), true
+	} else {
+		data, ok = nil, false
 	}
-	return nil, false
+	return data, ok
 }
 
 func (m *MapConvert) arrayValue(prefix, name string, a []*jason.Value) DataType {
