@@ -55,3 +55,27 @@ func TestStringInMapKeys(t *testing.T) {
 		})
 	}
 }
+
+func TestIsJSON(t *testing.T) {
+	t.Parallel()
+	tcs := []struct {
+		name  string
+		input string
+		want  bool
+	}{
+		{name: "empty object", input: `{}`, want: true},
+		{name: "string key", input: `{"sss": 1}`, want: true},
+		{name: "string key value", input: `{"sss": "tt"}`, want: true},
+		{name: "number", input: `666`, want: true},
+		{name: "string", input: `"666"`, want: true},
+		{name: "no ending", input: `{"sss": 666`, want: false},
+		{name: "no object", input: `"sss": 666`, want: false},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := IsJSON([]byte(tc.input)); got != tc.want {
+				t.Errorf("IsJSON() = (%t); want (%t)", got, tc.want)
+			}
+		})
+	}
+}

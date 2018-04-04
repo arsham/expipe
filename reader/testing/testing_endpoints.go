@@ -74,7 +74,7 @@ func readerErrorsOnEndpointDisapears(t testing.TB, cons Constructor) {
 	ts.Close()
 	result, err := red.Read(token.New(ctx))
 	if _, ok = errors.Cause(err).(reader.EndpointNotAvailableError); !ok {
-		t.Errorf("err.(reader.EndpointNotAvailableError = (%#v); want (reader.EndpointNotAvailableError)", err)
+		t.Errorf("err.(reader.EndpointNotAvailableError) = (%#v); want (reader.EndpointNotAvailableError)", err)
 	}
 	if ok && !strings.Contains(err.Error(), ts.URL) {
 		t.Errorf("Contains(err, ts.URL): want (%s) to be in (%s)", ts.URL, err.Error())

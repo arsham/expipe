@@ -132,9 +132,16 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if !r.pinged {
 		return nil, reader.ErrPingNotCalled
 	}
+	// To support the tests
 	if r.testMode {
-		// To support the tests
-		return r.readMetricsFromURL(job)
+		_, err := r.readMetricsFromURL(job)
+		if err != nil {
+			return nil, err
+		}
+		// to support invalid JSON check in tests
+		if !checkJSON(job, r.endpoint) {
+			return nil, reader.ErrInvalidJSON
+		}
 	}
 	buf := new(bytes.Buffer) // construct a json encoder and pass it
 	fmt.Fprint(buf, "{\n")
@@ -155,6 +162,21 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 		Mapper:   r.Mapper(),
 	}
 	return res, nil
+}
+
+func checkJSON(job context.Context, endpoint string) bool {
+	resp, err := ctxhttp.Get(job, nil, endpoint)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
+	content := buf.Bytes()
+	if !tools.IsJSON(content) {
+		return false
+	}
+	return true
 }
 
 // Name shows the name identifier for this reader

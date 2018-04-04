@@ -4,6 +4,8 @@
 
 package tools
 
+import "encoding/json"
+
 // StringInSlice returns true if niddle is in the haystack
 func StringInSlice(niddle string, haystack []string) bool {
 	for _, b := range haystack {
@@ -22,4 +24,10 @@ func StringInMapKeys(niddle string, haystack map[string]string) bool {
 		}
 	}
 	return false
+}
+
+// IsJSON checks is the input content is a valid JSON input.
+func IsJSON(input []byte) bool {
+	var js json.RawMessage
+	return json.Unmarshal(input, &js) == nil
 }

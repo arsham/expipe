@@ -14,12 +14,12 @@ import (
 )
 
 const (
-	// BYTE amount is the same as is read.
-	BYTE = 1.0
-	// KILOBYTE divides the amount to kilobytes to show smaller value.
-	KILOBYTE = 1024 * BYTE
-	// MEGABYTE divides the amount to megabytes to show smaller value.
-	MEGABYTE = 1024 * KILOBYTE
+	// Byte amount is the same as is read.
+	Byte = 1.0
+	// KiloByte divides the amount to kilobytes to show smaller value.
+	KiloByte = 1024 * Byte
+	// MegaByte divides the amount to megabytes to show smaller value.
+	MegaByte = 1024 * KiloByte
 )
 
 // ErrUnidentifiedJason is an error when the value is not identified.
@@ -32,7 +32,7 @@ type FloatType struct {
 	Key     string
 	Value   float64
 	content string
-	index   int64 // current reading index
+	index   int // current reading index
 }
 
 // NewFloatType returns a new FloadType object.
@@ -47,11 +47,11 @@ func NewFloatType(key string, value float64) *FloatType {
 
 // Read includes both Key and Value.
 func (f *FloatType) Read(b []byte) (int, error) {
-	if f.index >= int64(len(f.content)) {
+	if f.index >= len(f.content) {
 		return 0, io.EOF
 	}
 	n := copy(b, f.content[f.index:])
-	f.index += int64(n)
+	f.index += n
 	return n, nil
 }
 
@@ -73,7 +73,7 @@ type StringType struct {
 	Key     string
 	Value   string
 	content string
-	index   int64
+	index   int
 }
 
 // NewStringType returns a new StringType object.
@@ -88,11 +88,11 @@ func NewStringType(key, value string) *StringType {
 
 // Read includes both Key and Value.
 func (s *StringType) Read(b []byte) (int, error) {
-	if s.index >= int64(len(s.content)) {
+	if s.index >= len(s.content) {
 		return 0, io.EOF
 	}
 	n := copy(b, s.content[s.index:])
-	s.index += int64(n)
+	s.index += n
 	return n, nil
 }
 
@@ -114,7 +114,7 @@ type FloatListType struct {
 	Key     string
 	Value   []float64
 	content string
-	index   int64
+	index   int
 }
 
 // NewFloatListType returns a new FloatListType object.
@@ -131,11 +131,11 @@ func NewFloatListType(key string, value []float64) *FloatListType {
 
 // Read includes both Key and Value.
 func (f *FloatListType) Read(b []byte) (int, error) {
-	if f.index >= int64(len(f.content)) {
+	if f.index >= len(f.content) {
 		return 0, io.EOF
 	}
 	n := copy(b, f.content[f.index:])
-	f.index += int64(n)
+	f.index += n
 	return n, nil
 }
 
@@ -166,7 +166,7 @@ type GCListType struct {
 	Key     string
 	Value   []uint64
 	content string
-	index   int64
+	index   int
 }
 
 // NewGCListType returns a new FloatListType object.
@@ -185,11 +185,11 @@ func NewGCListType(key string, value []uint64) *GCListType {
 
 // Read includes both Key and Value.
 func (g *GCListType) Read(b []byte) (int, error) {
-	if g.index >= int64(len(g.content)) {
+	if g.index >= len(g.content) {
 		return 0, io.EOF
 	}
 	n := copy(b, g.content[g.index:])
-	g.index += int64(n)
+	g.index += n
 	return n, nil
 }
 
@@ -221,23 +221,23 @@ type ByteType struct {
 	Key     string
 	Value   float64
 	content string
-	index   int64
+	index   int
 }
 
 // NewByteType returns a new ByteType object.
 func NewByteType(key string, value float64) *ByteType {
 	b := &ByteType{Key: key, Value: value}
-	b.content = fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MEGABYTE)
+	b.content = fmt.Sprintf(`"%s":%f`, b.Key, b.Value/MegaByte)
 	return b
 }
 
 // Read includes both Key and Value.
 func (bt *ByteType) Read(b []byte) (int, error) {
-	if bt.index >= int64(len(bt.content)) {
+	if bt.index >= len(bt.content) {
 		return 0, io.EOF
 	}
 	n := copy(b, bt.content[bt.index:])
-	bt.index += int64(n)
+	bt.index += n
 	return n, nil
 }
 
@@ -260,23 +260,23 @@ type KiloByteType struct {
 	Key     string
 	Value   float64
 	content string
-	index   int64
+	index   int
 }
 
 // NewKiloByteType returns a new KiloByteType object.
 func NewKiloByteType(key string, value float64) *KiloByteType {
 	b := &KiloByteType{Key: key, Value: value}
-	b.content = fmt.Sprintf(`"%s":%f`, b.Key, b.Value/KILOBYTE)
+	b.content = fmt.Sprintf(`"%s":%f`, b.Key, b.Value/KiloByte)
 	return b
 }
 
 // Read includes both Key and Value.
 func (k *KiloByteType) Read(b []byte) (int, error) {
-	if k.index >= int64(len(k.content)) {
+	if k.index >= len(k.content) {
 		return 0, io.EOF
 	}
 	n := copy(b, k.content[k.index:])
-	k.index += int64(n)
+	k.index += n
 	return n, nil
 }
 
@@ -299,23 +299,23 @@ type MegaByteType struct {
 	Key     string
 	Value   float64
 	content string
-	index   int64
+	index   int
 }
 
 // NewMegaByteType returns a new MegaByteType object.
 func NewMegaByteType(key string, value float64) *MegaByteType {
 	m := &MegaByteType{Key: key, Value: value}
-	m.content = fmt.Sprintf(`"%s":%f`, m.Key, m.Value/MEGABYTE)
+	m.content = fmt.Sprintf(`"%s":%f`, m.Key, m.Value/MegaByte)
 	return m
 }
 
 // Read includes both Key and Value.
 func (m *MegaByteType) Read(b []byte) (int, error) {
-	if m.index >= int64(len(m.content)) {
+	if m.index >= len(m.content) {
 		return 0, io.EOF
 	}
 	n := copy(b, m.content[m.index:])
-	m.index += int64(n)
+	m.index += n
 	return n, nil
 }
 

@@ -60,3 +60,37 @@ func TestSelfReaderReadsExpvar(t *testing.T) {
 		t.Error("container.Len() = 0; want (!= 0)")
 	}
 }
+
+func TestCheckJSON(t *testing.T) {
+	t.Parallel()
+	var (
+		payload []byte
+		ctx     = context.Background()
+	)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(payload)
+	}))
+	defer ts.Close()
+	closedServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	closedServer.Close()
+
+	tcs := []struct {
+		name     string
+		payload  []byte
+		endpoint string
+		want     bool
+	}{
+		{"endpoint not available", []byte(""), closedServer.URL, false},
+		{"all ok", []byte(`{"aa":1}`), ts.URL, true},
+		{"bad input", []byte(`{"aa":1`), ts.URL, false},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			payload = tc.payload
+			if got := checkJSON(ctx, tc.endpoint); got != tc.want {
+				t.Errorf("checkJSON() = (%v), want (%v)", got, tc.want)
+			}
+		})
+	}
+}

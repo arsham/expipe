@@ -62,8 +62,7 @@ func (c *Container) Generate(p io.Writer, timestamp time.Time) (int, error) {
 			return 0, errors.Wrap(err, "writing item")
 		}
 	}
-	ls := l.Bytes()
-	return p.Write([]byte(fmt.Sprintf("{%s%s}", ts, ls)))
+	return p.Write([]byte(fmt.Sprintf("{%s%s}", ts, l.Bytes())))
 }
 
 // JobResultDataTypes generates a list of DataType and puts them inside the

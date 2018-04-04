@@ -122,6 +122,9 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	defer resp.Body.Close()
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(resp.Body)
+	if !tools.IsJSON(buf.Bytes()) {
+		return nil, reader.ErrInvalidJSON
+	}
 	res := &reader.Result{
 		ID:       job.ID(),
 		Time:     time.Now(),

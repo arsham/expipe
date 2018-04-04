@@ -17,7 +17,9 @@ import (
 
 func getTestServer() *httptest.Server {
 	return httptest.NewServer(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("{}"))
+		}),
 	)
 }
 
@@ -56,9 +58,8 @@ func TestPingFunc(t *testing.T) {
 			if !called {
 				called = true
 				return err1
-			} else {
-				return err2
 			}
+			return err2
 		},
 	}
 	err := red.Ping()

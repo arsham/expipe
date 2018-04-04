@@ -9,19 +9,17 @@ import (
 	"time"
 )
 
-// ErrEmptyName is the error when the package name is empty.
-// ErrEmptyEndpoint is the error when the given endpoint is empty.
-// ErrEmptyTypeName is the error when the type_name is an empty string.
+// Errors regarding reading from an endpoint.
 // ErrBackoffExceeded is the error when the endpoint's absence has exceeded the
 // backoff value. It is not strictly an error, it is however a pointer to an
 // error in the past.
-// ErrPingNotCalled is the error if the caller calls the record without pinging.
 var (
 	ErrEmptyName       = fmt.Errorf("name cannot be empty")
 	ErrEmptyEndpoint   = fmt.Errorf("endpoint cannot be empty")
 	ErrEmptyTypeName   = fmt.Errorf("type_name cannot be empty")
 	ErrBackoffExceeded = fmt.Errorf("endpoint gone too long")
 	ErrPingNotCalled   = fmt.Errorf("the caller forgot to ask me pinging")
+	ErrInvalidJSON     = fmt.Errorf("payload is invalid JSON object")
 )
 
 // InvalidEndpointError is the error when the endpoint is not a valid url.

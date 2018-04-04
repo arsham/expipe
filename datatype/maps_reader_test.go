@@ -36,13 +36,13 @@ func TestGetMemoryTypeValues(t *testing.T) {
 		},
 		{
 			"alloc",
-			strconv.Itoa(1 * datatype.KILOBYTE),
-			datatype.NewKiloByteType("alloc", 1*datatype.KILOBYTE),
+			strconv.Itoa(1 * datatype.KiloByte),
+			datatype.NewKiloByteType("alloc", 1*datatype.KiloByte),
 		},
 		{
 			"sys",
-			strconv.Itoa(12 * datatype.MEGABYTE),
-			datatype.NewMegaByteType("sys", 12*datatype.MEGABYTE),
+			strconv.Itoa(12 * datatype.MegaByte),
+			datatype.NewMegaByteType("sys", 12*datatype.MegaByte),
 		},
 		{
 			"not_provided",

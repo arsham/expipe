@@ -111,6 +111,12 @@ func TestSuites(t *testing.T, setup func() (Constructor, func())) {
 		defer cleanup()
 		readingReturnsErrorIfNotPingedYet(t, cons)
 	})
+	t.Run("JasonMarshallableCheck", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		jasonMarshallableChech(t, cons)
+	})
 }
 
 // BaseConstruct implements Constructor interface.

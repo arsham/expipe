@@ -16,7 +16,9 @@ import (
 
 func getTestServer() *httptest.Server {
 	return httptest.NewServer(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{}`))
+		}),
 	)
 }
 

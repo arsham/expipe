@@ -137,10 +137,14 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "reading buffer")
 	}
+	content := buf.Bytes()
+	if !tools.IsJSON(content) {
+		return nil, reader.ErrInvalidJSON
+	}
 	res := &reader.Result{
 		ID:       job.ID(),
 		Time:     time.Now(), // It is sensible to record the time now
-		Content:  buf.Bytes(),
+		Content:  content,
 		TypeName: r.TypeName(),
 		Mapper:   r.Mapper(),
 	}

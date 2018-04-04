@@ -78,9 +78,8 @@ func TestPingFunc(t *testing.T) {
 			if !called {
 				called = true
 				return err1
-			} else {
-				return err2
 			}
+			return err2
 		},
 	}
 	err := rec.Ping()

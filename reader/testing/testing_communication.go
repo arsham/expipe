@@ -6,9 +6,12 @@ package testing
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/arsham/expipe/reader"
 	"github.com/arsham/expipe/tools/token"
 	"github.com/pkg/errors"
 )
@@ -81,4 +84,48 @@ func readerReturnsSameID(t testing.TB, cons Constructor) {
 	if result.ID != job.ID() {
 		t.Errorf("result.ID = (%v); want (%v)", result.ID, job.ID())
 	}
+}
+
+func jasonMarshallableChech(t testing.TB, cons Constructor) {
+	var payload string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(payload))
+	}))
+	defer ts.Close()
+
+	ctx := context.Background()
+	job := token.New(ctx)
+	cons.SetName("the name")
+	cons.SetTypeName("my type")
+	cons.SetEndpoint(ts.URL)
+	cons.SetInterval(time.Hour)
+	cons.SetTimeout(time.Hour)
+	cons.SetBackoff(5)
+	red, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
+	err = red.Ping()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
+
+	payload = `{"bb":1`
+	result, err := red.Read(job)
+	if errors.Cause(err) != reader.ErrInvalidJSON {
+		t.Errorf("err = (%#v); want (reader.ErrInvalidJSON)", err)
+	}
+	if result != nil {
+		t.Errorf("result = (%v); want (nil)", string(result.Content))
+	}
+
+	payload = `{"bb":1}`
+	result, err = red.Read(job)
+	if err != nil {
+		t.Errorf("err = (%#v); want (nil)", err)
+	}
+	if result == nil {
+		t.Error("result = (nil); want (reader.Result)")
+	}
+
 }
