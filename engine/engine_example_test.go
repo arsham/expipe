@@ -20,7 +20,7 @@ import (
 	"github.com/arsham/expipe/tools"
 )
 
-func recorderWithUrl(url string) recorder.DataRecorder {
+func recorderWithURL(url string) recorder.DataRecorder {
 	log := tools.DiscardLogger()
 	rec, err := rct.New(
 		recorder.WithLogger(log),
@@ -36,7 +36,7 @@ func recorderWithUrl(url string) recorder.DataRecorder {
 	return rec
 }
 
-func readerWithUrl(url string) reader.DataReader {
+func readerWithURL(url string) reader.DataReader {
 	log := tools.DiscardLogger()
 	red, err := rdt.New(
 		reader.WithLogger(log),
@@ -95,8 +95,8 @@ func ExampleNew() {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	ctx := context.Background()
 
-	rec := recorderWithUrl(ts.URL)
-	red := readerWithUrl(ts.URL)
+	rec := recorderWithURL(ts.URL)
+	red := readerWithURL(ts.URL)
 
 	e, err := engine.New(
 		engine.WithCtx(ctx),
@@ -122,8 +122,8 @@ func ExampleNew_replaces() {
 	defer cancel()
 	defer cancel2()
 
-	rec := recorderWithUrl(ts.URL)
-	red := readerWithUrl(ts.URL)
+	rec := recorderWithURL(ts.URL)
+	red := readerWithURL(ts.URL)
 
 	e, err := engine.New(
 		engine.WithCtx(ctx1),
@@ -168,7 +168,7 @@ func ExampleWithLogger() {
 
 func ExampleWithRecorders() {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	rec := recorderWithUrl(ts.URL)
+	rec := recorderWithURL(ts.URL)
 	o := &engine.Operator{}
 	err := engine.WithRecorders(rec)(o)
 	fmt.Println("Error:", err)
@@ -181,7 +181,7 @@ func ExampleWithRecorders() {
 func ExampleWithRecorders_pingError() {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	ts.Close()
-	rec := recorderWithUrl(ts.URL)
+	rec := recorderWithURL(ts.URL)
 	o := &engine.Operator{}
 	err := engine.WithRecorders(rec)(o)
 	fmt.Println("Error type:", reflect.TypeOf(err))
@@ -192,7 +192,7 @@ func ExampleWithRecorders_pingError() {
 
 func ExampleWithReader() {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	red := readerWithUrl(ts.URL)
+	red := readerWithURL(ts.URL)
 
 	o := &engine.Operator{}
 	err := engine.WithReader(red)(o)
@@ -206,7 +206,7 @@ func ExampleWithReader() {
 func ExampleWithReader_pingError() {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	ts.Close()
-	red := readerWithUrl(ts.URL)
+	red := readerWithURL(ts.URL)
 
 	o := &engine.Operator{}
 	err := engine.WithReader(red)(o)

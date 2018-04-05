@@ -6,12 +6,11 @@ package token_test
 
 import (
 	"context"
-	"testing"
 
 	"github.com/arsham/expipe/tools/token"
 )
 
-func ExampleContext_new(t *testing.T) {
+func ExampleContext_new() {
 	ctx := context.Background()
 	token.New(ctx)
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.11.0
+### Reshaping the Engine
+- Changed the behaviour of the Engine to have one reader to multiple recorders. (fixes #32)
+- Changed the Engine to be an interface.
+- Introduced the Operator type.
+- Fixed loading unused readers and recorders from config files.
+- Added examples for engine.
+- Sending jobs are now by value.
+
 ## v0.10.0
 ### Mostly refactoring
 - Cleaned up and made more precise, better and concurrent safe parallel tests.
