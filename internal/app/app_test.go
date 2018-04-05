@@ -17,7 +17,12 @@ import (
 	"testing"
 	"time"
 
+	rdt "github.com/arsham/expipe/reader/testing"
+	rct "github.com/arsham/expipe/recorder/testing"
+
 	"github.com/arsham/expipe/internal/app"
+	"github.com/arsham/expipe/reader"
+	"github.com/arsham/expipe/recorder"
 	"github.com/arsham/expipe/tools"
 	"github.com/arsham/expipe/tools/config"
 	flags "github.com/jessevdk/go-flags"
@@ -298,4 +303,82 @@ func TestConfigReadSampleYAML(t *testing.T) {
 	}
 	// for each routes
 
+}
+
+type logger struct {
+	tools.FieldLogger
+	FatalfFunc func(string, ...interface{})
+	FatalFunc  func(...interface{})
+}
+
+func (l logger) Fatalf(f string, a ...interface{}) { l.FatalfFunc(f, a) }
+func (l logger) Fatal(a ...interface{})            { l.FatalfFunc("", a) }
+
+func TestBootstrapFatal(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+
+	called := make(chan struct{})
+	conf := &config.ConfMap{
+		Readers:   map[string]reader.DataReader{"red1": nil},
+		Recorders: map[string]recorder.DataRecorder{},
+		Routes:    map[string][]string{"red1": nil},
+	}
+	ctx := context.Background()
+	log := &logger{
+		FieldLogger: tools.StandardLogger(),
+		FatalfFunc: func(f string, a ...interface{}) {
+			close(called)
+		},
+	}
+
+	go func() {
+		app.Bootstrap(ctx, log, conf)
+	}()
+
+	select {
+	case <-called:
+	case <-time.After(time.Second):
+		t.Error("Fatalf() wasn't called")
+	}
+}
+
+func TestBootstrap(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+
+	conf := &config.ConfMap{
+		Readers: map[string]reader.DataReader{"red1": &rdt.Reader{
+			MockName:     "name",
+			MockInterval: time.Second,
+			Pinged:       true,
+		}},
+		Recorders: map[string]recorder.DataRecorder{"rec1": &rct.Recorder{
+			MockName: "name",
+			Pinged:   true,
+		}},
+		Routes: map[string][]string{"red1": {"rec1", "rec2"}},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	log := tools.DiscardLogger()
+	step := make(chan struct{})
+
+	go func() {
+		app.Bootstrap(ctx, log, conf)
+		step <- struct{}{}
+	}()
+
+	select {
+	case <-step:
+		t.Error("Bootstrap() finished unexpectedly")
+	case <-time.After(time.Second):
+	}
+	cancel()
+	select {
+	case <-step:
+	case <-time.After(time.Second * 3):
+		t.Error("Bootstrap() didn't quit")
+	}
 }

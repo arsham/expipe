@@ -44,34 +44,24 @@ var Opts struct {
 	Backoff   int           `long:"backoff" env:"BACKOFF" default:"15" description:"After this amount, it will give up accessing unresponsive endpoints"`
 }
 
-// Main is the entrypoint of the application. It is been called from the main.main
+// Main is the entrypoint of the application. It is been called from main.main.
+// It captures SIGINT or SIGTERM signals to terminate the app.
 func Main() {
-	flags.Parse(&Opts)
-	l, confSlice, err := Config()
+	_, conf, err := Config()
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	log = l
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	sigCh := make(chan os.Signal, 1)
 	CaptureSignals(cancel, sigCh, os.Exit, 1*time.Second)
-	s := engine.Service{
-		Ctx:  ctx,
-		Log:  log,
-		Conf: confSlice,
-	}
-
-	done, err := s.Start()
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-	<-done
+	Bootstrap(ctx, log, conf)
 }
 
 // Config returns the ConfMap from a file if it was set in the command flags.
 func Config() (*tools.Logger, *config.ConfMap, error) {
+	flags.Parse(&Opts)
 	log = tools.GetLogger("info")
 	if Opts.ConfFile == "" {
 		log = tools.GetLogger(Opts.LogLevel)
@@ -80,6 +70,23 @@ func Config() (*tools.Logger, *config.ConfMap, error) {
 	}
 	conf, err := fromConfig(Opts.ConfFile)
 	return log, conf, err
+}
+
+// Bootstrap sets up an instance of the Service and starts it. It waits until
+// the Service signals its work has been finished.
+func Bootstrap(ctx context.Context, log tools.FieldLogger, conf *config.ConfMap) {
+	s := engine.Service{
+		Ctx:  ctx,
+		Log:  log,
+		Conf: conf,
+	}
+
+	done, err := s.Start()
+	if err != nil {
+		log.Fatalf(err.Error())
+		return
+	}
+	<-done
 }
 
 // setting up from config file
