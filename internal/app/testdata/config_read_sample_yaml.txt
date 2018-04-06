@@ -10,7 +10,6 @@ readers:
         map_file: maps.yml
         interval: 2s
         timeout: 3s
-        backoff: 10
     my_app2:                        # service name
         type: expvar
         endpoint: localhost:1235
@@ -18,12 +17,10 @@ readers:
         type_name: my_ap2
         interval: 2s
         timeout: 13s
-        backoff: 10
     self:                           # expipe's self metric
         type: self                  # only used for this reason
         type_name: expipe
         interval: 2s
-        backoff: 10
 
 recorders:
     elastic1:                       # service name
@@ -31,19 +28,16 @@ recorders:
         endpoint: http://127.0.0.1:9200
         index_name: expipe
         timeout: 8s
-        backoff: 10
     elastic2:
         type: elasticsearch
         endpoint: http://127.0.0.1:9200
         index_name: expipe
         timeout: 8s
-        backoff: 10
     elastic3:
         type: elasticsearch
         endpoint: http://127.0.0.1:9200
         index_name: expipe
         timeout: 18s
-        backoff: 10
 
 routes:
     route1:

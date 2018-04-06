@@ -26,14 +26,12 @@ func shouldNotChangeTheInput(t testing.TB, cons Constructor) {
 	endpoint := cons.TestServer().URL
 	interval := time.Second
 	timeout := time.Second
-	backoff := 5
 	logger := tools.DiscardLogger()
 	cons.SetName(name)
 	cons.SetTypeName(typeName)
 	cons.SetEndpoint(endpoint)
 	cons.SetInterval(interval)
 	cons.SetTimeout(timeout)
-	cons.SetBackoff(backoff)
 	cons.SetLogger(logger)
 	red, err := cons.Object()
 	if err != nil {
@@ -54,16 +52,12 @@ func shouldNotChangeTheInput(t testing.TB, cons Constructor) {
 	if red.Endpoint() != endpoint {
 		t.Errorf("red.Endpoint() = (%s); want (%s)", red.Endpoint(), endpoint)
 	}
-	if red.Backoff() != backoff {
-		t.Errorf("red.Backoff() = (%d); want (%d)", red.Backoff(), backoff)
-	}
 }
 
 func nameCheck(t testing.TB, cons Constructor) {
 	cons.SetTypeName(typeName)
 	cons.SetTimeout(time.Hour)
 	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetBackoff(5)
 	red, err := cons.Object()
 	if errors.Cause(err) != reader.ErrEmptyName {
 		t.Errorf("err = (%v); want (reader.ErrEmptyName)", err)
@@ -86,7 +80,6 @@ func typeNameCheck(t testing.TB, cons Constructor) {
 	cons.SetName(name)
 	cons.SetTimeout(time.Hour)
 	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetBackoff(5)
 	red, err := cons.Object()
 	if errors.Cause(err) != nil {
 		t.Errorf("err = (%#v); want (nil)", err)
@@ -105,36 +98,6 @@ func typeNameCheck(t testing.TB, cons Constructor) {
 	}
 	if !reflect.ValueOf(red).IsNil() {
 		t.Errorf("red = (%v); want (nil)", red)
-	}
-}
-
-func backoffCheck(t testing.TB, cons Constructor) {
-	backoff := 3
-	cons.SetName("the name")
-	cons.SetTypeName("my_type_name")
-	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetTimeout(time.Second)
-	red, err := cons.Object()
-	if err != nil {
-		t.Errorf("err = (%#v); want (nil)", err)
-	}
-	if reflect.ValueOf(red).IsNil() {
-		t.Error("red = (nil); want (DataReader)")
-	}
-	if red.Backoff() < 5 {
-		t.Errorf("Backoff() = (%d); want (>=5)", red.Backoff())
-	}
-
-	cons.SetBackoff(backoff)
-	red, err = cons.Object()
-	if !reflect.ValueOf(red).IsNil() {
-		t.Errorf("red = (%v); want (nil)", red)
-	}
-	if _, ok := errors.Cause(err).(reader.LowBackoffValueError); !ok {
-		t.Errorf("err.(reader.LowBackoffValueError) = (%#v); want (reader.LowBackoffValueError)", err)
-	}
-	if !strings.Contains(err.Error(), strconv.Itoa(backoff)) {
-		t.Errorf("Contains(err.Error(), backoff): want (%s) to be in (%s)", strconv.Itoa(backoff), err.Error())
 	}
 }
 
@@ -164,7 +127,6 @@ func endpointCheck(t testing.TB, cons Constructor) {
 	cons.SetTypeName("my type")
 	cons.SetTimeout(time.Second)
 	cons.SetInterval(time.Second)
-	cons.SetBackoff(5)
 
 	red, err := cons.Object()
 	if !reflect.ValueOf(red).IsNil() {
@@ -199,7 +161,6 @@ func endpointCheck(t testing.TB, cons Constructor) {
 func timeoutCheck(t testing.TB, cons Constructor) {
 	cons.SetName(name)
 	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetBackoff(5)
 	red, err := cons.Object()
 	if errors.Cause(err) != nil {
 		t.Errorf("err = (%#v); want (nil)", err)
@@ -216,7 +177,6 @@ func setMapperCheck(t testing.TB, cons Constructor) {
 	mapper := datatype.DefaultMapper()
 	cons.SetName(name)
 	cons.SetEndpoint(cons.TestServer().URL)
-	cons.SetBackoff(5)
 	cons.SetMapper(mapper)
 	cons.SetLogger(tools.DiscardLogger())
 	red, err := cons.Object()

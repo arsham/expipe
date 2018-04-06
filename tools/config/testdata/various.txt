@@ -80,19 +80,16 @@ readers:
         interval: 1s
         timeout: 1s
         endpoint: localhost:8200
-        backoff: 9
     reader_2:
         type_name: self
         interval: 1s
         timeout: 1s
         endpoint: localhost:8200
-        backoff: 9
 recorders:
     recorder_1:
         interval: 1s
         timeout: 1s
         endpoint: localhost:8200
-        backoff: 9
         index_name: erwer
 routes: blah
 <<<
@@ -109,7 +106,6 @@ readers:
         interval: 2s
         timeout: 3s
         log_level: info
-        backoff: 15
 <<<
 info: nothing
 ===
@@ -123,7 +119,6 @@ readers:
         map_file: maps.yml
         interval: 2s
         timeout: 3s
-        backoff: 10
     reader2:
         type: expvar
         endpoint: localhost:1234
@@ -131,7 +126,6 @@ readers:
         map_file: maps.yml
         interval: 2s
         timeout: 3s
-        backoff: 10
     reader3:
         type: expvar
         endpoint: localhost:1234
@@ -139,26 +133,22 @@ readers:
         map_file: maps.yml
         interval: 2s
         timeout: 3s
-        backoff: 10
 recorders:
     recorder1:
         type: elasticsearch
         endpoint: http://127.0.0.1:9200
         index_name: index
         timeout: 8s
-        backoff: 10
     recorder2:
         type: elasticsearch
         endpoint: http://127.0.0.1:9200
         index_name: index
         timeout: 8s
-        backoff: 10
     recorder3:
         type: elasticsearch
         endpoint: http://127.0.0.1:9200
         index_name: index
         timeout: 8s
-        backoff: 10
 routes:
     route1:
         readers:
@@ -188,7 +178,6 @@ readers:
         map_file: maps.yml
         interval: 2s
         timeout: 3s
-        backoff: 10
     reader2:
         type: expvar
         endpoint: localhost:1234
@@ -196,7 +185,6 @@ readers:
         map_file: maps.yml
         interval: 2s
         timeout: 3s
-        backoff: 10
     reader3:
         type: expvar
         endpoint: localhost:1234
@@ -204,26 +192,22 @@ readers:
         map_file: maps.yml
         interval: 2s
         timeout: 3s
-        backoff: 10
 recorders:
     recorder1:
         type: elasticsearch
         endpoint: http://127.0.0.1:9200
         index_name: index
         timeout: 8s
-        backoff: 10
     recorder2:
         type: elasticsearch
         endpoint: http://127.0.0.1:9200
         index_name: index
         timeout: 8s
-        backoff: 10
     recorder3:
         type: elasticsearch
         endpoint: http://127.0.0.1:9200
         index_name: index
         timeout: 8s
-        backoff: 10
 routes:
     route1:
         readers:

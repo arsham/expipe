@@ -17,9 +17,10 @@ import (
 )
 
 type caseType struct {
-	Prefix string
-	Value  []byte
-	Want   []datatype.DataType
+	name   string
+	prefix string
+	value  []byte
+	want   []datatype.DataType
 }
 
 func TestGetByteRepresentation(t *testing.T) {
@@ -27,54 +28,79 @@ func TestGetByteRepresentation(t *testing.T) {
 	tStr := fmt.Sprintf(`"@timestamp":"%s"`, now.Format("2006-01-02T15:04:05.999999-07:00"))
 
 	testCase := []struct {
+		name     string
 		input    []datatype.DataType
 		expected string
 	}{
-		{ // 0
-			[]datatype.DataType{},
-			fmt.Sprintf("{%s}", tStr),
+		{
+			name:     "0",
+			input:    []datatype.DataType{},
+			expected: fmt.Sprintf("{%s}", tStr),
 		},
-		{ // 1
-			[]datatype.DataType{datatype.NewFloatType("test", 3.4)},
-			fmt.Sprintf(`{%s,"test":%f}`, tStr, 3.4),
+		{
+			name:     "1",
+			input:    []datatype.DataType{datatype.NewFloatType("test", 3.4)},
+			expected: fmt.Sprintf(`{%s,"test":%f}`, tStr, 3.4),
 		},
-		{ // 2
-			[]datatype.DataType{datatype.NewStringType("test", "3.4")},
-			fmt.Sprintf(`{%s,"test":"%s"}`, tStr, "3.4"),
+		{
+			name:     "2",
+			input:    []datatype.DataType{datatype.NewStringType("test", "3.4")},
+			expected: fmt.Sprintf(`{%s,"test":"%s"}`, tStr, "3.4"),
 		},
-		{ // 3
-			[]datatype.DataType{datatype.NewByteType("test", 1024*1024*2)},
-			fmt.Sprintf(`{%s,"test":%f}`, tStr, 2.0),
+		{
+			name:     "3",
+			input:    []datatype.DataType{datatype.NewByteType("test", 1024*1024*2)},
+			expected: fmt.Sprintf(`{%s,"test":%f}`, tStr, 2.0),
 		},
-		{ // 4
-			[]datatype.DataType{datatype.NewMegaByteType("test", 1024*1024*3)},
-			fmt.Sprintf(`{%s,"test":%f}`, tStr, 3.0),
+		{
+			name:     "4",
+			input:    []datatype.DataType{datatype.NewMegaByteType("test", 1024*1024*3)},
+			expected: fmt.Sprintf(`{%s,"test":%f}`, tStr, 3.0),
 		},
-		{ // 5
-			[]datatype.DataType{datatype.NewStringType("test", "3a"), datatype.NewFloatType("test2", 2.2)},
-			fmt.Sprintf(`{%s,"test":"%s","test2":%f}`, tStr, "3a", 2.2),
+		{
+			name: "5",
+			input: []datatype.DataType{
+				datatype.NewStringType("test", "3a"),
+				datatype.NewFloatType("test2", 2.2),
+			},
+			expected: fmt.Sprintf(`{%s,"test":"%s","test2":%f}`, tStr, "3a", 2.2),
 		},
-		{ // 6
-			[]datatype.DataType{datatype.NewStringType("test2", "3a"), datatype.NewKiloByteType("test3", 3.3)},
-			fmt.Sprintf(`{%s,"test2":"%s","test3":%f}`, tStr, "3a", 3.3/1024.0),
+		{
+			name: "6",
+			input: []datatype.DataType{
+				datatype.NewStringType("test2", "3a"),
+				datatype.NewKiloByteType("test3", 3.3),
+			},
+			expected: fmt.Sprintf(`{%s,"test2":"%s","test3":%f}`, tStr, "3a", 3.3/1024.0),
 		},
-		{ // 7
-			[]datatype.DataType{datatype.NewStringType("test", "3a"), datatype.NewFloatListType("test2", []float64{1.1, 2.2})},
-			fmt.Sprintf(`{%s,"test":"%s","test2":[%f,%f]}`, tStr, "3a", 1.1, 2.2),
+		{
+			name: "7",
+			input: []datatype.DataType{
+				datatype.NewStringType("test", "3a"),
+				datatype.NewFloatListType("test2", []float64{1.1, 2.2}),
+			},
+			expected: fmt.Sprintf(`{%s,"test":"%s","test2":[%f,%f]}`, tStr, "3a", 1.1, 2.2),
 		},
-		{ // 8
-			[]datatype.DataType{datatype.NewFloatType("test", 1.1), datatype.NewGCListType("test2", []uint64{100, 10})},
-			fmt.Sprintf(`{%s,"test":%f,"test2":[%d,%d]}`, tStr, 1.1, 0, 0),
+		{
+			name: "8",
+			input: []datatype.DataType{
+				datatype.NewFloatType("test", 1.1),
+				datatype.NewGCListType("test2", []uint64{100, 10}),
+			},
+			expected: fmt.Sprintf(`{%s,"test":%f,"test2":[%d,%d]}`, tStr, 1.1, 0, 0),
 		},
-		{ // 9
-			[]datatype.DataType{datatype.NewFloatType("test", 1.1), datatype.NewGCListType("test2", []uint64{1000, 2000})},
-			fmt.Sprintf(`{%s,"test":%f,"test2":[%d,%d]}`, tStr, 1.1, 1, 2),
+		{
+			name: "9",
+			input: []datatype.DataType{
+				datatype.NewFloatType("test", 1.1),
+				datatype.NewGCListType("test2", []uint64{1000, 2000}),
+			},
+			expected: fmt.Sprintf(`{%s,"test":%f,"test2":[%d,%d]}`, tStr, 1.1, 1, 2),
 		},
 	}
 
-	for i, tc := range testCase {
-		name := fmt.Sprintf("case %d", i)
-		t.Run(name, func(t *testing.T) {
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
 			contaner := datatype.New(tc.input)
 			results := new(bytes.Buffer)
 			n, err := contaner.Generate(results, now)
@@ -85,7 +111,10 @@ func TestGetByteRepresentation(t *testing.T) {
 				t.Errorf("n = (%d); want (%d)", n, len(tc.expected))
 			}
 			if !reflect.DeepEqual(results.String(), tc.expected) {
-				t.Errorf("DeepEqual(results.String(), tc.expected): results = (%s); want (%s)", results.String(), tc.expected)
+				t.Errorf("DeepEqual(results, tc.expected): results = (%s); want (%s)",
+					results.String(),
+					tc.expected,
+				)
 			}
 		})
 	}
@@ -181,16 +210,16 @@ func TestGetJasonValues(t *testing.T) {
 		name := fmt.Sprintf("case %d", i)
 		t.Run(name, func(t *testing.T) {
 			var payload []datatype.DataType
-			obj, _ := jason.NewObjectFromBytes(tc.Value)
-			payload = append(payload, mapper.Values(tc.Prefix, obj.Map())...)
+			obj, _ := jason.NewObjectFromBytes(tc.value)
+			payload = append(payload, mapper.Values(tc.prefix, obj.Map())...)
 
 			if len(payload) == 0 {
-				t.Errorf("len(payload) = (%d); want (%d)", len(payload), len(tc.Want))
+				t.Errorf("len(payload) = (%d); want (%d)", len(payload), len(tc.want))
 				return
 			}
 			results := datatype.New(payload)
-			if !isIn(results.List(), tc.Want) {
-				t.Errorf("isIn(results.List(), tc.Want): results.List() = (%v); want (%v)", results.List(), tc.Want)
+			if !isIn(results.List(), tc.want) {
+				t.Errorf("isIn(List(), tc.want): List() = (%v); want (%v)", results.List(), tc.want)
 			}
 		})
 	}
@@ -203,12 +232,15 @@ func TestGetJasonValuesAddToContainer(t *testing.T) {
 		name := fmt.Sprintf("case %d", i)
 		var container datatype.Container
 		t.Run(name, func(t *testing.T) {
-			obj, _ := jason.NewObjectFromBytes(tc.Value)
-			for _, value := range mapper.Values(tc.Prefix, obj.Map()) {
+			obj, _ := jason.NewObjectFromBytes(tc.value)
+			for _, value := range mapper.Values(tc.prefix, obj.Map()) {
 				container.Add(value)
 			}
-			if !isIn(container.List(), tc.Want) {
-				t.Errorf("isIn(container.List(), tc.expected): container.List() = (%#v); want (%#v)", container.List(), tc.Want)
+			if !isIn(container.List(), tc.want) {
+				t.Errorf("isIn(List(), tc.expected): List() = (%#v); want (%#v)",
+					container.List(),
+					tc.want,
+				)
 			}
 		})
 	}
@@ -218,17 +250,17 @@ func TestFromReader(t *testing.T) {
 	t.Parallel()
 	mapper := &datatype.MapConvertMock{}
 	for i, tc := range testCase() {
-		if tc.Prefix != "" {
+		if tc.prefix != "" {
 			continue
 		}
 		name := fmt.Sprintf("case %d", i)
 		t.Run(name, func(t *testing.T) {
-			results, err := datatype.JobResultDataTypes(tc.Value, mapper)
+			results, err := datatype.JobResultDataTypes(tc.value, mapper)
 			if err != nil {
 				t.Errorf("err = (%s); want (nil)", err)
 			}
-			if !isIn(results.List(), tc.Want) {
-				t.Errorf("isIn(results.List(), tc.expected): results.List() = (%s); want (%s)", results.List(), tc.Want)
+			if !isIn(results.List(), tc.want) {
+				t.Errorf("isIn(List(), tc.expected): List() = (%s); want (%s)", results.List(), tc.want)
 			}
 		})
 	}
@@ -281,75 +313,98 @@ func TestIsIn(t *testing.T) {
 
 func testCase() []caseType {
 	return []caseType{
-		{ //0
-			"",
-			[]byte(`{"FloatType": 123.4}`),
-			[]datatype.DataType{datatype.NewFloatType("FloatType", 123.4)},
+		{
+			name:   "0",
+			prefix: "",
+			value:  []byte(`{"FloatType": 123.4}`),
+			want:   []datatype.DataType{datatype.NewFloatType("FloatType", 123.4)},
 		},
-		{ //1
-			"",
-			[]byte(`{"StringType": "Random: 666"}`),
-			[]datatype.DataType{datatype.NewStringType("StringType", "Random: 666")},
+		{
+			name:   "1",
+			prefix: "",
+			value:  []byte(`{"StringType": "Random: 666"}`),
+			want:   []datatype.DataType{datatype.NewStringType("StringType", "Random: 666")},
 		},
-		{ //2
-			"aaa.",
-			[]byte(`{"Prefixed": 666.777}`),
-			[]datatype.DataType{datatype.NewFloatType("aaa.Prefixed", 666.777)},
+		{
+			name:   "2",
+			prefix: "aaa.",
+			value:  []byte(`{"Prefixed": 666.777}`),
+			want:   []datatype.DataType{datatype.NewFloatType("aaa.Prefixed", 666.777)},
 		},
-		{ //3
-			"",
-			[]byte(`{"Nested": {"FloatType": 666.777}}`),
-			[]datatype.DataType{datatype.NewFloatType("Nested.FloatType", 666.777)},
+		{
+			name:   "3",
+			prefix: "",
+			value:  []byte(`{"Nested": {"FloatType": 666.777}}`),
+			want:   []datatype.DataType{datatype.NewFloatType("Nested.FloatType", 666.777)},
 		},
-		{ //4
-			"",
-			[]byte(`{"Multy": 666.77, "Nested": {"FloatType": 666.999}}`),
-			[]datatype.DataType{datatype.NewFloatType("Multy", 666.77), datatype.NewFloatType("Nested.FloatType", 666.999)},
+		{
+			name:   "4",
+			prefix: "",
+			value:  []byte(`{"Multy": 666.77, "Nested": {"FloatType": 666.999}}`),
+			want:   []datatype.DataType{datatype.NewFloatType("Multy", 666.77), datatype.NewFloatType("Nested.FloatType", 666.999)},
 		},
-		{ //5
-			"",
-			[]byte(`{"Multy": 666.77, "Nested": {"FloatType": 666.999}}`),
-			[]datatype.DataType{datatype.NewFloatType("Nested.FloatType", 666.999), datatype.NewFloatType("Multy", 666.77)},
+		{
+			name:   "5",
+			prefix: "",
+			value:  []byte(`{"Multy": 666.77, "Nested": {"FloatType": 666.999}}`),
+			want:   []datatype.DataType{datatype.NewFloatType("Nested.FloatType", 666.999), datatype.NewFloatType("Multy", 666.77)},
 		},
-		{ //6
-			"",
-			[]byte(`{"FloatListType": []}`),
-			[]datatype.DataType{datatype.NewFloatListType("FloatListType", []float64{})},
+		{
+			name:   "6",
+			prefix: "",
+			value:  []byte(`{"FloatListType": []}`),
+			want:   []datatype.DataType{datatype.NewFloatListType("FloatListType", []float64{})},
 		},
-		{ //7
-			"",
-			[]byte(`{"FloatListType": [0.1,1.2,2.3,3.4,666]}`),
-			[]datatype.DataType{datatype.NewFloatListType("FloatListType", []float64{0.1, 1.2, 2.3, 3.4, 666})},
+		{
+			name:   "7",
+			prefix: "",
+			value:  []byte(`{"FloatListType": [0.1,1.2,2.3,3.4,666]}`),
+			want:   []datatype.DataType{datatype.NewFloatListType("FloatListType", []float64{0.1, 1.2, 2.3, 3.4, 666})},
 		},
-		{ //8
-			"",
-			[]byte(`{"PauseNs": []}`),
-			[]datatype.DataType{datatype.NewGCListType("PauseNs", []uint64{})},
+		{
+			name:   "8",
+			prefix: "",
+			value:  []byte(`{"PauseNs": []}`),
+			want:   []datatype.DataType{datatype.NewGCListType("PauseNs", []uint64{})},
 		},
-		{ //9
-			"",
-			[]byte(`{"PauseNs": [0,0,0,0,12481868021080215863,1481868005672005459,1481868012773129951,666000,11481937182104993300]}`),
-			[]datatype.DataType{datatype.NewGCListType("PauseNs", []uint64{12481868021080215863, 1481868005672005459, 1481868012773129951, 666000, 11481937182104993300})},
+		{
+			name:   "9",
+			prefix: "",
+			value:  []byte(`{"PauseNs": [0,0,0,0,12481868021080215863,1481868005672005459,1481868012773129951,666000,11481937182104993300]}`),
+			want: []datatype.DataType{datatype.NewGCListType(
+				"PauseNs",
+				[]uint64{12481868021080215863, 1481868005672005459, 1481868012773129951, 666000, 11481937182104993300},
+			)},
 		},
-		{ //10
-			"",
-			[]byte(`{"TotalAlloc": 0}`),
-			[]datatype.DataType{datatype.NewByteType("TotalAlloc", 0)},
+		{
+			name:   "10",
+			prefix: "",
+			value:  []byte(`{"TotalAlloc": 0}`),
+			want:   []datatype.DataType{datatype.NewByteType("TotalAlloc", 0)},
 		},
-		{ //11
-			"",
-			[]byte(`{"TotalAlloc": 236478234}`),
-			[]datatype.DataType{datatype.NewByteType("TotalAlloc", 236478234)},
+		{
+			name:   "11",
+			prefix: "",
+			value:  []byte(`{"TotalAlloc": 236478234}`),
+			want:   []datatype.DataType{datatype.NewByteType("TotalAlloc", 236478234)},
 		},
-		{ //12
-			"",
-			[]byte(`{"PauseNs": [1481938891973801922,1481938893974355168,1481938895974915920,1481938897975467569,1481938899975919573,1481938901976464855,1481938903977051088,1481938905977636658,1481938907978221684,1481938909978619244,1481938911979100042,1481938913979740815,1481938915980232455,1481938917980671611,1481938919981183393,1481938921981827241,1481938923982308276,1481938925982865139,1481938927983327577,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}`),
-			[]datatype.DataType{datatype.NewGCListType("PauseNs", []uint64{1481938891973801922, 1481938893974355168, 1481938895974915920, 1481938897975467569, 1481938899975919573, 1481938901976464855, 1481938903977051088, 1481938905977636658, 1481938907978221684, 1481938909978619244, 1481938911979100042, 1481938913979740815, 1481938915980232455, 1481938917980671611, 1481938919981183393, 1481938921981827241, 1481938923982308276, 1481938925982865139, 1481938927983327577})},
+		{
+			name:   "12",
+			prefix: "",
+			value:  []byte(`{"PauseNs": [1481938891973801922,1481938893974355168,1481938895974915920,1481938897975467569,1481938899975919573,1481938901976464855,1481938903977051088,1481938905977636658,1481938907978221684,1481938909978619244,1481938911979100042,1481938913979740815,1481938915980232455,1481938917980671611,1481938919981183393,1481938921981827241,1481938923982308276,1481938925982865139,1481938927983327577,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}`),
+			want: []datatype.DataType{datatype.NewGCListType(
+				"PauseNs",
+				[]uint64{1481938891973801922, 1481938893974355168, 1481938895974915920, 1481938897975467569, 1481938899975919573, 1481938901976464855, 1481938903977051088, 1481938905977636658, 1481938907978221684, 1481938909978619244, 1481938911979100042, 1481938913979740815, 1481938915980232455, 1481938917980671611, 1481938919981183393, 1481938921981827241, 1481938923982308276, 1481938925982865139, 1481938927983327577},
+			)},
 		},
-		{ //13
-			"",
-			[]byte(`{"memstats": {"Alloc":2780496,"TotalAlloc": 236478234}}`),
-			[]datatype.DataType{datatype.NewByteType("memstats.Alloc", 2780496), datatype.NewByteType("memstats.TotalAlloc", 236478234)},
+		{
+			name:   "13",
+			prefix: "",
+			value:  []byte(`{"memstats": {"Alloc":2780496,"TotalAlloc": 236478234}}`),
+			want: []datatype.DataType{
+				datatype.NewByteType("memstats.Alloc", 2780496),
+				datatype.NewByteType("memstats.TotalAlloc", 236478234),
+			},
 		},
 	}
 }

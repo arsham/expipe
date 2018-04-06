@@ -18,7 +18,6 @@ type Config struct {
 	MockEndpoint string
 	MockTimeout  time.Duration
 	MockInterval time.Duration
-	MockBackoff  int
 	MockLogger   tools.FieldLogger
 }
 
@@ -31,7 +30,6 @@ func (c *Config) Reader() (reader.DataReader, error) {
 		reader.WithTypeName(c.TypeName()),
 		reader.WithInterval(c.Interval()),
 		reader.WithTimeout(c.Timeout()),
-		reader.WithBackoff(c.Backoff()),
 	)
 }
 
@@ -52,6 +50,3 @@ func (c *Config) Timeout() time.Duration { return c.MockTimeout }
 
 // Logger returns the logger.
 func (c *Config) Logger() tools.FieldLogger { return c.MockLogger }
-
-// Backoff returns the backoff.
-func (c *Config) Backoff() int { return c.MockBackoff }

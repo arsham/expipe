@@ -24,11 +24,11 @@ type Service struct {
 	Configure func(...func(Engine) error) (Engine, error)
 }
 
-// Start creates some Engines and returns a channel that closes it when
-// it's done its work. For each routes, we need one engine that has multiple
-// readers and writes to one recorder. When all recorders of one reader
-// go out of scope, the Engine stops that reader because there is no destination.
-// Each Engine is ran in its own goroutine.
+// Start creates some Engines and returns a channel that closes it when it's
+// done its work. For each routes, we need one engine that has multiple readers
+// and writes to one recorder. When all recorders of one reader go out of scope,
+// the Engine stops that reader because there is no destination. Each Engine
+// rans in its own goroutine.
 func (s *Service) Start() (chan struct{}, error) {
 	// TODO: return a slice of error
 	var (

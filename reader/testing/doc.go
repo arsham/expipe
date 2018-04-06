@@ -2,8 +2,8 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package testing is a test suit for readers. They should provide
-// an object that implements the Constructor interface then run:
+// Package testing is a test suit for readers. They should provide an object
+// that implements the Constructor interface then run:
 //
 //    import rt "github.com/arsham/expipe/reader/testing"
 //    ....
@@ -38,7 +38,7 @@
 // its work. Make sure you return a brand new instance every time the TestServer
 // method is been called.
 // All tests are ran in isolation and they are set to be run as parallel. Make
-// sure your code doesn't have any race conditions.
-// You need to write the edge cases if they are not covered in this section.
+// sure your code doesn't have any race conditions. You need to write the edge
+// cases if they are not covered in this section.
 //
 package testing

@@ -27,12 +27,6 @@ func TestEndpointNotAvailableError(t *testing.T) {
 	check(t, e.Error(), err.Error())
 }
 
-func TestLowBackoffValueError(t *testing.T) {
-	backoff := 5
-	e := reader.LowBackoffValueError(backoff)
-	check(t, e.Error(), strconv.Itoa(backoff))
-}
-
 func TestLowIntervalError(t *testing.T) {
 	interval := 5
 	e := reader.LowIntervalError(interval)

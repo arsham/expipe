@@ -16,11 +16,14 @@
 ## Memory Usage
 
 #### Three Apps
-This graph shows memory stats for two apps plus expipe's own metrics. The goroutine count comes from expipe as the other two are not exposing these information.
+This graph shows memory stats for two apps plus expipe's own
+metrics. The goroutine count comes from expipe as the other two are not exposing
+these information.
 ![Colored](http://i.imgur.com/gTPOCsD.png)
 
 #### Expipe Memory Usage
-This is the same graph as above, notice how we used a lucene query to filter out other apps
+This is the same graph as above, notice how we used a lucene query to filter
+out other apps
 ![Colored](http://i.imgur.com/6U2hxlp.png)
 
 #### Expipe Stack In Use

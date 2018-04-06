@@ -11,8 +11,8 @@ import (
 	"github.com/arsham/expipe/tools"
 )
 
-// This file contains the construction functions required for instantiating
-// a Reader object. Input variables are sanitised here.
+// This file contains the construction functions required for instantiating a
+// Reader object. Input variables are sanitised here.
 
 // Constructor is an interface for setting up an object for testing.
 type Constructor interface {
@@ -21,10 +21,9 @@ type Constructor interface {
 	SetIndexName(indexName string)
 	SetEndpoint(endpoint string)
 	SetTimeout(timeout time.Duration)
-	SetBackoff(backoff int)
 }
 
-// WithLogger sets the log of the recorder
+// WithLogger sets the log of the recorder.
 func WithLogger(log tools.FieldLogger) func(Constructor) error {
 	return func(e Constructor) error {
 		if log == nil {
@@ -35,7 +34,7 @@ func WithLogger(log tools.FieldLogger) func(Constructor) error {
 	}
 }
 
-// WithName sets the name of the recorder
+// WithName sets the name of the recorder.
 func WithName(name string) func(Constructor) error {
 	return func(e Constructor) error {
 		if name == "" {
@@ -46,7 +45,7 @@ func WithName(name string) func(Constructor) error {
 	}
 }
 
-// WithEndpoint sets the endpoint of the recorder
+// WithEndpoint sets the endpoint of the recorder.
 func WithEndpoint(endpoint string) func(Constructor) error {
 	return func(e Constructor) error {
 		if endpoint == "" {
@@ -61,7 +60,7 @@ func WithEndpoint(endpoint string) func(Constructor) error {
 	}
 }
 
-// WithIndexName sets the indexName of the recorder
+// WithIndexName sets the indexName of the recorder.
 func WithIndexName(indexName string) func(Constructor) error {
 	return func(e Constructor) error {
 		if indexName == "" {
@@ -75,24 +74,13 @@ func WithIndexName(indexName string) func(Constructor) error {
 	}
 }
 
-// WithTimeout sets the timeout of the recorder
+// WithTimeout sets the timeout of the recorder.
 func WithTimeout(timeout time.Duration) func(Constructor) error {
 	return func(e Constructor) error {
 		if timeout < time.Second {
 			return LowTimeout(timeout)
 		}
 		e.SetTimeout(timeout)
-		return nil
-	}
-}
-
-// WithBackoff sets the backoff of the recorder
-func WithBackoff(backoff int) func(Constructor) error {
-	return func(e Constructor) error {
-		if backoff < 5 {
-			return LowBackoffValueError(backoff)
-		}
-		e.SetBackoff(backoff)
 		return nil
 	}
 }

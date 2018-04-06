@@ -30,7 +30,9 @@ func BenchmarkEngineOnManyRecorders(b *testing.B) {
 		20,
 		30,
 	}
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {},
+	))
 	defer ts.Close()
 	log := tools.DiscardLogger()
 	log.Level = tools.ErrorLevel
@@ -47,7 +49,6 @@ func BenchmarkEngineOnManyRecorders(b *testing.B) {
 				reader.WithName("recorder_example"),
 				reader.WithTypeName("typeName"),
 				reader.WithTimeout(time.Hour),
-				reader.WithBackoff(5),
 			)
 			job := token.New(ctx)
 			jobID := job.ID()
@@ -100,7 +101,6 @@ func makeRecorders(count int, log tools.FieldLogger, url string) (map[string]rec
 			recorder.WithName(name),
 			recorder.WithIndexName("example_index"),
 			recorder.WithTimeout(time.Second),
-			recorder.WithBackoff(10),
 		)
 		if err != nil {
 			return nil, err

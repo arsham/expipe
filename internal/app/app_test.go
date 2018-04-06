@@ -12,7 +12,6 @@ import (
 	"os"
 	"path"
 	"reflect"
-	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -153,26 +152,24 @@ func TestMainAndFromFlagsErrors(t *testing.T) {
 	tcs := []struct {
 		recorder  string
 		timeout   time.Duration
-		backoff   int
 		indexName string
 		reader    string
 	}{
-		{"", 0, 0, "", ""},
-		{"localhost:9200", fakeDuration, 0, "", ""},
-		{"localhost:9200", time.Second, 0, "", ""},
-		{"localhost:9200", time.Second, 20, "", ""},
-		{"localhost:9200", time.Second, 20, "222", ""},
-		{"localhost:9200", time.Second, 20, "222", "sss"},
-		{"localhost:9200", time.Second, 2, "222", "sss"},
-		{"localhost:9200", time.Second, 20, "", "sss"},
-		{"localhost:9200", time.Second, 2, "222", "localhost6/dev"},
-		{"localhost:9200", fakeDuration, 20, "222", "localhost7/dev"},
+		{"", 0, "", ""},
+		{"localhost:9200", fakeDuration, "", ""},
+		{"localhost:9200", time.Second, "", ""},
+		{"localhost:9200", time.Second, "", ""},
+		{"localhost:9200", time.Second, "222", ""},
+		{"localhost:9200", time.Second, "222", "sss"},
+		{"localhost:9200", time.Second, "222", "sss"},
+		{"localhost:9200", time.Second, "", "sss"},
+		{"localhost:9200", time.Second, "222", "localhost6/dev"},
+		{"localhost:9200", fakeDuration, "222", "localhost7/dev"},
 	}
 	for i, tc := range tcs {
 		os.Unsetenv("CONFIG")
 		os.Setenv("RECORDER", tc.recorder)
 		os.Setenv("TIMEOUT", tc.timeout.String())
-		os.Setenv("BACKOFF", strconv.Itoa(tc.backoff))
 		os.Setenv("INDEXNAME", tc.indexName)
 		os.Setenv("READER", tc.reader)
 		name := fmt.Sprintf("fromFlagsCase_%d", i)
@@ -181,7 +178,6 @@ func TestMainAndFromFlagsErrors(t *testing.T) {
 				os.Unsetenv("CONFIG")
 				os.Unsetenv("RECORDER")
 				os.Unsetenv("TIMEOUT")
-				os.Unsetenv("BACKOFF")
 				os.Unsetenv("INDEXNAME")
 				os.Unsetenv("READER")
 			}()
@@ -205,7 +201,6 @@ func TestMainAndFromFlagsPasses(t *testing.T) {
 	os.Setenv("READER", "localhost1:222/dev")
 	os.Setenv("RECORDER", "localhost2:9200")
 	os.Setenv("TIMEOUT", time.Second.String())
-	os.Setenv("BACKOFF", strconv.Itoa(20))
 	os.Setenv("INDEX", "222")
 	os.Setenv("TYPE", "222")
 	defer func() {
@@ -213,7 +208,6 @@ func TestMainAndFromFlagsPasses(t *testing.T) {
 		os.Unsetenv("READER")
 		os.Unsetenv("RECORDER")
 		os.Unsetenv("TIMEOUT")
-		os.Unsetenv("BACKOFF")
 		os.Unsetenv("INDEX")
 		os.Unsetenv("TYPE")
 	}()
@@ -234,7 +228,6 @@ func TestConfig(t *testing.T) {
 	os.Setenv("READER", "localhost1:222/dev")
 	os.Setenv("RECORDER", "localhost2:9200")
 	os.Setenv("TIMEOUT", time.Second.String())
-	os.Setenv("BACKOFF", strconv.Itoa(20))
 	os.Setenv("INDEX", "222")
 	os.Setenv("TYPE", "222")
 	defer func() {
@@ -242,7 +235,6 @@ func TestConfig(t *testing.T) {
 		os.Unsetenv("READER")
 		os.Unsetenv("RECORDER")
 		os.Unsetenv("TIMEOUT")
-		os.Unsetenv("BACKOFF")
 		os.Unsetenv("INDEX")
 		os.Unsetenv("TYPE")
 	}()

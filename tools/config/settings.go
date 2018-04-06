@@ -51,8 +51,8 @@ type ConfMap struct {
 	Routes map[string][]string
 }
 
-// Checks the application scope settings. Applies them if defined.
-// If the log level is defined, it will replace a new logger with the provided one.
+// Checks the application scope settings. Applies them if defined. If the log
+// level is defined, it will replace a new logger with the provided one.
 func checkSettingsSect(log *tools.Logger, v *viper.Viper) error {
 	if v.IsSet("settings.log_level") {
 		newLevel, ok := v.Get("settings.log_level").(string)
@@ -64,9 +64,8 @@ func checkSettingsSect(log *tools.Logger, v *viper.Viper) error {
 	return nil
 }
 
-// LoadYAML loads the settings from the configuration file.
-// It returns any errors returned from readers/recorders. Please
-// refer to their documentations.
+// LoadYAML loads the settings from the configuration file. It returns any
+// errors returned from readers/recorders. Please refer to their documentations.
 func LoadYAML(log *tools.Logger, v *viper.Viper) (*ConfMap, error) {
 	var (
 		readerKeys   map[string]string
@@ -280,8 +279,9 @@ func readRecorders(v *viper.Viper, log tools.FieldLogger, recorderType, name str
 // This function returns a map of reader->recorders
 // TODO: [refactor] this code
 func mapReadersRecorders(routes routeMap) map[string][]string {
-	// We don't know how this matrix will be, let's go dynamic!
-	// This looks ugly. The whole logic should change. But it doesn't have any impact on the program, it just runs once.
+	// We don't know how this matrix will be, let's go dynamic! This looks ugly.
+	// The whole logic should change. But it doesn't have any impact on the
+	// program, it just runs once.
 	readerMap := make(map[string][]string) //
 	for _, route := range routes {
 		// Add the readers to the map
@@ -292,12 +292,11 @@ func mapReadersRecorders(routes routeMap) map[string][]string {
 					readerMap[redName] = []string{recName}
 				} else {
 					readerMap[redName] = append(readerMap[redName], recName)
-					// Shall we go another level deep??? :p
-					// I'm kidding, seriously, refactor this thing
-					// Do you know why the chicken crossed the road?
-					// There was a few nested eggs on the other side!
-					// Okay, back to the business.
-					// BTW ask me why I left these comments.
+					// Shall we go another level deep??? :p I'm kidding,
+					// seriously, refactor this thing Do you know why the
+					// chicken crossed the road? There was a few nested eggs on
+					// the other side! Okay, back to the business. BTW ask me
+					// why I left these comments.
 				}
 			}
 		}

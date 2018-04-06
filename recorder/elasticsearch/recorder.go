@@ -4,6 +4,16 @@
 
 // Package elasticsearch contains logic to record data to an elasticsearch index.
 // The data is already sanitised by the data provider.
+//
+// Collected metrics
+//
+// This list will grow in time:
+//
+//   +----------------------+-------------------------+
+//   |   Expipe var name    |  ElasticSearch Var Name |
+//   +----------------------+-------------------------+
+//   | elasticsearchRecords | ElasticSearch Records   |
+//   +----------------------+-------------------------+
 package elasticsearch
 
 import (
@@ -31,24 +41,10 @@ type Recorder struct {
 	indexName string
 	log       tools.FieldLogger
 	timeout   time.Duration
-	backoff   int
-	strike    int
 	pinged    bool
 }
 
-// New returns an error if it can't create the index
-// It returns and error on the following occasions:
-//
-//   +-------------------+-----------------------+
-//   |     Condition     |         Error         |
-//   +-------------------+-----------------------+
-//   | Invalid endpoint  | InvalidEndpointError  |
-//   | backoff < 5       | LowBackoffValueError  |
-//   | Empty name        | ErrEmptyName          |
-//   | Invalid IndexName | InvalidIndexNameError |
-//   | Empty IndexName   | ErrEmptyIndexName     |
-//   +-------------------+-----------------------+
-//
+// New returns an error if it can't create the index.
 func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 	r := &Recorder{}
 	for _, op := range options {
@@ -67,9 +63,6 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 		r.log = tools.GetLogger("error")
 	}
 	r.log = r.log.WithField("engine", "expipe")
-	if r.backoff < 5 {
-		r.backoff = 5
-	}
 	if r.indexName == "" {
 		r.indexName = r.name
 	}
@@ -80,17 +73,7 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 	return r, nil
 }
 
-// Ping should ping the endpoint and report if was successful.
-// It returns and error on the following occasions:
-//
-//   +----------------------+---------------------------+
-//   |      Condition       |           Error           |
-//   +----------------------+---------------------------+
-//   | Unavailable endpoint | EndpointNotAvailableError |
-//   | Ping errors          | Timeout/Ping failed       |
-//   | Index creation       | elasticsearch's errors    |
-//   +----------------------+---------------------------+
-//
+// Ping pings the endpoint and report if there was an error.
 func (r *Recorder) Ping() error {
 	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
@@ -101,6 +84,7 @@ func (r *Recorder) Ping() error {
 		elastic.SetHealthcheckTimeoutStartup(r.timeout),
 		elastic.SetSnifferTimeout(r.timeout),
 		elastic.SetHealthcheckTimeout(r.timeout),
+		elastic.SetSnifferTimeoutStartup(r.timeout),
 	)
 	if err != nil {
 		return recorder.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
@@ -119,16 +103,12 @@ func (r *Recorder) Ping() error {
 	return nil
 }
 
-// Record returns an error if the endpoint responds in errors. It stops
-// receiving jobs when the endpoint's absence has exceeded the backoff value.
-// It returns an error if the ping is not called or the endpoint
-// is not responding too many times.
+// Record returns an error if the endpoint responds in errors. It returns an
+// error if the ping is not called or the endpoint is not responding too many
+// times.
 func (r *Recorder) Record(ctx context.Context, job recorder.Job) error {
 	if !r.pinged {
 		return recorder.ErrPingNotCalled
-	}
-	if r.strike > r.backoff {
-		return recorder.ErrBackoffExceeded
 	}
 	ctx, cancel := context.WithTimeout(ctx, r.Timeout())
 	defer cancel()
@@ -136,7 +116,6 @@ func (r *Recorder) Record(ctx context.Context, job recorder.Job) error {
 	if err != nil {
 		err = errors.Cause(err)
 		if _, ok := err.(*url.Error); ok || err == elastic.ErrNoClient {
-			r.strike++
 			err = recorder.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 		}
 		r.log.WithField("recorder", "elasticsearch").
@@ -150,8 +129,8 @@ func (r *Recorder) Record(ctx context.Context, job recorder.Job) error {
 }
 
 // record ships the kv data to elasticsearch. It calls the recordFunc if exists,
-// otherwise continues as normal. Although this doesn't change the state of
-// the Client, it is a part of its behaviour.
+// otherwise continues as normal. Although this doesn't change the state of the
+// Client, it is a part of its behaviour.
 func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.Time, list datatype.DataContainer) error {
 	w := new(bytes.Buffer)
 	_, err := list.Generate(w, timestamp)
@@ -171,35 +150,29 @@ func (r *Recorder) record(ctx context.Context, typeName string, timestamp time.T
 	return ctx.Err()
 }
 
-// Name shows the name identifier for this recorder
+// Name shows the name identifier for this recorder.
 func (r *Recorder) Name() string { return r.name }
 
-// SetName sets the name of the recorder
+// SetName sets the name of the recorder.
 func (r *Recorder) SetName(name string) { r.name = name }
 
-// Endpoint returns the endpoint
+// Endpoint returns the endpoint.
 func (r *Recorder) Endpoint() string { return r.endpoint }
 
-// SetEndpoint sets the endpoint of the recorder
+// SetEndpoint sets the endpoint of the recorder.
 func (r *Recorder) SetEndpoint(endpoint string) { r.endpoint = endpoint }
 
-// IndexName shows the indexName the recorder should record as
+// IndexName shows the indexName the recorder should record as.
 func (r *Recorder) IndexName() string { return r.indexName }
 
-// SetIndexName sets the type name of the recorder
+// SetIndexName sets the type name of the recorder.
 func (r *Recorder) SetIndexName(indexName string) { r.indexName = indexName }
 
-// Timeout returns the time-out
+// Timeout returns the time-out.
 func (r *Recorder) Timeout() time.Duration { return r.timeout }
 
-// SetTimeout sets the timeout of the recorder
+// SetTimeout sets the timeout of the recorder.
 func (r *Recorder) SetTimeout(timeout time.Duration) { r.timeout = timeout }
 
-// Backoff returns the backoff
-func (r *Recorder) Backoff() int { return r.backoff }
-
-// SetBackoff sets the backoff of the recorder
-func (r *Recorder) SetBackoff(backoff int) { r.backoff = backoff }
-
-// SetLogger sets the log of the recorder
+// SetLogger sets the log of the recorder.
 func (r *Recorder) SetLogger(log tools.FieldLogger) { r.log = log }

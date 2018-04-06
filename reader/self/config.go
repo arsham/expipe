@@ -21,7 +21,6 @@ type Config struct {
 	SelfName     string
 	SelfTypeName string `mapstructure:"type_name"`
 	SelfInterval string `mapstructure:"interval"`
-	SelfBackoff  int    `mapstructure:"backoff"`
 	SelfEndpoint string // this is for testing purposes and you are not supposed to set it
 	mapper       datatype.Mapper
 	Cinterval    time.Duration
@@ -55,7 +54,6 @@ func (c *Config) Reader() (reader.DataReader, error) {
 		reader.WithTypeName(c.TypeName()),
 		reader.WithInterval(c.Interval()),
 		reader.WithTimeout(c.Timeout()),
-		reader.WithBackoff(c.Backoff()),
 	)
 }
 
@@ -76,9 +74,6 @@ func (c *Config) Timeout() time.Duration { return time.Second }
 
 // Logger returns the logger.
 func (c *Config) Logger() tools.FieldLogger { return c.log }
-
-// Backoff returns the backoff.
-func (c *Config) Backoff() int { return c.SelfBackoff }
 
 // WithLogger produces an error if the log is nil.
 func WithLogger(log tools.FieldLogger) Conf {

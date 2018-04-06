@@ -95,16 +95,3 @@ func TestSetTimeout(t *testing.T) {
 		t.Errorf("err = (%v); want (nil)", err)
 	}
 }
-
-func TestSetBackoff(t *testing.T) {
-	r := recorder_testing.Recorder{}
-	err := recorder.WithBackoff(4)(&r)
-	if _, ok := errors.Cause(err).(recorder.LowBackoffValueError); !ok {
-		t.Errorf("err = (%v); want (recorder.LowBackoffValueError)", err)
-	}
-
-	err = recorder.WithBackoff(5)(&r)
-	if err != nil {
-		t.Errorf("err = (%v); want (nil)", err)
-	}
-}

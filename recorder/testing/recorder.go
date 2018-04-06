@@ -8,8 +8,6 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"net/url"
-	"strings"
 	"sync"
 	"time"
 
@@ -26,8 +24,6 @@ type Recorder struct {
 	MockIndexName string
 	MockLog       tools.FieldLogger
 	MockTimeout   time.Duration
-	MockBackoff   int
-	strike        int
 	ErrorFunc     func() error
 	Smu           sync.RWMutex
 	RecordFunc    func(context.Context, recorder.Job) error
@@ -54,9 +50,6 @@ func New(options ...func(recorder.Constructor) error) (*Recorder, error) {
 		r.MockLog = tools.GetLogger("error")
 	}
 	r.MockLog = r.MockLog.WithField("engine", "recorder_testing")
-	if r.MockBackoff < 5 {
-		r.MockBackoff = 5
-	}
 	if r.MockIndexName == "" {
 		r.MockIndexName = r.MockName
 	}
@@ -96,23 +89,14 @@ func (r *Recorder) Record(ctx context.Context, job recorder.Job) error {
 		return recorder.ErrPingNotCalled
 	}
 
-	if r.strike > r.MockBackoff {
-		return recorder.ErrBackoffExceeded
-	}
 	// complying with recorder logic
 	w := new(bytes.Buffer)
 	_, err := job.Payload.Generate(w, job.Time)
 	if err != nil {
 		return errors.Wrap(err, "generating payload")
 	}
-
 	res, err := http.Get(r.MockEndpoint)
 	if err != nil {
-		if v, ok := err.(*url.Error); ok {
-			if strings.Contains(v.Error(), "getsockopt: connection refused") {
-				r.strike++
-			}
-		}
 		return err
 	}
 	res.Body.Close()
@@ -142,12 +126,6 @@ func (r *Recorder) Timeout() time.Duration { return r.MockTimeout }
 
 // SetTimeout sets the timeout of the recorder.
 func (r *Recorder) SetTimeout(timeout time.Duration) { r.MockTimeout = timeout }
-
-// Backoff returns the backoff.
-func (r *Recorder) Backoff() int { return r.MockBackoff }
-
-// SetBackoff sets the backoff of the recorder.
-func (r *Recorder) SetBackoff(backoff int) { r.MockBackoff = backoff }
 
 // Logger returns the log.
 func (r *Recorder) Logger() tools.FieldLogger { return r.MockLog }

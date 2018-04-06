@@ -34,7 +34,6 @@ readers:                           # You can specify the applications you want t
         routepath: /debug/vars     # the endpoint that app provides the metrics
         interval: 500ms            # every half a second, it will collect the metrics.
         timeout: 3s                # in 3 seconds it gives in if the application is not responsive
-        backoff: 10                # after 10 times the application didn't response, it will stop reading from it
     AnotherApplication:
         type: expvar
         type_name: this_is_awesome
@@ -42,7 +41,6 @@ readers:                           # You can specify the applications you want t
         routepath: /metrics
         interval: 500ms
         timeout: 13s
-        backoff: 10
 
 recorders:                         # This section is where the data will be shipped to
     main_elasticsearch:
@@ -50,13 +48,11 @@ recorders:                         # This section is where the data will be ship
         endpoint: 127.0.0.1:9200
         index_name: expipe
         timeout: 8s
-        backoff: 10
     the_other_elasticsearch:
         type: elasticsearch
         endpoint: 127.0.0.1:9201
         index_name: expipe
         timeout: 18s
-        backoff: 10
 
 # You can specify metrics of which application will be recorded in which target
 routes:
@@ -170,7 +166,8 @@ go test ./readers/...
 
 ## Coverage
 
-Use this [gist](https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a). Then run:
+Use this [gist](https://gist.github.com/arsham/f45f7e7eea7e18796bc1ed5ced9f9f4a).
+Then run:
 
 ```bash
 goverall

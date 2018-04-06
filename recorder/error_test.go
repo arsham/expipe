@@ -27,13 +27,6 @@ func TestEndpointNotAvailableError(t *testing.T) {
 	check(t, e.Error(), err.Error())
 }
 
-func TestLowBackoffValueError(t *testing.T) {
-	backoff := 5
-	e := recorder.LowBackoffValueError(backoff)
-	check(t, e.Error(), strconv.Itoa(backoff))
-
-}
-
 func TestParseTimeOutError(t *testing.T) {
 	timeout := "5"
 	err := errors.New("my error")

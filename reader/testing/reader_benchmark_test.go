@@ -21,9 +21,11 @@ func BenchmarkReader(b *testing.B) {
 	log := tools.DiscardLogger()
 	ctx := context.Background()
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{"the key": "is the value!"}`)
-	}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			io.WriteString(w, `{"the key": "is the value!"}`)
+		},
+	))
 	defer ts.Close()
 
 	red, err := New(
@@ -33,7 +35,6 @@ func BenchmarkReader(b *testing.B) {
 		reader.WithTypeName("reader_example"),
 		reader.WithInterval(10*time.Millisecond),
 		reader.WithTimeout(time.Second),
-		reader.WithBackoff(10),
 	)
 	if err != nil {
 		b.Fatal(err)

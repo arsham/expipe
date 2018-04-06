@@ -11,17 +11,13 @@ import (
 
 // Recorder related errors.
 // ErrEmptyEndpoint is returned when the given endpoint is empty.
-// ErrBackoffExceeded is returned when the endpoint's absence has exceeded the
-// backoff value. It is not strictly an error, it is however a pointer to an
-// error in the past.
 // ErrPingNotCalled is returned if the caller calls the record without pinging.
 var (
-	ErrEmptyName       = fmt.Errorf("name cannot be empty")
-	ErrEmptyEndpoint   = fmt.Errorf("endpoint cannot be empty")
-	ErrEmptyIndexName  = fmt.Errorf("index_name cannot be empty")
-	ErrBackoffExceeded = fmt.Errorf("endpoint gone too long")
-	ErrPingNotCalled   = fmt.Errorf("the caller forgot to ask me pinging")
-	ErrNillLogger      = fmt.Errorf("nil logger")
+	ErrEmptyName      = fmt.Errorf("name cannot be empty")
+	ErrEmptyEndpoint  = fmt.Errorf("endpoint cannot be empty")
+	ErrEmptyIndexName = fmt.Errorf("index_name cannot be empty")
+	ErrPingNotCalled  = fmt.Errorf("the caller forgot to ask me pinging")
+	ErrNillLogger     = fmt.Errorf("nil logger")
 )
 
 // InvalidEndpointError is returned when the endpoint is not a valid URL.
@@ -29,13 +25,6 @@ type InvalidEndpointError string
 
 func (e InvalidEndpointError) Error() string {
 	return fmt.Sprintf("invalid endpoint: %s", string(e))
-}
-
-// LowBackoffValueError is returned when the endpoint is not a valid URL.
-type LowBackoffValueError int64
-
-func (e LowBackoffValueError) Error() string {
-	return fmt.Sprintf("back off should be at least 5: %d", e)
 }
 
 // ParseTimeOutError is returned when the timeout cannot be parsed.

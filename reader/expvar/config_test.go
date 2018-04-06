@@ -6,6 +6,7 @@ package expvar_test
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -15,6 +16,7 @@ import (
 	"github.com/arsham/expipe/datatype"
 	"github.com/arsham/expipe/reader/expvar"
 	"github.com/arsham/expipe/tools"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -41,25 +43,36 @@ type unmarshaller interface {
 }
 
 func TestWithViper(t *testing.T) {
-	tcs := []struct {
-		tcName string
-		name   string
-		key    string
-		v      unmarshaller
-	}{
-		{"no name", "", "key", viper.New()},
-		{"no key", "name", "", viper.New()},
-		{"no viper", "name", "key", nil},
+	v := viper.New()
+	v.SetConfigType("yaml")
+	c := new(expvar.Config)
+	input := `
+    recorders:
+        recorder1:
+            endpoint: http://127.0.0.1:9200
+            type_name: %s
+            map_file: noway
+            timeout: 10s
+            interval: 1s
+    `
+
+	in := bytes.NewBufferString(fmt.Sprintf(input, ""))
+	v.ReadConfig(in)
+	err := expvar.WithViper(v, "name", "recorders.recorder1")(c)
+	if err == nil {
+		t.Error("err = (nil); want (error): empty typeName")
 	}
 
-	for _, tc := range tcs {
-		t.Run(tc.tcName, func(t *testing.T) {
-			c := new(expvar.Config)
-			err := expvar.WithViper(tc.v, tc.name, tc.key)(c)
-			if err == nil {
-				t.Error("err = (nil); want (error)")
-			}
-		})
+	in = bytes.NewBufferString(fmt.Sprintf(input, ""))
+	v.ReadConfig(in)
+	err = expvar.WithViper(v, "name", "")(c)
+	if err == nil {
+		t.Error("err = (nil); want (error): empty key")
+	}
+
+	err = expvar.WithViper(nil, "name", "recorders.recorder1")(c)
+	if err == nil {
+		t.Error("err = (nil); want (error): nil viper")
 	}
 }
 
@@ -75,16 +88,12 @@ func TestWithViperSuccess(t *testing.T) {
             map_file: noway
             timeout: 10s
             interval: 1s
-            backoff: 15
     `))
 	v.ReadConfig(input)
 	c := new(expvar.Config)
 	err := expvar.WithViper(v, "recorder1", "recorders.recorder1")(c)
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
-	}
-	if c.Backoff() != 15 {
-		t.Errorf("c.Backoff() = (%d); want (%d)", c.Backoff(), 15)
 	}
 	if c.Timeout() != 10*time.Second {
 		t.Errorf("c.Timeout() = (%d); want (%d)", c.Timeout(), 10*time.Second)
@@ -96,6 +105,11 @@ func TestWithViperSuccess(t *testing.T) {
 		t.Errorf("c.TypeName() = (%s); want (example_type)", c.TypeName())
 	}
 }
+
+type badMarshaller struct{}
+
+func (badMarshaller) UnmarshalKey(key string, rawVal interface{}) error { return errors.New("text") }
+func (badMarshaller) AllKeys() []string                                 { return []string{} }
 
 func TestWithViperBadFile(t *testing.T) {
 	v := viper.New()
@@ -112,7 +126,6 @@ func TestWithViperBadFile(t *testing.T) {
         recorder1:
                 index_name: example_index
                 timeout: abc
-                backoff: 15
                 interval: 1s
     `)),
 		},
@@ -124,7 +137,6 @@ func TestWithViperBadFile(t *testing.T) {
                 index_name: example_index
                 timeout: 1s
                 interval: def
-                backoff: 15
     `)),
 		},
 	}
@@ -136,6 +148,11 @@ func TestWithViperBadFile(t *testing.T) {
 				t.Error("err = (nil); want (error)")
 			}
 		})
+	}
+
+	err := expvar.WithViper(&badMarshaller{}, "recorder1", "recorders.recorder1")(c)
+	if err == nil {
+		t.Error("err = (nil); want (error)")
 	}
 }
 
@@ -188,6 +205,11 @@ func TestWithMapFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)
 	}
+
+	err = expvar.WithMapFile("this file does not exist")(c)
+	if err == nil {
+		t.Error("err = (nil); want (error)")
+	}
 }
 
 func TestConfigReader(t *testing.T) {
@@ -199,7 +221,6 @@ func TestConfigReader(t *testing.T) {
 	c.EXPTypeName = "name"
 	c.EXPEndpoint = "http://localhost"
 	c.ConfInterval = time.Second
-	c.EXPBackoff = 5
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
 	}

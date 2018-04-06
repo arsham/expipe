@@ -76,7 +76,7 @@ func JobResultDataTypes(b []byte, mapper Mapper) (DataContainer, error) {
 	payload := mapper.Values("", obj.Map())
 
 	if len(payload) == 0 {
-		expUnidentifiedJSON.Add(1)
+		unidentifiedJSON.Add(1)
 		return nil, ErrUnidentifiedJason
 	}
 	return New(payload), nil

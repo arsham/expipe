@@ -52,6 +52,7 @@ func TestSelfReader(t *testing.T) {
 }
 
 func TestWithTempServer(t *testing.T) {
+	t.Parallel()
 	var r reader.Constructor
 	r = new(rt.Reader)
 	err := self.WithTempServer()(r)

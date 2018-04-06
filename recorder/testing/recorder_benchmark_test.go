@@ -30,7 +30,6 @@ func BenchmarkRecorder(b *testing.B) {
 		recorder.WithName("recorder_example"),
 		recorder.WithIndexName("recorder_example"),
 		recorder.WithTimeout(time.Second),
-		recorder.WithBackoff(10),
 	)
 	if err != nil {
 		b.Fatal(err)

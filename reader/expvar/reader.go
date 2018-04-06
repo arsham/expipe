@@ -2,17 +2,16 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package expvar contains logic to read from an expvar provide. The data comes in JSON format. The GC
-// and memory related information will be changed to better presented to the data recorders.
-// Bytes will be turned into megabytes, gc lists will be truncated to remove zero values.
+// Package expvar contains logic to read from an expvar provide. The data comes
+// in JSON format. The GC and memory related information will be changed to
+// better presented to the data recorders. Bytes will be turned into megabytes,
+// gc lists will be truncated to remove zero values.
 package expvar
 
 import (
 	"bytes"
 	"context"
-	"expvar"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/arsham/expipe/datatype"
@@ -22,10 +21,6 @@ import (
 
 	"github.com/pkg/errors"
 	"golang.org/x/net/context/ctxhttp"
-)
-
-var (
-	expvarReads = expvar.NewInt("Expvar Reads")
 )
 
 // Reader can read from any application that exposes expvar information.
@@ -38,24 +33,10 @@ type Reader struct {
 	typeName string
 	interval time.Duration
 	timeout  time.Duration
-	backoff  int
-	strike   int
 	pinged   bool
 }
 
 // New generates the Reader based on the provided options.
-// It returns and error on the following occasions:
-//
-//   +------------------+----------------------+
-//   |    Condition     |        Error         |
-//   +------------------+----------------------+
-//   | name == ""       | ErrEmptyName         |
-//   | endpoint == ""   | ErrEmptyEndpoint     |
-//   | Invalid endpoint | InvalidEndpointError |
-//   | typeName == ""   | ErrEmptyTypeName     |
-//   | backoff < 5      | LowBackoffValueError |
-//   +------------------+----------------------+
-//
 func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	r := &Reader{}
 	for _, op := range options {
@@ -70,9 +51,6 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	}
 	if r.endpoint == "" {
 		return nil, reader.ErrEmptyEndpoint
-	}
-	if r.backoff < 5 {
-		r.backoff = 5
 	}
 	if r.mapper == nil {
 		r.mapper = datatype.DefaultMapper()
@@ -106,23 +84,17 @@ func (r *Reader) Ping() error {
 	return nil
 }
 
-// Read begins reading from the target.
-// It returns an error back to the engine if it can't read from metrics provider,
-// Ping() is not called or the endpoint has been unresponsive too many times.
+// Read begins reading from the target. It returns an error back to the engine
+// if it can't read from metrics provider, Ping() is not called or the endpoint
+// has been unresponsive too many times.
 func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if !r.pinged {
 		return nil, reader.ErrPingNotCalled
 	}
-	if r.strike > r.backoff {
-		return nil, reader.ErrBackoffExceeded
-	}
 	resp, err := ctxhttp.Get(job, nil, r.endpoint)
 
 	if err != nil {
-		if v, ok := err.(*url.Error); ok {
-			if strings.Contains(v.Error(), "getsockopt: connection refused") {
-				r.strike++
-			}
+		if _, ok := err.(*url.Error); ok {
 			err = reader.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 		}
 		r.log.WithField("reader", "expvar_reader").
@@ -148,7 +120,6 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 		TypeName: r.TypeName(),
 		Mapper:   r.Mapper(),
 	}
-	expvarReads.Add(1)
 	return res, nil
 }
 
@@ -187,12 +158,6 @@ func (r *Reader) Timeout() time.Duration { return r.timeout }
 
 // SetTimeout sets the timeout of the reader.
 func (r *Reader) SetTimeout(timeout time.Duration) { r.timeout = timeout }
-
-// Backoff returns the backoff.
-func (r *Reader) Backoff() int { return r.backoff }
-
-// SetBackoff sets the backoff of the reader.
-func (r *Reader) SetBackoff(backoff int) { r.backoff = backoff }
 
 // SetLogger sets the log of the reader.
 func (r *Reader) SetLogger(log tools.FieldLogger) { r.log = log }

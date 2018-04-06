@@ -41,7 +41,6 @@ var Opts struct {
 	TypeName  string        `long:"type" env:"TYPE" default:"expipe" description:"Elasticsearch type name"`
 	Interval  time.Duration `long:"int" env:"INT" default:"1s" description:"Interval between pulls from the target"`
 	Timeout   time.Duration `long:"timeout" env:"TIMEOUT" default:"30s" description:"Communication time-outs to both reader and recorder"`
-	Backoff   int           `long:"backoff" env:"BACKOFF" default:"15" description:"After this amount, it will give up accessing unresponsive endpoints"`
 }
 
 // Main is the entrypoint of the application. It is been called from main.main.
@@ -120,7 +119,6 @@ func fromFlags() (*config.ConfMap, error) {
 		recorder.WithName("recorder"),
 		recorder.WithEndpoint(Opts.Recorder),
 		recorder.WithTimeout(Opts.Timeout),
-		recorder.WithBackoff(Opts.Backoff),
 		recorder.WithIndexName(Opts.IndexName),
 	)
 	if err != nil {
@@ -133,7 +131,6 @@ func fromFlags() (*config.ConfMap, error) {
 		reader.WithEndpoint(Opts.Reader),
 		reader.WithInterval(Opts.Interval),
 		reader.WithTimeout(Opts.Timeout),
-		reader.WithBackoff(Opts.Backoff),
 		reader.WithMapper(datatype.DefaultMapper()),
 	)
 	if err != nil {

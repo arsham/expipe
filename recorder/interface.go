@@ -19,15 +19,15 @@ import (
 	"github.com/arsham/expipe/tools/token"
 )
 
-// DataRecorder receives a payload for shipping data to a repository.
-// The repository should have the concept of index/database and type/table
+// DataRecorder receives a payload for shipping data to a repository. The
+// repository should have the concept of index/database and type/table
 // abstractions. See ElasticSearch for more information.
 //
 // Notes
 //
-// Recorders should not change the index name coming in the payload unless
-// they have a valid reason. The engine might add a date to this index name
-// if the user has specified in the configuration file.
+// Recorders should not change the index name coming in the payload unless they
+// have a valid reason. The engine might add a date to this index name if the
+// user has specified in the configuration file.
 // Ping() should ping the endpoint and return nil if was successful. The Engine
 // will not launch the reader if the ping result is an error.
 // IndexName() comes from the configuration, but the engine takes over.
@@ -40,27 +40,26 @@ type DataRecorder interface {
 	IndexName() string
 	Timeout() time.Duration
 	Endpoint() string
-	Backoff() int
 }
 
-// Job is sent with a context and a payload to be recorded.
-// If the TypeName and IndexName are different than the previous one, the
-// recorder should use the ones engine provides. If any errors occurred,
-// recorders should return the error on Read return value.
+// Job is sent with a context and a payload to be recorded. If the TypeName and
+// IndexName are different than the previous one, the recorder should use the
+// ones engine provides. If any errors occurred, recorders should return the
+// error on Read return value.
 type Job struct {
 	// ID is the job ID generated at the time the payload was generated.
 	ID token.ID
 
-	// Payload has a Bytes() method for returning the data.
-	// It is guaranteed to be json marshallable.
+	// Payload has a Bytes() method for returning the data. It is guaranteed to
+	// be json marshallable.
 	Payload datatype.DataContainer
 
 	// Time is the recorded time at the time of fetching data by the readers.
 	// You should use this value to fetch the content of the payload
 	Time time.Time
 
-	// IndexName might be different than the one is set in the recorder.
-	// Engine might decide to change it and you have to use the provided one.
+	// IndexName might be different than the one is set in the recorder. Engine
+	// might decide to change it and you have to use the provided one.
 	IndexName string
 
 	// TypeName comes from the configuration of readers.

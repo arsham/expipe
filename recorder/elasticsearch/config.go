@@ -17,7 +17,6 @@ import (
 type Config struct {
 	ESEndpoint  string `mapstructure:"endpoint"`
 	ESTimeout   string `mapstructure:"timeout"`
-	ESBackoff   int    `mapstructure:"backoff"`
 	ESIndexName string `mapstructure:"index_name"`
 	log         tools.FieldLogger
 	ESName      string
@@ -27,8 +26,8 @@ type Config struct {
 // Conf func is used for initializing a Config object.
 type Conf func(*Config) error
 
-// NewConfig is used for returning the values from config file.
-// It returns any errors that any of conf function return.
+// NewConfig is used for returning the values from config file. It returns any
+// errors that any of conf function return.
 func NewConfig(conf ...Conf) (*Config, error) {
 	obj := new(Config)
 	for _, c := range conf {
@@ -48,27 +47,23 @@ func (c *Config) Recorder() (recorder.DataRecorder, error) {
 		recorder.WithName(c.Name()),
 		recorder.WithIndexName(c.IndexName()),
 		recorder.WithTimeout(c.Timeout()),
-		recorder.WithBackoff(c.Backoff()),
 	)
 }
 
-// Name return the name
+// Name return the name.
 func (c *Config) Name() string { return c.ESName }
 
-// IndexName return the index name
+// IndexName return the index name.
 func (c *Config) IndexName() string { return c.ESIndexName }
 
-// Endpoint return the endpoint
+// Endpoint return the endpoint.
 func (c *Config) Endpoint() string { return c.ESEndpoint }
 
-// Timeout return the timeout
+// Timeout return the timeout.
 func (c *Config) Timeout() time.Duration { return c.ConfTimeout }
 
-// Logger return the logger
+// Logger return the logger.
 func (c *Config) Logger() tools.FieldLogger { return c.log }
-
-// Backoff return the backoff
-func (c *Config) Backoff() int { return c.ESBackoff }
 
 // WithLogger produces an error if the log is nil.
 func WithLogger(log tools.FieldLogger) Conf {

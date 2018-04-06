@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/arsham/expipe/datatype"
@@ -29,8 +28,6 @@ type Reader struct {
 	log          tools.FieldLogger
 	MockInterval time.Duration
 	timeout      time.Duration
-	backoff      int
-	strike       int
 	ReadFunc     func(*token.Context) (*reader.Result, error)
 	PingFunc     func() error
 	Pinged       bool
@@ -58,9 +55,6 @@ func checkReader(r *Reader) error {
 	}
 	if r.MockEndpoint == "" {
 		return reader.ErrEmptyEndpoint
-	}
-	if r.backoff < 5 {
-		r.backoff = 5
 	}
 	if r.MockMapper == nil {
 		r.MockMapper = &datatype.MapConvertMock{}
@@ -92,7 +86,10 @@ func (r *Reader) Ping() error {
 	defer cancel()
 	_, err := ctxhttp.Head(ctx, nil, r.MockEndpoint)
 	if err != nil {
-		return reader.EndpointNotAvailableError{Endpoint: r.MockEndpoint, Err: err}
+		return reader.EndpointNotAvailableError{
+			Endpoint: r.MockEndpoint,
+			Err:      err,
+		}
 	}
 	r.Pinged = true
 	return nil
@@ -106,16 +103,13 @@ func (r *Reader) Read(job *token.Context) (*reader.Result, error) {
 	if !r.Pinged {
 		return nil, reader.ErrPingNotCalled
 	}
-	if r.strike > r.backoff {
-		return nil, reader.ErrBackoffExceeded
-	}
 	resp, err := ctxhttp.Get(job, nil, r.MockEndpoint)
 	if err != nil {
-		if v, ok := err.(*url.Error); ok {
-			if strings.Contains(v.Error(), "getsockopt: connection refused") {
-				r.strike++
+		if _, ok := err.(*url.Error); ok {
+			err = reader.EndpointNotAvailableError{
+				Endpoint: r.MockEndpoint,
+				Err:      err,
 			}
-			err = reader.EndpointNotAvailableError{Endpoint: r.MockEndpoint, Err: err}
 		}
 		return nil, err
 	}
@@ -170,12 +164,6 @@ func (r *Reader) Timeout() time.Duration { return r.timeout }
 
 // SetTimeout sets the timeout of the reader.
 func (r *Reader) SetTimeout(timeout time.Duration) { r.timeout = timeout }
-
-// Backoff returns the backoff.
-func (r *Reader) Backoff() int { return r.backoff }
-
-// SetBackoff sets the backoff of the reader.
-func (r *Reader) SetBackoff(backoff int) { r.backoff = backoff }
 
 // Logger returns the log.
 func (r *Reader) Logger() tools.FieldLogger { return r.log }

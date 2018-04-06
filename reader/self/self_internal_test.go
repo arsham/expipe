@@ -18,6 +18,7 @@ import (
 
 // The other test goes through a normal path, we need to test the actual path.
 func TestSelfReaderReadsExpvar(t *testing.T) {
+	t.Parallel()
 	log := tools.DiscardLogger()
 	ts := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	typeName := "my_type"
@@ -30,7 +31,6 @@ func TestSelfReaderReadsExpvar(t *testing.T) {
 		interval: time.Hour,
 		timeout:  time.Hour,
 		endpoint: ts.URL,
-		backoff:  5,
 		testMode: true, // so we can ping, then we will make it false.
 	}
 	err := red.Ping()
@@ -67,12 +67,15 @@ func TestCheckJSON(t *testing.T) {
 		payload []byte
 		ctx     = context.Background()
 	)
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(payload)
-	}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Write(payload)
+		},
+	))
 	defer ts.Close()
-	closedServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	}))
+	closedServer := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {},
+	))
 	closedServer.Close()
 
 	tcs := []struct {

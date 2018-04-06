@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// The purpose of these tests is to make sure the simple recorder, which is
-// a mock, works perfect, so other tests can rely on it.
+// The purpose of these tests is to make sure the simple recorder, which is a
+// mock, works perfect, so other tests can rely on it.
 
 func getTestServer() *httptest.Server {
 	return httptest.NewServer(

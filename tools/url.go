@@ -18,8 +18,8 @@ func (i InvalidURLError) Error() string {
 	return fmt.Sprintf("invalid url: %s", string(i))
 }
 
-// SanitiseURL prepends a protocol to the url if not defined, and checks if
-// it's a valid url.
+// SanitiseURL prepends a protocol to the url if not defined, and checks if it's
+// a valid url.
 func SanitiseURL(url string) (string, error) {
 	if !govalidator.IsURL(url) {
 		return "", InvalidURLError(url)

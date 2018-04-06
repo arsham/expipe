@@ -15,7 +15,8 @@ import (
 	"github.com/arsham/expipe/tools/token"
 )
 
-// This example shows the reader hits the endpoint when the Read method is called.
+// This example shows the reader hits the endpoint when the Read method is
+// called.
 func ExampleDataReader_read() {
 
 	ts := httptest.NewServer(http.HandlerFunc(
@@ -25,8 +26,8 @@ func ExampleDataReader_read() {
 	)
 	defer ts.Close()
 
-	// This reader is a mocked version,
-	// but the example's principals stays the same.
+	// This reader is a mocked version, but the example's principals stays the
+	// same.
 	red := reader.GetReader(ts.URL)
 	err := red.Ping()
 	fmt.Println("Ping errors:", err)

@@ -24,7 +24,6 @@ func readerReceivesJob(t testing.TB, cons Constructor) {
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetInterval(time.Hour)
 	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(5)
 	red, err := cons.Object()
 	if errors.Cause(err) != nil {
 		t.Errorf("err = (%v); want (nil)", err)
@@ -64,7 +63,6 @@ func readerReturnsSameID(t testing.TB, cons Constructor) {
 	cons.SetEndpoint(cons.TestServer().URL)
 	cons.SetInterval(time.Hour)
 	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(5)
 
 	red, err := cons.Object()
 	if errors.Cause(err) != nil {
@@ -86,7 +84,7 @@ func readerReturnsSameID(t testing.TB, cons Constructor) {
 	}
 }
 
-func jasonMarshallableChech(t testing.TB, cons Constructor) {
+func jasonMarshallableCheck(t testing.TB, cons Constructor) {
 	var payload string
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(payload))
@@ -100,14 +98,13 @@ func jasonMarshallableChech(t testing.TB, cons Constructor) {
 	cons.SetEndpoint(ts.URL)
 	cons.SetInterval(time.Hour)
 	cons.SetTimeout(time.Hour)
-	cons.SetBackoff(5)
 	red, err := cons.Object()
 	if errors.Cause(err) != nil {
 		t.Errorf("err = (%#v); want (nil)", err)
 	}
 	err = red.Ping()
 	if errors.Cause(err) != nil {
-		t.Errorf("err = (%#v); want (nil)", err)
+		t.Fatalf("err = (%#v); want (nil)", err)
 	}
 
 	payload = `{"bb":1`
@@ -127,5 +124,4 @@ func jasonMarshallableChech(t testing.TB, cons Constructor) {
 	if result == nil {
 		t.Error("result = (nil); want (reader.Result)")
 	}
-
 }

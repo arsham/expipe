@@ -273,3 +273,22 @@ func TestMapCopy(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestValues(t *testing.T) {
+	t.Parallel()
+	maps := datatype.DefaultMapper()
+	v, _ := jason.NewValueFromBytes([]byte("666"))
+	results := maps.Values("", map[string]*jason.Value{"devil": v})
+	if len(results) != 1 {
+		t.Errorf("len(results) = (%d); want (1)", len(results))
+	}
+	results = maps.Values("", map[string]*jason.Value{})
+	if len(results) != 0 {
+		t.Errorf("len(results) = (%d); want (0)", len(results))
+	}
+	v, _ = jason.NewValueFromBytes(nil)
+	results = maps.Values("", map[string]*jason.Value{"nil": v})
+	if len(results) != 0 {
+		t.Errorf("len(results) = (%d); want (0)", len(results))
+	}
+}

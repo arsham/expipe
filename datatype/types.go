@@ -4,10 +4,26 @@
 
 // Package datatype contains necessary logic to sanitise a JSON object coming
 // from a reader. This package is subjected to change.
+//
+// Collected metrics
+//
+// This list will grow in time:
+//
+//   +------------------+-------------------------+
+//   | Expipe var name  |  ElasticSearch Var Name |
+//   +------------------+-------------------------+
+//   | dataTypeObjs     | DataType Objects        |
+//   | unidentifiedJSON | Unidentified JSON Count |
+//   | stringTypeCount  | StringType Count        |
+//   | floatTypeCount   | FloatType Count         |
+//   | gcListTypeCount  | GCListType Count        |
+//   | byteTypeCount    | ByteType Count          |
+//   +------------------+-------------------------+
 package datatype
 
 import (
 	"errors"
+	"expvar"
 	"fmt"
 	"io"
 	"strings"
@@ -26,6 +42,19 @@ const (
 // It happens when the value is not a string or a float64 types,
 // or the container ends up empty.
 var ErrUnidentifiedJason = errors.New("unidentified jason value")
+
+// These variables are used for expipe's internals.
+var (
+	stringTypeCount    = expvar.NewInt("StringType Count")
+	floatTypeCount     = expvar.NewInt("FloatType Count")
+	floatListTypeCount = expvar.NewInt("FloatListType Count")
+	gCListTypeCount    = expvar.NewInt("GCListType Count")
+	byteTypeCount      = expvar.NewInt("ByteType Count")
+	nestedTypeCount    = expvar.NewInt("Nested Type Count")
+	dataTypeObjs       = expvar.NewInt("DataType Objects")
+	dataTypeErrs       = expvar.NewInt("DataType Objects Errors")
+	unidentifiedJSON   = expvar.NewInt("Unidentified JSON Count")
+)
 
 // readType holds the content of a type.
 // Any type that includes readType should populate the content. default index

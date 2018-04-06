@@ -2,15 +2,35 @@
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
-// Package engine can read from any endpoints that provides expvar data and ships
-// them to elasticsearch. You can inspect the metrics with kibana.
+// Package engine can read from any endpoints that provides expvar data and
+// ships them to elasticsearch. You can inspect the metrics with kibana.
+//
+// The Operator implements the Engine interface. It is allowed to change the
+// index and type names at will. When the context times out or cancelled, the
+// Engine will close and return. Use the shut down channel to signal the Engine
+// to stop recording. The ctx context will create a new context based on the
+// parent.
 //
 // Please refer to golang's expvar documentation for more information.
-// Installation guides can be found on github page: https://github.com/arsham/expipe
+// Installation guides can be found on github page:
+// https://github.com/arsham/expipe
 //
 // At the heart of this package, there is Engine. It acts like a glue between
 // multiple Readers and a Recorder. Messages are transferred in a package called
 // DataContainer, which is a list of DataType objects.
+//
+// Collected metrics
+//
+// This list will grow in time:
+//
+//   +----------------------+-------------------------+
+//   |   Expipe var name    |  ElasticSearch Var Name |
+//   +----------------------+-------------------------+
+//   | expRecorders         | Recorders               |
+//   | readJobs             | Read Jobs               |
+//   | recordJobs           | Record Jobs             |
+//   | datatypeObjs         | DataType Objects        |
+//   +----------------------+-------------------------+
 //
 // Example configuration
 //
@@ -27,14 +47,12 @@
 //            routepath: /debug/vars     # the endpoint that app provides the metrics
 //            interval: 500ms            # every half a second, it will collect the metrics.
 //            timeout: 3s                # in 3 seconds it gives in if the application is not responsive
-//            backoff: 10                # after 10 times the application didn't response, it will stop reading from it
 //        AnotherApplication:
 //            type: expvar
 //            type_name: this_is_awesome
 //            endpoint: localhost:1235
 //            routepath: /metrics
 //            timeout: 13s
-//            backoff: 10
 //
 //    recorders:                         # This section is where the data will be shipped to
 //        main_elasticsearch:
@@ -42,13 +60,11 @@
 //            endpoint: 127.0.0.1:9200
 //            index_name: expipe
 //            timeout: 8s
-//            backoff: 10
 //        the_other_elasticsearch:
 //            type: elasticsearch
 //            endpoint: 127.0.0.1:9201
 //            index_name: expipe
 //            timeout: 18s
-//            backoff: 10
 //
 //    routes:                            # You can specify metrics of which application will be recorded in which target
 //        route1:
@@ -62,7 +78,7 @@
 //                - AnotherApplication
 //            recorders:
 //                - main_elasticsearch
-//        route3:                      # Yes, you can have multiple!
+//        route3:                        # Yes, you can have multiple!
 //            readers:
 //                - AnotherApplication
 //            recorders:
@@ -122,13 +138,13 @@
 //
 // You can change the numbers to your liking:
 //
-//     gc_types:                      # These inputs will be collected into one list and zero values will be removed
+//     gc_types:              # These inputs will be collected into one list and zero values will be removed
 //         memstats.PauseEnd
 //         memstats.PauseNs
 //
-//     memory_bytes:                   # These values will be transoformed from bytes
-//         StackInuse: mb              # To MB
-//         memstats.Alloc: gb          # To GB
+//     memory_bytes:           # These values will be transformed from bytes
+//         StackInuse: mb      # To MB
+//         memstats.Alloc: gb  # To GB
 //
 // To run the tests for the codes, in the root of the application run:
 //   go test $(glide nv)

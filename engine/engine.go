@@ -17,16 +17,13 @@ import (
 )
 
 var (
-	numGoroutines = expvar.NewInt("Number Of Goroutines")
-	// expReaders        = expvar.NewInt("Readers")
-	// readJobs        = expvar.NewInt("Read Jobs")
-	waitingReadJobs = expvar.NewInt("Waiting Read Jobs")
-
-	// recordJobs        = expvar.NewInt("Record Jobs")
-	// waitingRecordJobs = expvar.NewInt("Waiting Record Jobs")
-	erroredJobs = expvar.NewInt("Error Jobs")
-
-// contextCanceled   = "context has been cancelled"
+	numGoroutines     = expvar.NewInt("Number Of Goroutines")
+	expRecorders      = expvar.NewInt("Recorders")
+	readJobs          = expvar.NewInt("Read Jobs")
+	waitingReadJobs   = expvar.NewInt("Waiting Read Jobs")
+	recordJobs        = expvar.NewInt("Record Jobs")
+	waitingRecordJobs = expvar.NewInt("Waiting Record Jobs")
+	erroredJobs       = expvar.NewInt("Error Jobs")
 )
 
 // Engine is an interface to Operator's behaviour.
@@ -43,11 +40,8 @@ type Engine interface {
 	Reader() reader.DataReader
 }
 
-// Operator represents an Engine that receives information from a reader and ships
-// them to multiple recorders. The Operator is allowed to change the index and
-// type names at will. When the context times out or cancelled, the Engine will
-// close and return. Use the shut down channel to signal the Engine to stop
-// recording. The ctx context will create a new context based on the parent.
+// Operator represents an Engine that receives information from a reader and
+// ships them to multiple recorders.
 type Operator struct {
 	log       tools.FieldLogger
 	ctx       context.Context // Will call stop() when this context is cancelled/timed-out.
@@ -77,7 +71,9 @@ func (o *Operator) SetCtx(ctx context.Context) { o.ctx = ctx }
 func (o *Operator) SetLog(log tools.FieldLogger) { o.log = log }
 
 // SetRecorders sets the recorder map.
-func (o *Operator) SetRecorders(recorders map[string]recorder.DataRecorder) { o.recorders = recorders }
+func (o *Operator) SetRecorders(recorders map[string]recorder.DataRecorder) {
+	o.recorders = recorders
+}
 
 // SetReader sets the reader.
 func (o *Operator) SetReader(reader reader.DataReader) { o.reader = reader }
@@ -139,6 +135,7 @@ func WithRecorders(recs ...recorder.DataRecorder) func(Engine) error {
 				continue
 			}
 			recorders[rec.Name()] = rec
+			expRecorders.Add(1)
 		}
 		if len(failedErrors) > 0 && len(recorders) == 0 {
 			return PingError(failedErrors)

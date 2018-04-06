@@ -108,15 +108,3 @@ func TestSetTimeout(t *testing.T) {
 		t.Errorf("err = (%v); want (nil)", err)
 	}
 }
-
-func TestSetBackoff(t *testing.T) {
-	r := rt.Reader{}
-	err := reader.WithBackoff(4)(&r)
-	if _, ok := errors.Cause(err).(reader.LowBackoffValueError); !ok {
-		t.Errorf("err = (%v); want (reader.LowBackoffValueError)", err)
-	}
-	err = reader.WithBackoff(5)(&r)
-	if err != nil {
-		t.Errorf("err = (%v); want (nil)", err)
-	}
-}

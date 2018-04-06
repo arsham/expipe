@@ -17,14 +17,12 @@ func TestConfigRecorder(t *testing.T) {
 	log := tools.DiscardLogger()
 	endpoint := "http://localhost"
 	timeout := time.Second
-	backoff := 5
 	indexName := "index_name"
 	c := &rt.Config{
 		MockLogger:    log,
 		MockName:      name,
 		MockEndpoint:  endpoint,
 		MockTimeout:   timeout,
-		MockBackoff:   backoff,
 		MockIndexName: indexName,
 	}
 
@@ -44,9 +42,6 @@ func TestConfigRecorder(t *testing.T) {
 	}
 	if rec.Timeout() != c.Timeout() {
 		t.Errorf("rec.Timeout() = (%v); want (%v)", rec.Timeout(), c.Timeout())
-	}
-	if rec.Backoff() != c.Backoff() {
-		t.Errorf("rec.Backoff() = (%v); want (%v)", rec.Backoff(), c.Backoff())
 	}
 	if rec.IndexName() != c.IndexName() {
 		t.Errorf("rec.IndexName() = (%v); want (%v)", rec.IndexName(), c.IndexName())

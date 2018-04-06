@@ -47,6 +47,7 @@ func iterate(e Engine, dispatch chan *reader.Result, stop chan struct{}) bool {
 	select {
 	case <-timer.C:
 		waitingReadJobs.Add(1)
+		defer waitingReadJobs.Add(-1)
 		job := token.New(e.Ctx())
 		res, err := e.Reader().Read(job)
 		if errors.Cause(err) != nil {
@@ -59,7 +60,7 @@ func iterate(e Engine, dispatch chan *reader.Result, stop chan struct{}) bool {
 			e.Log().Errorf("read job: %v", err)
 			break
 		}
-		waitingReadJobs.Add(-1)
+		readJobs.Add(1)
 		dispatch <- res
 	case <-e.Ctx().Done():
 		close(stop)
@@ -95,6 +96,8 @@ func dispatchRecord(ctx context.Context, log tools.FieldLogger, rec recorder.Dat
 				log.Errorf("error in payload: %s", err)
 				return
 			}
+			waitingRecordJobs.Add(1)
+			defer waitingRecordJobs.Add(-1)
 			job := recorder.Job{
 				ID:        result.ID,
 				Payload:   payload,
@@ -106,6 +109,7 @@ func dispatchRecord(ctx context.Context, log tools.FieldLogger, rec recorder.Dat
 			if err != nil {
 				log.Errorf("record error: %v", err)
 			}
+			recordJobs.Add(1)
 		case <-ctx.Done():
 		}
 	}

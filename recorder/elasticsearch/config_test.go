@@ -11,6 +11,7 @@ import (
 
 	"github.com/arsham/expipe/recorder/elasticsearch"
 	"github.com/arsham/expipe/tools"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -68,16 +69,12 @@ func TestWithViperSuccess(t *testing.T) {
             endpoint: http://127.0.0.1:9200
             index_name: example_index
             timeout: 10s
-            backoff: 15
     `))
 	v.ReadConfig(input)
 	c := new(elasticsearch.Config)
 	err := elasticsearch.WithViper(v, "recorder1", "recorders.recorder1")(c)
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
-	}
-	if c.Backoff() != 15 {
-		t.Errorf("c.Backoff() = (%d); want (%d)", c.Backoff(), 15)
 	}
 	if c.Timeout() != 10*time.Second {
 		t.Errorf("c.Timeout() = (%d); want (%d)", c.Timeout(), 10*time.Second)
@@ -90,6 +87,11 @@ func TestWithViperSuccess(t *testing.T) {
 	}
 }
 
+type badMarshaller struct{}
+
+func (badMarshaller) UnmarshalKey(key string, rawVal interface{}) error { return errors.New("text") }
+func (badMarshaller) AllKeys() []string                                 { return []string{} }
+
 func TestWithViperBadFile(t *testing.T) {
 	v := viper.New()
 	v.SetConfigType("yaml")
@@ -99,7 +101,6 @@ func TestWithViperBadFile(t *testing.T) {
                 index_name: example_index
 interval: 2sq
                 timeout: 1ms
-                backoff: 15
     `))
 	v.ReadConfig(input)
 	c := new(elasticsearch.Config)
@@ -113,12 +114,16 @@ interval: 2sq
         recorder1:
                 index_name: example_index
                 timeout: asas
-                backoff: 15
     `))
 	v.ReadConfig(input)
 	err = elasticsearch.WithViper(v, "recorder1", "recorders.recorder1")(c)
 	if err == nil {
 		t.Fatal("err = (nil); want (error)")
+	}
+
+	err = elasticsearch.WithViper(&badMarshaller{}, "recorder1", "recorders.recorder1")(c)
+	if err == nil {
+		t.Error("err = (nil); want (error)")
 	}
 }
 
@@ -155,7 +160,6 @@ func TestConfigRecorder(t *testing.T) {
 	c.ESName = "name"
 	c.ESIndexName = "name"
 	c.ESEndpoint = "http://localhost"
-	c.ESBackoff = 5
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
 	}

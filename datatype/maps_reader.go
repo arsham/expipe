@@ -5,7 +5,6 @@
 package datatype
 
 import (
-	"expvar"
 	"strings"
 	"sync"
 
@@ -15,17 +14,8 @@ import (
 )
 
 var (
-	expStringTypeCount    = expvar.NewInt("StringType Count")
-	expFloatTypeCount     = expvar.NewInt("FloatType Count")
-	expFloatListTypeCount = expvar.NewInt("FloatListType Count")
-	expGCListTypeCount    = expvar.NewInt("GCListType Count")
-	expByteTypeCount      = expvar.NewInt("ByteType Count")
-	expNestedTypeCount    = expvar.NewInt("Nested Type Count")
-	expDataTypeObjs       = expvar.NewInt("DataType Objects")
-	expDataTypeErrs       = expvar.NewInt("DataType Objects Errors")
-	expUnidentifiedJSON   = expvar.NewInt("Unidentified JSON Count")
-	once                  sync.Once
-	defaultMap            *MapConvert
+	once       sync.Once
+	defaultMap *MapConvert
 )
 
 // MapConvert can produce output from GC string list and memory type input.
@@ -81,7 +71,7 @@ func (m *MapConvert) getMemoryTypes(prefix, name string, j *jason.Value) (DataTy
 	)
 	v, err := j.Float64()
 	if err != nil {
-		expDataTypeErrs.Add(1)
+		dataTypeErrs.Add(1)
 		return nil, false
 	}
 	b := m.MemoryTypes[strings.ToLower(name)]
@@ -109,11 +99,11 @@ func (m *MapConvert) arrayValue(prefix, name string, a []*jason.Value) DataType 
 	return nil
 }
 
-// Values returns a slice of DataTypes based on the given name/value inputs.
-// It flattens the float list values, therefore you will get multiple values
-// per input. If the name is found in memory_bytes map, it will return one of
-// those, otherwise it will return a FloatType or StringType if can convert.
-// It will return nil if the value is not one of above.
+// Values returns a slice of DataTypes based on the given name/value inputs. It
+// flattens the float list values, therefore you will get multiple values per
+// input. If the name is found in memory_bytes map, it will return one of those,
+// otherwise it will return a FloatType or StringType if can convert. It will
+// return nil if the value is not one of above.
 func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []DataType {
 	var results []DataType
 	input := make(map[string]jason.Value, len(values))
@@ -128,26 +118,26 @@ func (m *MapConvert) Values(prefix string, values map[string]*jason.Value) []Dat
 			if !ok {
 				continue
 			}
-			expByteTypeCount.Add(1)
+			byteTypeCount.Add(1)
 		} else if obj, err := value.Object(); err == nil {
 			// we are dealing with nested objects
 			results = append(results, m.Values(prefix+name+".", obj.Map())...)
-			expNestedTypeCount.Add(1)
+			nestedTypeCount.Add(1)
 			continue
 		} else if s, err := value.String(); err == nil {
-			expStringTypeCount.Add(1)
+			stringTypeCount.Add(1)
 			result = NewStringType(prefix+name, s)
 		} else if f, err := value.Float64(); err == nil {
-			expFloatTypeCount.Add(1)
+			floatTypeCount.Add(1)
 			result = NewFloatType(prefix+name, f)
 		} else if arr, err := value.Array(); err == nil {
 			// we are dealing with an array object
 			result = m.arrayValue(prefix, name, arr)
 		} else {
-			expDataTypeErrs.Add(1)
+			dataTypeErrs.Add(1)
 			continue
 		}
-		expDataTypeObjs.Add(1)
+		dataTypeObjs.Add(1)
 		if result != nil { // TEST: write tests (7)
 			results = append(results, result)
 		}
@@ -173,7 +163,7 @@ func getGCList(name string, arr []*jason.Value) *GCListType {
 			res[i] = uint64(r)
 		}
 	}
-	expGCListTypeCount.Add(1)
+	gCListTypeCount.Add(1)
 	return NewGCListType(name, res)
 }
 
@@ -184,7 +174,7 @@ func getFloatListValues(name string, arr []*jason.Value) *FloatListType {
 			res[i] = r
 		}
 	}
-	expFloatListTypeCount.Add(1)
+	floatListTypeCount.Add(1)
 	return NewFloatListType(name, res)
 }
 

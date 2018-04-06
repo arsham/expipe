@@ -20,7 +20,6 @@ func GetRecorder(url string) *Recorder {
 		recorder.WithName("recorder_example"),
 		recorder.WithIndexName("recorder_example"),
 		recorder.WithTimeout(time.Second),
-		recorder.WithBackoff(5),
 	)
 	if err != nil {
 		panic(err)

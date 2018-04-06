@@ -12,8 +12,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// This file contains the construction functions required for instantiating
-// a Reader object. Input variables are sanitised here.
+// This file contains the construction functions required for instantiating a
+// Reader object. Input variables are sanitised here.
 
 // Constructor is a Reader object that will accept configurations.
 type Constructor interface {
@@ -24,7 +24,6 @@ type Constructor interface {
 	SetMapper(mapper datatype.Mapper)
 	SetInterval(interval time.Duration)
 	SetTimeout(timeout time.Duration)
-	SetBackoff(backoff int)
 }
 
 // WithLogger sets the log of the reader.
@@ -104,17 +103,6 @@ func WithTimeout(timeout time.Duration) func(Constructor) error {
 			return LowTimeoutError(timeout)
 		}
 		e.SetTimeout(timeout)
-		return nil
-	}
-}
-
-// WithBackoff sets the backoff of the reader.
-func WithBackoff(backoff int) func(Constructor) error {
-	return func(e Constructor) error {
-		if backoff < 5 {
-			return LowBackoffValueError(backoff)
-		}
-		e.SetBackoff(backoff)
 		return nil
 	}
 }

@@ -1,5 +1,5 @@
 hash: 8305c19ac8404e869f6c717dce7354b498fb692cfdfa3933b15e438eccfd3195
-updated: 2018-04-04T21:37:50.262025493+01:00
+updated: 2018-04-06T21:03:57.723018137+01:00
 imports:
 - name: github.com/antonholmquist/jason
   version: 962e09b85496e2e158eec1567fb4c826ce3d55d1
@@ -66,7 +66,7 @@ imports:
   - context
   - context/ctxhttp
 - name: golang.org/x/sys
-  version: 1d206c9fa8975fb4cf00df1dc8bf3283dc24ba0e
+  version: 3b87a42e500a6dc65dae1a55d0b641295971163e
   subpackages:
   - unix
   - windows

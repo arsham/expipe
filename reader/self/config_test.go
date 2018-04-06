@@ -11,6 +11,7 @@ import (
 
 	"github.com/arsham/expipe/reader/self"
 	"github.com/arsham/expipe/tools"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -71,16 +72,12 @@ func TestWithViperSuccess(t *testing.T) {
             map_file: noway
             timeout: 10s
             interval: 1s
-            backoff: 15
     `))
 	v.ReadConfig(input)
 	c := new(self.Config)
 	err := self.WithViper(v, "recorder1", "recorders.recorder1")(c)
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
-	}
-	if c.Backoff() != 15 {
-		t.Errorf("c.Backoff() = (%d); want (%d)", c.Backoff(), 15)
 	}
 	if c.Endpoint() != "http://127.0.0.1:9200" {
 		t.Errorf("c.Endpoint() = (%s); want (http://127.0.0.1:9200)", c.Endpoint())
@@ -89,6 +86,11 @@ func TestWithViperSuccess(t *testing.T) {
 		t.Errorf("c.TypeName() = (%s); want (example_type)", c.TypeName())
 	}
 }
+
+type badMarshaller struct{}
+
+func (badMarshaller) UnmarshalKey(key string, rawVal interface{}) error { return errors.New("text") }
+func (badMarshaller) AllKeys() []string                                 { return []string{} }
 
 func TestWithViperBadFile(t *testing.T) {
 	v := viper.New()
@@ -105,7 +107,6 @@ func TestWithViperBadFile(t *testing.T) {
         recorder1:
                 index_name: example_index
                 timeout: abc
-                backoff: 15
                 interval: 1s
     `)),
 		},
@@ -117,7 +118,6 @@ func TestWithViperBadFile(t *testing.T) {
                 index_name: example_index
                 timeout: 1s
                 interval: def
-                backoff: 15
     `)),
 		},
 	}
@@ -129,6 +129,11 @@ func TestWithViperBadFile(t *testing.T) {
 				t.Error("err = (nil); want (error)")
 			}
 		})
+	}
+
+	err := self.WithViper(&badMarshaller{}, "recorder1", "recorders.recorder1")(c)
+	if err == nil {
+		t.Error("err = (nil); want (error)")
 	}
 }
 
@@ -162,7 +167,6 @@ func TestConfigReader(t *testing.T) {
 	c.SelfName = "name"
 	c.SelfTypeName = "name"
 	c.SelfEndpoint = "http://localhost"
-	c.Cinterval = time.Second
 	if err != nil {
 		t.Fatalf("err = (%v); want (nil)", err)
 	}
@@ -174,7 +178,7 @@ func TestConfigReader(t *testing.T) {
 		t.Errorf("e.(*self.Reader): e = (%v); want (nil)", e)
 	}
 
-	c.SelfBackoff = 5
+	c.Cinterval = time.Second
 	e, err = c.Reader()
 	if err != nil {
 		t.Errorf("err = (%v); want (nil)", err)

@@ -45,12 +45,6 @@ func TestSuites(t *testing.T, setup func() (Constructor, func())) {
 		defer cleanup()
 		indexNameCheck(t, cons)
 	})
-	t.Run("BackoffCheck", func(t *testing.T) {
-		t.Parallel()
-		cons, cleanup := setup()
-		defer cleanup()
-		backoffCheck(t, cons)
-	})
 	t.Run("TimeoutCheck", func(t *testing.T) {
 		t.Parallel()
 		cons, cleanup := setup()
@@ -81,12 +75,6 @@ func TestSuites(t *testing.T, setup func() (Constructor, func())) {
 		defer cleanup()
 		recorderErrorsOnUnavailableEndpoint(t, cons)
 	})
-	t.Run("BacksOffOnEndpointGone", func(t *testing.T) {
-		t.Parallel()
-		cons, cleanup := setup()
-		defer cleanup()
-		recorderBacksOffOnEndpointGone(t, cons)
-	})
 	t.Run("RecordingReturnsErrorIfNotPingedYet", func(t *testing.T) {
 		t.Parallel()
 		cons, cleanup := setup()
@@ -99,11 +87,23 @@ func TestSuites(t *testing.T, setup func() (Constructor, func())) {
 		defer cleanup()
 		errorsOnBadPayload(t, cons)
 	})
+	t.Run("PingingEndpoint", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		pingingEndpoint(t, cons)
+	})
+	t.Run("ErrorRecordingUnavailableEndpoint", func(t *testing.T) {
+		t.Parallel()
+		cons, cleanup := setup()
+		defer cleanup()
+		errorRecordingUnavailableEndpoint(t, cons)
+	})
 }
 
-// BaseConstruct implements Constructor interface.
-// It only remembers the setter functions, therefore you need to apply them
-// when creating an object in the derived constructor. It is concurrent safe.
+// BaseConstruct implements Constructor interface. It only remembers the setter
+// functions, therefore you need to apply them when creating an object in the
+// derived constructor. It is concurrent safe.
 type BaseConstruct struct {
 	sync.Mutex
 	setters map[string]func(recorder.Constructor) error
@@ -143,9 +143,6 @@ func (b *BaseConstruct) SetLogger(logger tools.FieldLogger) {
 // SetName adds a Name value to setter configuration.
 func (b *BaseConstruct) SetName(name string) { b.add("name", recorder.WithName(name)) }
 
-// SetTypeName adds a TypeName value to setter configuration.
-// func (b *BaseConstruct) SetTypeName(typeName string) { b.add("typeName", recorder.WithTypeName(typeName)) }
-
 // SetEndpoint adds a Endpoint value to setter configuration.
 func (b *BaseConstruct) SetEndpoint(endpoint string) {
 	b.add("endpoint", recorder.WithEndpoint(endpoint))
@@ -155,9 +152,6 @@ func (b *BaseConstruct) SetEndpoint(endpoint string) {
 func (b *BaseConstruct) SetIndexName(indexName string) {
 	b.add("indexName", recorder.WithIndexName(indexName))
 }
-
-// SetBackoff adds a Backoff value to setter configuration.
-func (b *BaseConstruct) SetBackoff(backoff int) { b.add("backoff", recorder.WithBackoff(backoff)) }
 
 // SetTimeout adds a Timeout value to setter configuration.
 func (b *BaseConstruct) SetTimeout(timeout time.Duration) {

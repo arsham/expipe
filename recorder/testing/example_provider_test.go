@@ -28,9 +28,6 @@ func TestGetRecorderGoodURL(t *testing.T) {
 	if r.Timeout() <= 0 {
 		t.Errorf("r.Timeout() = (%d); want (>1s)", r.Timeout())
 	}
-	if r.Backoff() < 5 {
-		t.Errorf("r.Backoff() = (%d); want (>=5)", r.Backoff())
-	}
 	url = "bad url"
 	var panicked bool
 	func() {

@@ -330,5 +330,4 @@ func TestTickingReader(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Error("expected the engine to quit gracefully")
 	}
-
 }

@@ -22,17 +22,16 @@ import (
 	"github.com/arsham/expipe/tools/token"
 )
 
-// DataReader receives job requests to read from the target. It returns
-// an error if the data cannot be read or the connection is refused.
+// DataReader receives job requests to read from the target. It returns an error
+// if the data cannot be read or the connection is refused.
 //
 // Notes
 //
 // Readers should not intercept the engine's decision on the TypeName, unless
-// they have a valid reason.
-// Ping should ping the endpoint and return nil if was successful. The Engine
-// will not launch the reader if the ping result is an error.
-// When the context is timed-out or cancelled, Read should return.
-// The Engine uses returned object from Mapper to present the data to recorders.
+// they have a valid reason. Ping should ping the endpoint and return nil if was
+// successful. The Engine will not launch the reader if the ping result is an
+// error. When the context is timed-out or cancelled, Read should return. The
+// Engine uses returned object from Mapper to present the data to recorders.
 // TypeName is usually the application name and is set by the user in the
 // configuration file.
 type DataReader interface {
@@ -44,7 +43,6 @@ type DataReader interface {
 	Timeout() time.Duration
 	Interval() time.Duration
 	Endpoint() string
-	Backoff() int
 }
 
 // Result is constructed every time a new data is fetched.

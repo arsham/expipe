@@ -21,7 +21,6 @@ func recorderReceivesPayload(t *testing.T, cons Constructor) {
 	cons.SetName(name)
 	cons.SetIndexName(indexName)
 	cons.SetTimeout(time.Second)
-	cons.SetBackoff(5)
 	cons.SetEndpoint(cons.TestServer().URL)
 	rec, err := cons.Object()
 	if errors.Cause(err) != nil {
@@ -60,7 +59,6 @@ func recorderSendsResult(t *testing.T, cons Constructor) {
 	cons.SetName(name)
 	cons.SetIndexName(indexName)
 	cons.SetTimeout(time.Second)
-	cons.SetBackoff(15)
 	cons.SetEndpoint(cons.TestServer().URL)
 	rec, err := cons.Object()
 	if errors.Cause(err) != nil {
@@ -97,7 +95,6 @@ func errorsOnBadPayload(t *testing.T, cons Constructor) {
 	cons.SetName(name)
 	cons.SetIndexName(indexName)
 	cons.SetTimeout(time.Second)
-	cons.SetBackoff(15)
 	cons.SetEndpoint(cons.TestServer().URL)
 	rec, err := cons.Object()
 	if errors.Cause(err) != nil {
@@ -115,6 +112,36 @@ func errorsOnBadPayload(t *testing.T, cons Constructor) {
 		TypeName:  "my_type",
 		Time:      time.Now(),
 	}
+	err = rec.Record(ctx, payload)
+	if errors.Cause(err) == nil {
+		t.Errorf("err = (nil); want (%#v)", errHappened)
+	}
+}
+
+func errorRecordingUnavailableEndpoint(t *testing.T, cons Constructor) {
+	ctx := context.Background()
+	ts := cons.TestServer()
+	cons.SetName(name)
+	cons.SetIndexName(indexName)
+	cons.SetTimeout(time.Second)
+	cons.SetEndpoint(ts.URL)
+	rec, err := cons.Object()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	err = rec.Ping()
+	if errors.Cause(err) != nil {
+		t.Errorf("err = (%v); want (nil)", err)
+	}
+	p := datatype.New([]datatype.DataType{})
+	payload := recorder.Job{
+		ID:        token.NewUID(),
+		Payload:   p,
+		IndexName: indexName,
+		TypeName:  "my_type",
+		Time:      time.Now(),
+	}
+	ts.Close()
 	err = rec.Record(ctx, payload)
 	if errors.Cause(err) == nil {
 		t.Errorf("err = (nil); want (%#v)", errHappened)

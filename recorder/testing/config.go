@@ -17,7 +17,6 @@ type Config struct {
 	MockName      string
 	MockEndpoint  string
 	MockTimeout   time.Duration
-	MockBackoff   int
 	MockIndexName string
 	MockLogger    tools.FieldLogger
 }
@@ -30,7 +29,6 @@ func (c *Config) Recorder() (recorder.DataRecorder, error) {
 		recorder.WithName(c.Name()),
 		recorder.WithIndexName(c.IndexName()),
 		recorder.WithTimeout(c.Timeout()),
-		recorder.WithBackoff(c.Backoff()),
 	)
 }
 
@@ -48,6 +46,3 @@ func (c *Config) Timeout() time.Duration { return c.MockTimeout }
 
 // Logger is the mocked version.
 func (c *Config) Logger() tools.FieldLogger { return c.MockLogger }
-
-// Backoff is the mocked version.
-func (c *Config) Backoff() int { return c.MockBackoff }

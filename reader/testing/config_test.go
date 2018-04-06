@@ -18,14 +18,12 @@ func TestConfigReader(t *testing.T) {
 	endpoint := "http://localhost"
 	timeout := time.Second
 	interval := 100 * time.Millisecond
-	backoff := 5
 	typeName := "type_name"
 	c := rt.Config{
 		MockLogger:   log,
 		MockName:     name,
 		MockEndpoint: endpoint,
 		MockTimeout:  timeout,
-		MockBackoff:  backoff,
 		MockTypeName: typeName,
 		MockInterval: interval,
 	}
@@ -48,9 +46,6 @@ func TestConfigReader(t *testing.T) {
 	}
 	if rec.Interval() != c.Interval() {
 		t.Errorf("rec.Interval() = (%v); want (%v)", rec.Interval(), c.Interval())
-	}
-	if rec.Backoff() != c.Backoff() {
-		t.Errorf("rec.Backoff() = (%v); want (%v)", rec.Backoff(), c.Backoff())
 	}
 	if rec.TypeName() != c.TypeName() {
 		t.Errorf("rec.TypeName() = (%v); want (%v)", rec.TypeName(), c.TypeName())

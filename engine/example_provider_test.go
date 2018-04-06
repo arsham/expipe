@@ -21,14 +21,16 @@ import (
 
 func getReader(log tools.FieldLogger) reader.DataReader {
 	done := make(chan struct{})
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		desire := `{"the key": "is the value!"}`
-		_, err := io.WriteString(w, desire)
-		if err != nil {
-			panic(err)
-		}
-		close(done)
-	}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			desire := `{"the key": "is the value!"}`
+			_, err := io.WriteString(w, desire)
+			if err != nil {
+				panic(err)
+			}
+			close(done)
+		},
+	))
 
 	go func() {
 		<-done
@@ -42,7 +44,6 @@ func getReader(log tools.FieldLogger) reader.DataReader {
 		reader.WithTypeName("typeName"),
 		reader.WithInterval(time.Millisecond*100),
 		reader.WithTimeout(time.Second),
-		reader.WithBackoff(5),
 	)
 
 	if err != nil {
@@ -64,7 +65,6 @@ func getRecorder(log tools.FieldLogger, url string) recorder.DataRecorder {
 		recorder.WithName("recorder_example"),
 		recorder.WithIndexName("indexName"),
 		recorder.WithTimeout(time.Second),
-		recorder.WithBackoff(5),
 	)
 	if err != nil {
 		panic(err)

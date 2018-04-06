@@ -21,7 +21,6 @@ func GetReader(url string) *Reader {
 		reader.WithTypeName("reader_example"),
 		reader.WithInterval(10*time.Millisecond),
 		reader.WithTimeout(time.Second),
-		reader.WithBackoff(10),
 	)
 	if err != nil {
 		panic(err)

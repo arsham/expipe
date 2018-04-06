@@ -4,27 +4,6 @@
 
 // Package self contains codes for recording expipe's own metrics.
 //
-// Collected metrics
-//
-// This list will grow in time:
-//
-//   +-------------------------+----------------------+
-//   |  ElasticSearch Var Name |   Expipe var name    |
-//   +-------------------------+----------------------+
-//   | Readers                 | expReaders           |
-//   | Read Jobs               | readJobs             |
-//   | Record Jobs             | recordJobs           |
-//   | DataType Objects        | datatypeObjs         |
-//   | DataType Objects Errors | datatypeErrs         |
-//   | Unidentified JSON Count | unidentifiedJSON     |
-//   | StringType Count        | stringTypeCount      |
-//   | FloatType Count         | floatTypeCount       |
-//   | GCListType Count        | gcListTypeCount      |
-//   | ByteType Count          | byteTypeCount        |
-//   | Expvar Reads            | expvarReads          |
-//   | ElasticSearch Records   | elasticsearchRecords |
-//   +-------------------------+----------------------+
-//
 package self
 
 import (
@@ -35,7 +14,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/arsham/expipe/datatype"
@@ -55,8 +33,6 @@ type Reader struct {
 	mapper     datatype.Mapper
 	interval   time.Duration
 	timeout    time.Duration
-	backoff    int
-	strike     int
 	quit       chan struct{}
 	endpoint   string
 	pinged     bool
@@ -65,18 +41,6 @@ type Reader struct {
 }
 
 // New exposes expipe's own metrics.
-// It returns and error on the following occasions:
-//
-//   +------------------+----------------------+
-//   |    Condition     |        Error         |
-//   +------------------+----------------------+
-//   | name == ""       | ErrEmptyName         |
-//   | endpoint == ""   | ErrEmptyEndpoint     |
-//   | Invalid Endpoint | InvalidEndpointError |
-//   | typeName == ""   | ErrEmptyTypeName     |
-//   | backoff < 5      | LowBackoffValueError |
-//   +------------------+----------------------+
-//
 func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	r := &Reader{}
 	for _, op := range options {
@@ -91,9 +55,6 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	}
 	if r.endpoint == "" {
 		return nil, reader.ErrEmptyEndpoint
-	}
-	if r.backoff < 5 {
-		r.backoff = 5
 	}
 	if r.mapper == nil {
 		r.mapper = datatype.DefaultMapper()
@@ -115,8 +76,8 @@ func New(options ...func(reader.Constructor) error) (*Reader, error) {
 	return r, nil
 }
 
-// Ping pings the endpoint and return nil if was successful.
-// It returns an error if the endpoint is not available.
+// Ping pings the endpoint and return nil if was successful. It returns an error
+// if the endpoint is not available.
 // TODO: this method is duplicated. Create a Pinger type and share the logic.
 func (r *Reader) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
@@ -217,12 +178,6 @@ func (r *Reader) Timeout() time.Duration { return r.timeout }
 // SetTimeout sets the timeout of the reader
 func (r *Reader) SetTimeout(timeout time.Duration) { r.timeout = timeout }
 
-// Backoff returns the backoff
-func (r *Reader) Backoff() int { return r.backoff }
-
-// SetBackoff sets the backoff of the reader
-func (r *Reader) SetBackoff(backoff int) { r.backoff = backoff }
-
 // SetLogger sets the log of the reader
 func (r *Reader) SetLogger(log tools.FieldLogger) { r.log = log }
 
@@ -233,15 +188,9 @@ func (r *Reader) SetTestMode() { r.testMode = true }
 // this is only used in tests.
 // TODO: [refactor] this.
 func (r *Reader) readMetricsFromURL(job *token.Context) (*reader.Result, error) {
-	if r.strike > r.backoff {
-		return nil, reader.ErrBackoffExceeded
-	}
 	resp, err := http.Get(r.endpoint)
 	if err != nil {
-		if v, ok := err.(*url.Error); ok {
-			if strings.Contains(v.Error(), "getsockopt: connection refused") {
-				r.strike++
-			}
+		if _, ok := err.(*url.Error); ok {
 			err = reader.EndpointNotAvailableError{Endpoint: r.endpoint, Err: err}
 		}
 		r.log.WithField("reader", "self").

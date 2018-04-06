@@ -28,7 +28,6 @@ func recorderWithURL(url string) recorder.DataRecorder {
 		recorder.WithName("recorder_example"),
 		recorder.WithIndexName("indexName"),
 		recorder.WithTimeout(time.Second),
-		recorder.WithBackoff(5),
 	)
 	if err != nil {
 		log.Fatalln("This error should not happen:", err)
@@ -45,7 +44,6 @@ func readerWithURL(url string) reader.DataReader {
 		reader.WithTypeName("typeName"),
 		reader.WithInterval(time.Millisecond*100),
 		reader.WithTimeout(time.Second),
-		reader.WithBackoff(5),
 	)
 	if err != nil {
 		log.Fatalln("This error should not happen:", err)
@@ -60,9 +58,11 @@ func ExampleStart() {
 	ctx, cancel := context.WithCancel(context.Background())
 	recorded := make(chan string)
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		recorded <- "Job was recorded"
-	}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			recorded <- "Job was recorded"
+		},
+	))
 	defer ts.Close()
 
 	red := getReader(log)
@@ -92,7 +92,9 @@ func ExampleStart() {
 // You can pass your configuration.
 func ExampleNew() {
 	log := tools.DiscardLogger()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {},
+	))
 	ctx := context.Background()
 
 	rec := recorderWithURL(ts.URL)
@@ -116,7 +118,9 @@ func ExampleNew() {
 // old ones.
 func ExampleNew_replaces() {
 	log := tools.DiscardLogger()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {},
+	))
 	ctx1, cancel := context.WithCancel(context.Background())
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	defer cancel()
@@ -167,7 +171,9 @@ func ExampleWithLogger() {
 }
 
 func ExampleWithRecorders() {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {},
+	))
 	rec := recorderWithURL(ts.URL)
 	o := &engine.Operator{}
 	err := engine.WithRecorders(rec)(o)
@@ -179,7 +185,9 @@ func ExampleWithRecorders() {
 
 // If the DataRecorder couldn't ping, it will return an error.
 func ExampleWithRecorders_pingError() {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {},
+	))
 	ts.Close()
 	rec := recorderWithURL(ts.URL)
 	o := &engine.Operator{}
@@ -191,7 +199,9 @@ func ExampleWithRecorders_pingError() {
 }
 
 func ExampleWithReader() {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {},
+	))
 	red := readerWithURL(ts.URL)
 
 	o := &engine.Operator{}
@@ -204,7 +214,9 @@ func ExampleWithReader() {
 
 // If the DataReader couldn't ping, it will return an error.
 func ExampleWithReader_pingError() {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {},
+	))
 	ts.Close()
 	red := readerWithURL(ts.URL)
 

@@ -32,9 +32,10 @@ and you can view them with [kibana][kibana]. It can read from any applications
 * Maps values how you define them. For example you can change bytes to megabytes.
 * Benchmarks are included.
 
-There are TODO items in the issue section. Feature requests are welcome!
-Please refer to golang's [expvar documentation][expvar] for more information.
-Screen shots can be found in [this](./docs/SCREENSHOTS.md) document. Here is an example:
+There are TODO items in the issue section. Feature requests are welcome! Please
+refer to golang's [expvar documentation][expvar] for more information. Screen
+shots can be found in [this](./docs/SCREENSHOTS.md) document. Here is an
+example:
 
 ![Colored](http://i.imgur.com/6U2hxlp.png)
 
@@ -49,8 +50,8 @@ Screen shots can be found in [this](./docs/SCREENSHOTS.md) document. Here is an 
 
 ## Installation
 
-I will provide a docker image soon, but for now it needs to be installed.
-You need golang >= 1.7 and [glide][glide] installed. Simply do:
+I will provide a docker image soon, but for now it needs to be installed. You
+need golang >= 1.7 and [glide][glide] installed. Simply do:
 
 ```bash
 go get github.com/arsham/expipe
@@ -59,7 +60,8 @@ glide install
 go install
 ```
 
-You also need elasticsearch and kibana, here is a couple of docker images you can start with:
+You also need elasticsearch and kibana, here is a couple of docker images you
+can start with:
 
 ```bash
 docker volume create expipe
@@ -71,11 +73,11 @@ docker run -d --name kibana --restart always -p 80:5601 --link expipe:elasticsea
 
 Access [the dashboard](http://localhost) (or any other ports you have exposed
 kibana to, notice the `-p:80:5601` above), and enter `expipe` as `Index name or
- pattern` in `management` section.
+pattern` in `management` section.
 
 Select `@timestamp` for `Time-field name`. In case it doesn't show up, click
-`Index contains time-based events` twice, it will provide you with the timestamp.
-Then click on create button.
+`Index contains time-based events` twice, it will provide you with the
+timestamp. Then click on create button.
 
 ### Importing Dashboard
 
@@ -89,9 +91,9 @@ the other one for everything you have defined in the configuration file.
 
 ### With Flags
 
-With this method you can only have one reader and ship to one recorder.
-Consider the next section for more flexible setup. The defaults are sensible
-to use, you only need to point the app to two endpoints, and it does the rest for you:
+With this method you can only have one reader and ship to one recorder. Consider
+the next section for more flexible setup. The defaults are sensible to use, you
+only need to point the app to two endpoints, and it does the rest for you:
 
 ```bash
 expipe -reader="localhost:1234/debug/vars" -recorder="localhost:9200"
@@ -104,7 +106,8 @@ expipe -h
 
 ### Advanced
 
-Please refer to [this](./docs/RECIPES.md) document for advanced configuration and mappings.
+Please refer to [this](./docs/RECIPES.md) document for advanced configuration
+and mappings.
 
 ## LICENSE
 

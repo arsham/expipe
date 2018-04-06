@@ -63,8 +63,8 @@ func (e *NotSpecifiedError) Error() string {
 	return s
 }
 
-// RoutersError is returned when routes are not configured correctly.
-// The section on this error is the subsection of the route.
+// RoutersError is returned when routes are not configured correctly. The
+// section on this error is the subsection of the route.
 type RoutersError struct{ StructureErr }
 
 // NewRoutersError instantiates an RoutersError with the given input.

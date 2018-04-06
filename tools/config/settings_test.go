@@ -86,6 +86,7 @@ func TestLoadYAMLSuccess(t *testing.T) {
 		t.Error("confMap = (nil); want (confMap)")
 	}
 }
+
 func stringInMapKeys(niddle string, haystack map[string]reader.DataReader) bool {
 	for b := range haystack {
 		if b == niddle {

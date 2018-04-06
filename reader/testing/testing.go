@@ -15,9 +15,9 @@ import (
 	"github.com/arsham/expipe/tools"
 )
 
-// Constructor is an interface for setting up an object for testing.
-// TestServer should return a ready to use test server
-// Object should return the instantiated object
+// Constructor is an interface for setting up an object for testing. TestServer
+// should return a ready to use test server Object should return the
+// instantiated object.
 type Constructor interface {
 	reader.Constructor
 	TestServer() *httptest.Server
@@ -44,12 +44,6 @@ func TestSuites(t *testing.T, setup func() (Constructor, func())) {
 		cons, cleanup := setup()
 		defer cleanup()
 		typeNameCheck(t, cons)
-	})
-	t.Run("BackoffCheck", func(t *testing.T) {
-		t.Parallel()
-		cons, cleanup := setup()
-		defer cleanup()
-		backoffCheck(t, cons)
 	})
 	t.Run("IntervalCheck", func(t *testing.T) {
 		t.Parallel()
@@ -99,12 +93,6 @@ func TestSuites(t *testing.T, setup func() (Constructor, func())) {
 		defer cleanup()
 		readerErrorsOnEndpointDisapears(t, cons)
 	})
-	t.Run("BacksOffOnEndpointGone", func(t *testing.T) {
-		t.Parallel()
-		cons, cleanup := setup()
-		defer cleanup()
-		readerBacksOffOnEndpointGone(t, cons)
-	})
 	t.Run("ReadingReturnsErrorIfNotPingedYet", func(t *testing.T) {
 		t.Parallel()
 		cons, cleanup := setup()
@@ -115,13 +103,13 @@ func TestSuites(t *testing.T, setup func() (Constructor, func())) {
 		t.Parallel()
 		cons, cleanup := setup()
 		defer cleanup()
-		jasonMarshallableChech(t, cons)
+		jasonMarshallableCheck(t, cons)
 	})
 }
 
-// BaseConstruct implements Constructor interface.
-// It only remembers the setter functions, therefore you need to apply them
-// when creating an object in the derived constructor. It is concurrent safe.
+// BaseConstruct implements Constructor interface. It only remembers the setter
+// functions, therefore you need to apply them when creating an object in the
+// derived constructor. It is concurrent safe.
 type BaseConstruct struct {
 	sync.Mutex
 	setters map[string]func(reader.Constructor) error
@@ -169,9 +157,6 @@ func (b *BaseConstruct) SetEndpoint(endpoint string) { b.add("endpoint", reader.
 
 // SetMapper adds a Mapper value to setter configuration.
 func (b *BaseConstruct) SetMapper(mapper datatype.Mapper) { b.add("mapper", reader.WithMapper(mapper)) }
-
-// SetBackoff adds a Backoff value to setter configuration.
-func (b *BaseConstruct) SetBackoff(backoff int) { b.add("backoff", reader.WithBackoff(backoff)) }
 
 // SetInterval adds a Interval value to setter configuration.
 func (b *BaseConstruct) SetInterval(interval time.Duration) {

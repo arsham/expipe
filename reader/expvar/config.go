@@ -17,15 +17,14 @@ import (
 )
 
 // Config holds the necessary configuration for setting up an expvar reader
-// endpoint. If MapFile is provided, the data will be mapped, otherwise it
-// uses the DefaultMapper.
+// endpoint. If MapFile is provided, the data will be mapped, otherwise it uses
+// the DefaultMapper.
 type Config struct {
 	log          tools.FieldLogger
 	EXPTypeName  string `mapstructure:"type_name"`
 	EXPEndpoint  string `mapstructure:"endpoint"`
 	EXPInterval  string `mapstructure:"interval"`
 	EXPTimeout   string `mapstructure:"timeout"`
-	EXPBackoff   int    `mapstructure:"backoff"`
 	MapFile      string `mapstructure:"map_file"`
 	EXPName      string
 	ConfInterval time.Duration
@@ -62,7 +61,6 @@ func (c *Config) Reader() (reader.DataReader, error) {
 		reader.WithTypeName(c.EXPTypeName),
 		reader.WithInterval(c.Interval()),
 		reader.WithTimeout(c.Timeout()),
-		reader.WithBackoff(c.Backoff()),
 	)
 }
 
@@ -83,9 +81,6 @@ func (c *Config) Timeout() time.Duration { return c.ConfTimeout }
 
 // Logger returns logger.
 func (c *Config) Logger() tools.FieldLogger { return c.log }
-
-// Backoff returns backoff from the config file.
-func (c *Config) Backoff() int { return c.EXPBackoff }
 
 // Mapper returns the mapper assigned to this object.
 func (c *Config) Mapper() datatype.Mapper { return c.mapper }
@@ -139,8 +134,8 @@ func WithViper(v unmarshaller, name, key string) Conf {
 	}
 }
 
-// WithMapFile returns any errors on reading the file.
-// If the mapFile is empty, it does nothing and returns nil.
+// WithMapFile returns any errors on reading the file. If the mapFile is empty,
+// it does nothing and returns nil.
 func WithMapFile(mapFile string) Conf {
 	return func(c *Config) error {
 		if mapFile == "" {
