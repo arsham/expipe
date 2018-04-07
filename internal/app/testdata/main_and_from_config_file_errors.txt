@@ -33,7 +33,6 @@ readers:
     my_app: # service name
         type: expvar
         endpoint: localhost:1234
-        routepath: /debug/vars
         type_name: my_app
         map_file: maps.yml
         interval: 500ms
@@ -55,7 +54,6 @@ readers:
     my_app: # service name
         type: expvar
         endpoint: localhost:1234
-        routepath: /debug/vars
         type_name: my_app
         map_file: maps.yml
         interval: 500ms

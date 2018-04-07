@@ -1,26 +1,24 @@
 settings:
-    log_level: info
+    log_level: warn
 
 readers:
     my_app:                         # service name
         type: expvar
-        endpoint: localhost:1234
-        routepath: /debug/vars
+        endpoint: localhost:1234/debug/vars
         type_name: my_app
         map_file: maps.yml
-        interval: 2s
+        interval: 500ms
         timeout: 3s
     my_app2:                        # service name
         type: expvar
-        endpoint: localhost:1235
-        routepath: /debug/vars
+        endpoint: localhost:1235/debug/vars
         type_name: my_ap2
-        interval: 2s
+        interval: 500ms
         timeout: 13s
     self:                           # expipe's self metric
         type: self                  # only used for this reason
         type_name: expipe
-        interval: 2s
+        interval: 500ms
 
 recorders:
     elastic1:                       # service name

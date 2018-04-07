@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0-rc1
+## Release Candidate 1
+- Removes backoff values.
+- Tested nil values in MapConvert (fixes #28)
+- Separate a part of the Main function to able to test it
+- Generates an up-to-date version of kibana config file.
+
 ## v0.11.0
 ### Reshaping the Engine
 - Changed the behaviour of the Engine to have one reader to multiple recorders. (fixes #32)

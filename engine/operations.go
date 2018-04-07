@@ -97,7 +97,6 @@ func dispatchRecord(ctx context.Context, log tools.FieldLogger, rec recorder.Dat
 				return
 			}
 			waitingRecordJobs.Add(1)
-			defer waitingRecordJobs.Add(-1)
 			job := recorder.Job{
 				ID:        result.ID,
 				Payload:   payload,
@@ -107,8 +106,10 @@ func dispatchRecord(ctx context.Context, log tools.FieldLogger, rec recorder.Dat
 			}
 			err = rec.Record(ctx, job)
 			if err != nil {
+				waitingRecordJobs.Add(-1)
 				log.Errorf("record error: %v", err)
 			}
+			waitingRecordJobs.Add(-1)
 			recordJobs.Add(1)
 		case <-ctx.Done():
 		}

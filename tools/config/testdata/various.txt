@@ -102,7 +102,6 @@ readers:
         type: expvar
         type_name: expvar_type
         endpoint: http://localhost
-        routepath: /debug/vars
         interval: 2s
         timeout: 3s
         log_level: info

@@ -26,25 +26,23 @@ Here an example configuration, save it somewhere (let's call it expipe.yml for n
 settings:
     log_level: info
 
-readers:                           # You can specify the applications you want to show the metrics
-    FirstApp:                      # service name
-        type: expvar               # the type of reader. More to come soon!
-        type_name: AppVastic       # this will be the _type in elasticsearch
-        endpoint: localhost:1234   # where the application
-        routepath: /debug/vars     # the endpoint that app provides the metrics
-        interval: 500ms            # every half a second, it will collect the metrics.
-        timeout: 3s                # in 3 seconds it gives in if the application is not responsive
+readers:                                      # You can specify the applications you want to show the metrics
+    FirstApp:                                 # service name
+        type: expvar                          # the type of reader. More to come soon!
+        type_name: AppVastic                  # this will be the _type in elasticsearch
+        endpoint: localhost:1234/debug/vars   # where the application exposes the metrics
+        interval: 500ms                       # every half a second, it will collect the metrics.
+        timeout: 3s                           # in 3 seconds it gives in if the application is not responsive
     AnotherApplication:
         type: expvar
         type_name: this_is_awesome
-        endpoint: localhost:1235
-        routepath: /metrics
+        endpoint: localhost:1235/metrics
         interval: 500ms
         timeout: 13s
 
-recorders:                         # This section is where the data will be shipped to
+recorders:                                    # This section is where the data will be shipped to
     main_elasticsearch:
-        type: elasticsearch        # the type of recorder. More to come soon!
+        type: elasticsearch                   # the type of recorder. More to come soon!
         endpoint: 127.0.0.1:9200
         index_name: expipe
         timeout: 8s
